@@ -104,7 +104,9 @@ HTML = r"""<!DOCTYPE html>
   #tableView{display:none;padding:18px 20px;overflow:auto;height:calc(100vh - 188px)}
   table{border-collapse:collapse;width:100%;font-size:13px}
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none}
+  th:hover{background:var(--panel2)}
+  th.sorted{background:var(--panel2);color:var(--gold)}
   tr:hover td{background:var(--panel2);cursor:pointer}
   .star{color:var(--gold)}
   .foot{font-size:11px;color:var(--muted);padding:6px 20px}
@@ -468,13 +470,51 @@ document.getElementById('expandAll').onclick=expandAll;
 
 // ---------- table view ----------
 let currentView='graph';
+let tableSort={key:'year', dir:1};   // 默认按年份升序；dir=1 升序 / -1 降序
+const TABLE_COLS=[
+  ['year','年份'],['title_zh','游戏（中）'],['title','游戏（英）'],
+  ['genre','类型'],['developer','开发商'],['rating','评分'],['goty','GOTY']
+];
+function _sortVal(n,key){
+  const r=n.raw;
+  switch(key){
+    case 'year':      return (typeof r.year==='number')? r.year : null;
+    case 'title_zh':  return (r.title_zh||'').toString();
+    case 'title':     return (r.title||'').toString();
+    case 'genre':     return (r.genres&&r.genres.length)? r.genres.join('、') : (r.genre||'');
+    case 'developer': return r.developer||'';
+    case 'rating':    { const v=r.player_rating; return (v===''||v==null)? null : Number(v); }
+    case 'goty':      return r.is_goty?1:0;
+  }
+  return '';
+}
+function sortTable(key){
+  if(tableSort.key===key){ tableSort.dir*=-1; }
+  else { tableSort.key=key; tableSort.dir = (key==='rating')? -1 : 1; }  // 评分默认从高到低
+  buildTable();
+}
 function buildTable(){
   // 仅纳入当前筛选命中的游戏节点（与图谱共用 filterVisibleSet）
-  const rows=GRAPH.nodes.filter(n=>(n.group==='game'||n.group==='goty') && filterVisibleSet.has(n.id))
-    .sort((a,b)=>a.raw.year-b.raw.year);
-  let h=`<table><thead><tr><th>年份</th><th>游戏（中）</th><th>游戏（英）</th><th>类型</th><th>开发商</th><th>评分</th><th>GOTY</th></tr></thead><tbody>`;
+  const rows=GRAPH.nodes.filter(n=>(n.group==='game'||n.group==='goty') && filterVisibleSet.has(n.id));
+  const k=tableSort.key, dir=tableSort.dir;
+  rows.sort((a,b)=>{
+    const va=_sortVal(a,k), vb=_sortVal(b,k);
+    const an=(va===null), bn=(vb===null);
+    if(an&&bn) return 0;
+    if(an) return 1;            // 缺失值恒排末尾
+    if(bn) return -1;
+    let c = (typeof va==='number'&&typeof vb==='number') ? (va-vb)
+            : String(va).localeCompare(String(vb),'zh');
+    return c*dir;
+  });
+  const head=TABLE_COLS.map(([key,label])=>{
+    const active=tableSort.key===key;
+    const arrow=active? (dir===1?' ▲':' ▼') : '';
+    return `<th class="${active?'sorted':''}" onclick="sortTable('${key}')">${label}${arrow}</th>`;
+  }).join('');
+  let h=`<table><thead><tr>${head}</tr></thead><tbody>`;
   if(rows.length===0){
-    h+=`<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">无匹配结果，请调整左侧筛选条件</td></tr>`;
+    h+=`<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;color:#888;padding:24px">无匹配结果，请调整左侧筛选条件</td></tr>`;
   } else {
     rows.forEach(n=>{const r=n.raw;
       h+=`<tr onclick="selectNode('${n.id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc((r.genres&&r.genres.length)?r.genres.join('、'):r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});
