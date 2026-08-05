@@ -9,7 +9,7 @@
 from .config import MLConfig
 from .io_utils import (
     load_graph, ensure_out, DEFAULT_GRAPH_PATH, DEFAULT_OUT_DIR,
-    game_nodes, genre_names, studio_names, build_game_graph,
+    game_nodes, genre_names, studio_names, build_game_graph, build_full_nx,
 )
 
 
@@ -24,6 +24,8 @@ class PipelineContext:
         self.genre_names = genre_names(self.graph, self.config.design_dims)
         self.studio_names = studio_names(self.graph)
         self.GG = build_game_graph(self.graph, self.config)
+        # 完整异构图（游戏/工作室/类型/奖项 混合节点）：供随机游走嵌入与个性化 PageRank 使用
+        self.G_full = build_full_nx(self.graph)
 
         self.artifacts: dict = {}
         self.report: list = []

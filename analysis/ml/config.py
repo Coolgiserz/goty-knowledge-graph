@@ -39,16 +39,16 @@ class ClusterConfig:
 
 @dataclass
 class CommunityConfig:
-    """社区发现（可插拔：louvain | infomap）。
+    """社区发现（可插拔：louvain | infomap | walktrap）。
 
     method 选择主方法（注册表键，见 community.py）；
-    Infomap 作为补充方法始终尝试（若已安装 infomap 包），
-    二者在报告中并列对照（Map Equation 编码长度 L vs 模块度 Q）。
+    Infomap 与 Walktrap 作为补充方法始终尝试（依赖免费），三者并列对照。
     """
-    method: str = "louvain"          # 主方法：louvain | infomap
+    method: str = "louvain"          # 主方法：louvain | infomap | walktrap
     resolution: float = 1.0          # Louvain 分辨率（越大社区越碎）
     seed: int = 42
     num_trials: int = 20             # Infomap 随机游走重复次数（越多越稳定）
+    walktrap_steps: int = 4          # Walktrap 随机游走步数（越大越全局）
 
 
 @dataclass
@@ -65,6 +65,32 @@ class HotspotConfig:
 
 
 @dataclass
+class RandomWalkConfig:
+    """异构随机游走嵌入（用于工作室风格空间与图嵌入）。
+
+    在完整异构图（游戏↔类型↔工作室↔奖项）上做截断随机游走，
+    统计游戏节点共现 -> 共现矩阵(log1p) -> TruncatedSVD 降维得到游戏嵌入。
+    随机游走捕捉二阶/多跳邻近性，比直接共享类型(最短路径)更贴近直觉。
+    """
+    num_walks: int = 25          # 每个游戏节点起始的游走次数
+    walk_len: int = 40           # 每次游走步数
+    window: int = 5              # 共现上下文窗口
+    embed_dim: int = 24          # SVD 嵌入维度
+    seed: int = 42
+
+
+@dataclass
+class GotyAffinityConfig:
+    """GOTY 品味网络（个性化随机游走 / Personalized PageRank）。
+
+    从全部 GOTY 获奖作(种子)做个性化 PageRank，衡量非获奖作/工作室
+    与「年度最佳品味」的亲和度，得到「喜欢 GOTY 的人也会喜欢…」推荐。
+    """
+    alpha: float = 0.85           # PageRank 阻尼系数
+    top_n: int = 10               # 推荐/榜单展示条数
+
+
+@dataclass
 class MLConfig:
     """总配置。"""
     design_dims: frozenset = frozenset({"开放世界", "多人合作", "在线"})
@@ -73,4 +99,6 @@ class MLConfig:
     cluster: ClusterConfig = field(default_factory=ClusterConfig)
     community: CommunityConfig = field(default_factory=CommunityConfig)
     hotspot: HotspotConfig = field(default_factory=HotspotConfig)
+    random_walk: RandomWalkConfig = field(default_factory=RandomWalkConfig)
+    goty_affinity: GotyAffinityConfig = field(default_factory=GotyAffinityConfig)
     random_state: int = 42

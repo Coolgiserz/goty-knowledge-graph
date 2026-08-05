@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.manifold import MDS
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans, AgglomerativeClustering
@@ -266,20 +266,28 @@ class CommunityAnalyzer(Analyzer):
             res.write(f"| C{c['community']} | {c['size']} | {goty} | {c['representative']} | {topg} |")
         res.write(f"\n![社区图]({PNG['community']})\n")
 
-        # ---- Infomap 作为补充方法（主方法非 infomap 时始终尝试，避免与主方法重复）----
+        # ---- 补充方法：Infomap 与 Walktrap（随机游走视角），始终尝试以做交叉验证 ----
+        compare = [(method_label, ncomm, info)]
         im_info = self._maybe_infomap(ctx, res, cfg) if cfg.method != "infomap" else None
         if im_info is not None:
+            compare.append(("infomap", im_info["n_communities"], im_info))
+        wt_info = self._maybe_walktrap(ctx, res, cfg) if cfg.method != "walktrap" else None
+        if wt_info is not None:
+            compare.append(("walktrap", wt_info["n_communities"], wt_info))
+
+        if len(compare) > 1:
             res.write(
-                "\n**主方法与 Infomap（Map Equation）对照：**\n",
+                "\n**主方法与随机游走方法（Infomap / Walktrap）对照：**\n",
                 "| 方法 | 社区数 | 模块度 Q | 编码长度 L |",
                 "|---|---|---|---|",
-                f"| {method_label}（主） | {ncomm} | {info.get('modularity','—')} | {info.get('codelength','—')} |",
-                f"| infomap | {im_info['n_communities']} | {im_info.get('modularity','—')} | {im_info.get('codelength','—')} |",
-                "\n> **Infomap** 基于**地图方程（Map Equation）**：在图上模拟随机游走，"
-                "求能使信息流被最短平均编码的模块划分；天然支持层级结构、无需 resolution 调参。"
-                "其质量指标是**编码长度 L**（越小越好），与模块度 Q 视角不同、可互为印证。"
-                "二者社区数接近说明「玩法家族」结构稳健。\n",
-                f"![Infomap 社区图]({PNG['community_infomap']})\n",
+            )
+            for name, nc, inf in compare:
+                res.write(f"| {name} | {nc} | {inf.get('modularity','—')} | {inf.get('codelength','—')} |")
+            res.write(
+                "\n> **Infomap** 基于**地图方程（Map Equation）**：图上模拟随机游走，求让信息流最短平均编码的划分，"
+                "质量指标为**编码长度 L**（越小越好），天然支持层级、无需 resolution 调参。"
+                "**Walktrap** 同样基于随机游走：用「游走到平稳所需步数」定义节点距离再做层次聚并，按模块度 Q 取最优切分。"
+                "三种独立方法社区数接近，说明「玩法家族」结构稳健。\n",
             )
         return res
 
@@ -316,6 +324,40 @@ class CommunityAnalyzer(Analyzer):
             topg = "、".join(f"{gn}({v})" for gn, v in c["top_genres"][:5])
             goty = "、".join(c["goty_members"]) or "—"
             res.write(f"| C{c['community']} | {c['size']} | {goty} | {c['representative']} | {topg} |")
+        return info
+
+    @staticmethod
+    def _maybe_walktrap(ctx, res, cfg):
+        """尝试用 Walktrap（随机游走社区发现）探测并写报告；不可用/失败时返回 None。"""
+        try:
+            from .community import WalktrapDetector
+        except Exception:
+            return None
+        try:
+            GG = ctx.GG
+            node2comm, info = WalktrapDetector().detect(GG, cfg)
+        except Exception as e:
+            res.write(f"\n> 注：Walktrap 探测失败（{e}），已跳过。\n")
+            return None
+        prof = CommunityAnalyzer._profile(ctx, node2comm)
+        prof.sort(key=lambda x: -x["size"])
+        comm_df = pd.DataFrame([{"game_id": nid, "community": c}
+                                for nid, c in node2comm.items()])
+        res.add("communities_walktrap", comm_df)
+        res.add("community_map_walktrap", node2comm)
+        res.add("community_profile_walktrap",
+                {"method": "walktrap", "n_communities": info["n_communities"],
+                 "quality": info, "profiles": prof})
+        res.write(
+            "\n**Walktrap 社区（玩法家族，按规模）：**\n",
+            "| 社区 | 规模 | 年度最佳成员 | 代表游戏 | 主导玩法类型 |",
+            "|---|---|---|---|---|",
+        )
+        for c in prof:
+            topg = "、".join(f"{gn}({v})" for gn, v in c["top_genres"][:5])
+            goty = "、".join(c["goty_members"]) or "—"
+            res.write(f"| C{c['community']} | {c['size']} | {goty} | {c['representative']} | {topg} |")
+        res.write(f"\n![Walktrap 社区图]({PNG['community_walktrap']})\n")
         return info
 
     @staticmethod
@@ -501,40 +543,24 @@ class StudioStyleAnalyzer(Analyzer):
         cfg = ctx.config
         studio_name = ctx.studio_names
 
-        # ---- 以「图谱距离」为底座定义工作室相似度（图/社团距离视角）----
-        # 不再用手工因子向量，而是直接测量两家工作室在「游戏-游戏相似投影图」上的距离：
-        # GG 中两款游戏若共享玩法类型则连边，边权=共享类型数（同工作室再加权）。
-        # 工作室距离 = 其游戏集合之间的图最短路径距离（平均最近邻）；越近=风格越接近。
-        # 这条距离天然蕴含社区结构（同「玩法家族」的游戏在图上更近），正是图/社团距离视角。
-        GG = ctx.GG
-        gd = nx.Graph()
-        for u, v, d in GG.edges(data=True):
-            w = float(d.get("weight", 0.0))
-            gd.add_edge(u, v, weight=1.0 / (1.0 + w))   # 共享类型越多 -> 边距离越小
-        Dmap = {src: dists for src, dists in nx.shortest_path_length(gd, weight="weight")}
+        # ---- 基于「图谱上的随机游走」定义工作室相似度（图/社团距离视角）----
+        # 在完整异构图（游戏↔类型↔工作室↔奖项）上做随机游走，统计游戏节点共现；
+        # 共现矩阵 -> SVD 降维得到「游戏嵌入」，工作室 = 其游戏嵌入的均值。
+        # 随机游走能捕捉**二阶/多跳邻近性**（经由共享类型/工作室间接相连），
+        # 比直接共享类型（最短路径）或手工因子（PCA）更贴近直觉。
+        emb, gi = self._rw_game_embeddings(ctx)
 
-        def gdist(a, b):
-            return Dmap.get(a, {}).get(b, 2.0)            # 不连通兜底
-
-        games_of = defaultdict(list)
-        for gid, did in zip(df["game_id"], df["developer_id"]):
-            games_of[did].append(gid)
-        studio_ids = sorted(games_of.keys())
+        # 工作室 = 其游戏嵌入的均值；未出现在共现中的游戏用零向量兜底
+        by_studio = defaultdict(list)
+        for n in ctx.games:
+            gid = n["id"]
+            vec = emb[gi[gid]] if gid in gi else np.zeros(emb.shape[1])
+            by_studio[n["raw"]["developer_id"]].append(vec)
+        studio_ids = sorted(by_studio.keys())
         n_stu = len(studio_ids)
-
-        # 工作室间图距离 = 双向平均最近邻距离
-        D = np.zeros((n_stu, n_stu))
-        for i, A in enumerate(studio_ids):
-            ga = games_of[A]
-            for j, B in enumerate(studio_ids):
-                if i == j:
-                    continue
-                gb = games_of[B]
-                d1 = np.mean([min(gdist(x, y) for y in gb) for x in ga])
-                d2 = np.mean([min(gdist(y, x) for x in ga) for y in gb])
-                D[i, j] = 0.5 * (d1 + d2)
-        # 转为相似度（连续、有界）：sim = 1/(1+距离)
-        sim = 1.0 / (1.0 + D)
+        S = np.array([np.mean(by_studio[d], axis=0) for d in studio_ids])
+        # 余弦相似度（方向一致即风格接近，与作品数量无关）
+        sim = cosine_similarity(S)
         np.fill_diagonal(sim, 1.0)
 
         # 主导社区（用于着色/分组）：取自第三节社区发现（同一套社区划分）
@@ -575,7 +601,7 @@ class StudioStyleAnalyzer(Analyzer):
         style_df = pd.DataFrame({
             "studio_id": studio_ids,
             "studio": [studio_name.get(s, s) for s in studio_ids],
-            "n_games": [len(games_of[s]) for s in studio_ids],
+            "n_games": [len(by_studio[s]) for s in studio_ids],
             "dominant_community": dom_comm,
             "dominant_community_label": [comm_label[c] for c in dom_comm],
             "style_x": coords[:, 0], "style_y": coords[:, 1],
@@ -608,12 +634,14 @@ class StudioStyleAnalyzer(Analyzer):
                  "groups": group_rows})
 
         res.write(
-            "\n## 五、开发商游戏风格相似性（基于图谱距离）\n",
-            "本节不再用手工因子向量，而是**直接从「游戏-游戏相似投影图 GG」测量距离**——"
-            "两家工作室风格是否接近，看它们做的游戏在图上离得近不近。\n",
-            "**方法**：GG 中两款游戏若共享玩法类型则连边（边权 = 共享类型数），距离 = 1/(1+边权)；"
-            "工作室距离 = 其游戏集合之间的**图最短路径距离**（双向平均最近邻，越近=风格越接近）；"
-            "相似度 = 1/(1+距离)，连续有界。这条距离天然蕴含第三节的社区结构——同「玩法家族」的游戏在图上更近。\n",
+            "\n## 五、开发商游戏风格相似性（基于图谱随机游走）\n",
+            "本节不再用手工因子向量，而是**直接在图谱上做随机游走**来度量风格接近度——"
+            "两家工作室风格是否接近，看它们做的游戏在随机游走中是否常被「一起走到」。\n",
+            "**方法**：在完整异构图（游戏↔类型↔工作室↔奖项）上跑截断随机游走，"
+            "统计游戏节点共现 → 共现矩阵(log1p)经 **SVD 降维**得到「游戏嵌入」；"
+            "工作室 = 其游戏嵌入的均值，再用**余弦相似度**衡量风格接近度。"
+            "随机游走能捕捉**二阶/多跳邻近性**（经由共享类型/同工作室间接相连），"
+            "比直接共享类型（最短路径）更贴近直觉，也天然蕴含第三节的社区结构。\n",
             f"共 **{n_stu} 家**工作室，按**主导玩法家族社区**归并为 **{len(group_rows)} 组**：\n",
             "| 主导玩法家族（社区） | 规模 | 成员工作室 |",
             "|---|---|---|",
@@ -621,20 +649,65 @@ class StudioStyleAnalyzer(Analyzer):
         for g in group_rows:
             res.write(f"| {g['label']} | {g['size']} | {'、'.join(g['studios'])} |")
         res.write(
-            "\n**图距离最近的工作室对（Top8，相似度=1/(1+图距离)）：**\n",
-            "| 工作室 A | 工作室 B | 相似度 | 图距离 |",
-            "|---|---|---|---|",
+            "\n**随机游走共现最近的工作室对（Top8，余弦相似度）：**\n",
+            "| 工作室 A | 工作室 B | 余弦相似度 |",
+            "|---|---|---|",
         )
         for a, b, s in res.artifacts["studio_style_summary"]["top_pairs"]:
-            res.write(f"| {a} | {b} | {s:.3f} | {1.0/s - 1.0:.2f} |")
+            res.write(f"| {a} | {b} | {s:.3f} |")
         res.write(
-            f"\n> 注：相似度来自「游戏-游戏图」的**最短路径距离**，而非手工特征——这与第二节的图谱、第三节的社区发现共用同一图结构。"
-            "散点用 **MDS 嵌入该图距离矩阵**，故「点越近≈图距离越近≈风格越接近」；颜色=主导玩法家族社区。"
-            "相似度取值 0~1（1=同一工作室的游戏几乎全连通、距离为 0）。\n",
-            f"![工作室风格相似度（图谱距离）]({PNG['studio_sim']})\n",
-            f"![工作室风格散点（图谱距离 MDS）]({PNG['studio_style_scatter']})\n",
+            f"\n> 注：相似度来自「完整异构图上的随机游走共现 + SVD 嵌入」的**余弦相似度**，而非手工特征——"
+            "这与第二节的图谱、第三节的社区发现共用同一图结构。散点用 **MDS 嵌入该相似度矩阵**，"
+            "故「点越近≈余弦相似度越高≈风格越接近」；颜色=主导玩法家族社区。相似度取值 -1~1（1=同风格）。\n",
+            f"![工作室风格相似度（随机游走共现）]({PNG['studio_sim']})\n",
+            f"![工作室风格散点（随机游走嵌入 MDS）]({PNG['studio_style_scatter']})\n",
         )
         return res
+
+    @staticmethod
+    def _rw_game_embeddings(ctx: PipelineContext):
+        """在完整异构图 G_full 上做截断随机游走，得到游戏节点的低维嵌入。
+
+        返回 (emb, gi)：emb 是 N×dim 矩阵（按共现中出现顺序），gi 是 game_id->行号。
+        只在「游戏」节点上累积共现（类型/工作室/奖项节点作为桥接）。
+        """
+        Gfull = ctx.G_full
+        games = ctx.games
+        gids = [n["id"] for n in games]
+        gset = set(gids)
+        gindex = {gid: i for i, gid in enumerate(gids)}
+        rw = ctx.config.random_walk
+        rng = np.random.default_rng(rw.seed)
+        neighbors = {n: list(Gfull.neighbors(n)) for n in Gfull.nodes()}
+        co = defaultdict(lambda: defaultdict(int))
+        for start in gids:
+            for _ in range(rw.num_walks):
+                cur = start
+                walk = [cur]
+                for _ in range(rw.walk_len):
+                    nbrs = neighbors[cur]
+                    if not nbrs:
+                        break
+                    cur = nbrs[rng.integers(len(nbrs))]
+                    walk.append(cur)
+                WIN = rw.window
+                for a in range(len(walk)):
+                    if walk[a] not in gindex:
+                        continue
+                    for b in range(max(0, a - WIN), min(len(walk), a + WIN + 1)):
+                        if b == a or walk[b] not in gindex:
+                            continue
+                        co[walk[a]][walk[b]] += 1
+        game_ids = list(co.keys())
+        gi = {gid: i for i, gid in enumerate(game_ids)}
+        M = np.zeros((len(game_ids), len(game_ids)))
+        for a, d in co.items():
+            for b, c in d.items():
+                M[gi[a], gi[b]] = c
+        M = M + M.T
+        emb = TruncatedSVD(n_components=rw.embed_dim, random_state=rw.seed
+                           ).fit_transform(np.log1p(M))
+        return emb, gi
 
 
 # ==========================================================================
@@ -735,5 +808,99 @@ class GotyProfileAnalyzer(Analyzer):
             "d 偏向刻画「获奖作相对全体的偏移」而非因果。\n",
             f"![GOTY 区分因子]({PNG['goty_distinguish']})\n",
             f"![类型Over-index]({PNG['goty_genre']})\n",
+        )
+        return res
+
+
+# ==========================================================================
+# GOTY 品味网络（个性化随机游走 / Personalized PageRank）
+# ==========================================================================
+@Analyzer.register
+class GotyAffinityAnalyzer(Analyzer):
+    name = "goty_affinity"
+
+    def analyze(self, ctx: PipelineContext) -> AnalyzerResult:
+        res = AnalyzerResult()
+        cfg = ctx.config.goty_affinity
+        Gfull = ctx.G_full
+        studio_name = ctx.studio_names
+        games = ctx.games
+        byid = {n["id"]: n for n in games}
+
+        # 种子 = 全部 GOTY 获奖作；在完整异构图做个性化 PageRank
+        goty_ids = [n["id"] for n in games if n["raw"].get("is_goty")]
+        seeds = set(goty_ids)
+        pers = {gid: 1.0 / len(goty_ids) for gid in goty_ids}
+        try:
+            pr = nx.pagerank(Gfull, personalization=pers, alpha=cfg.alpha, max_iter=300)
+        except Exception as e:
+            res.write(f"\n> 注：GOTY 品味网络计算失败（{e}），已跳过。\n")
+            return res
+
+        # 非 GOTY 作品按亲和力排序 -> “喜欢 GOTY 的人还会喜欢…” 推荐
+        rec = []
+        for n in games:
+            if n["id"] in seeds:
+                continue
+            rec.append({
+                "game_id": n["id"],
+                "title_zh": n["raw"].get("title_zh") or n["raw"].get("title"),
+                "studio": studio_name.get(n["raw"].get("developer_id"), n["raw"].get("developer")),
+                "is_goty": False,
+                "affinity": round(float(pr.get(n["id"], 0.0)), 5),
+            })
+        rec.sort(key=lambda x: -x["affinity"])
+        top_games = rec[:cfg.top_n]
+
+        # 工作室级亲和力（其全部游戏亲和力之和）
+        sp = defaultdict(float)
+        for n in games:
+            sp[n["raw"].get("developer_id")] += float(pr.get(n["id"], 0.0))
+        top_studios = [{"studio": studio_name.get(d, d), "affinity": round(v, 5)}
+                       for d, v in sorted(sp.items(), key=lambda kv: -kv[1])[:cfg.top_n]]
+
+        # 种子自身亲和力（用于对照）
+        seed_scores = [{"title_zh": byid[gid]["raw"].get("title_zh") or byid[gid]["raw"].get("title"),
+                       "studio": studio_name.get(byid[gid]["raw"].get("developer_id"),
+                                                 byid[gid]["raw"].get("developer")),
+                       "affinity": round(float(pr.get(gid, 0.0)), 5)}
+                      for gid in goty_ids]
+
+        summary = {
+            "n_seeds": len(goty_ids),
+            "alpha": cfg.alpha,
+            "top_games": top_games,
+            "top_studios": top_studios,
+            "seed_scores": seed_scores,
+        }
+        rec_df = pd.DataFrame(top_games)
+        std_df = pd.DataFrame(top_studios)
+        res.add("goty_affinity", rec_df)
+        res.add("goty_affinity_studios", std_df)
+        res.add("goty_affinity_summary", summary)
+
+        res.write(
+            "\n## 七、GOTY 品味网络（个性化随机游走）\n",
+            "把**全部年度最佳（GOTY）获奖作**作为种子，在完整异构图（游戏↔类型↔工作室↔奖项）上做"
+            "**个性化 PageRank**（随机游走以一定概率回到 GOTY 种子）。某节点得分越高，"
+            "代表它在「年度最佳品味」网络中越中心——等于回答“**喜欢 GOTY 的人，还会喜欢谁**”。\n",
+            f"种子共 **{len(goty_ids)}** 款；排除种子后，亲和力最高的非 GOTY 作品 Top{cfg.top_n}：\n",
+            "| 排名 | 游戏 | 工作室 | 亲和力 |",
+            "|---|---|---|---|",
+        )
+        for i, r in enumerate(top_games, 1):
+            res.write(f"| {i} | {r['title_zh']} | {r['studio']} | {r['affinity']:.4f} |")
+        res.write(
+            "\n**工作室亲和力 Top（其全部作品得分之和）：**\n",
+            "| 排名 | 工作室 | 亲和力 |",
+            "|---|---|---|",
+        )
+        for i, s in enumerate(top_studios, 1):
+            res.write(f"| {i} | {s['studio']} | {s['affinity']:.4f} |")
+        res.write(
+            f"\n> 解读：这是从「GOTY 视角」出发的推荐网络，天然浮现每家获奖作的「同门兄弟」"
+            "（如 Bethesda 的辐射系列、CDPR 的赛博朋克、Rockstar 的 RDR/GTA）。"
+            "它与第三节的社区发现、第五节的工作室风格同源于一张图，但视角从「结构划分」转为「以 GOTY 为中心的影响力传播」。\n",
+            f"![GOTY 品味网络·推荐]({PNG['goty_affinity']})\n",
         )
         return res

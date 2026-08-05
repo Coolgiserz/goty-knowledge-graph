@@ -202,6 +202,20 @@ class CommunityInfomapViz(Visualizer):
                                self.filename)
 
 
+@Visualizer.register
+class CommunityWalktrapViz(Visualizer):
+    name = "community_walktrap"
+    filename = PNG["community_walktrap"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        node2comm = ctx.get("community_map_walktrap")
+        if node2comm is None:
+            return None
+        return _draw_community(ctx, node2comm,
+                               "社区发现：游戏玩法家族（Walktrap / 随机游走，★=年度最佳，色=社区）",
+                               self.filename)
+
+
 def _draw_community(ctx: PipelineContext, node2comm: dict, title: str, filename: str) -> str:
     """社区网络图：只在权重>=2 的边上绘制，避免巨型团糊成一团。"""
     GG = ctx.GG
@@ -304,7 +318,7 @@ class StudioSimilarityViz(Visualizer):
                 v = M[i, j]
                 ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6,
                         color="white" if v > 0.55 else "black")
-        ax.set_title("开发商风格相似度（基于游戏-游戏图距离）")
+        ax.set_title("开发商风格相似度（随机游走共现 / 游戏嵌入余弦）")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         return _save(fig, self.filename, ctx.out_dir)
 
@@ -329,7 +343,7 @@ class StudioStyleScatterViz(Visualizer):
         for _, r in df.iterrows():
             ax.annotate(r["studio"], (r["style_x"], r["style_y"]), fontsize=7,
                         xytext=(4, 3), textcoords="offset points")
-        ax.set_xlabel("风格 MDS-1（基于图谱距离）"); ax.set_ylabel("风格 MDS-2（基于图谱距离）")
+        ax.set_xlabel("风格 MDS-1（随机游走嵌入）"); ax.set_ylabel("风格 MDS-2（随机游走嵌入）")
         ax.set_title("开发商风格空间（点=工作室，色=主导玩法家族；两点越近=风格越接近）")
         ax.legend(fontsize=8, loc="best")
         ax.grid(alpha=0.3)
@@ -384,5 +398,28 @@ class GotyGenreViz(Visualizer):
         ax.set_xlabel("类型 Over-index = GOTY 中占比 / 全体占比（≥1 即 GOTY 偏爱）")
         ax.set_title("GOTY 偏爱的玩法类型（Over-index Top12）")
         ax.invert_yaxis()
+        ax.grid(alpha=0.3, axis="x")
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class GotyAffinityViz(Visualizer):
+    name = "goty_affinity"
+    filename = PNG["goty_affinity"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        summary = ctx.get("goty_affinity_summary")
+        if summary is None:
+            return None
+        top = summary["top_games"][:10][::-1]  # 横向条形，最大在上
+        labels = [f"{r['title_zh']}（{r['studio']}）" for r in top]
+        vals = [r["affinity"] for r in top]
+        fig, ax = plt.subplots(figsize=(10, 6.5))
+        ax.barh(range(len(top)), vals, color="#e8a33d")
+        ax.set_yticks(range(len(top))); ax.set_yticklabels(labels, fontsize=8)
+        for i, v in enumerate(vals):
+            ax.text(v + max(vals) * 0.01, i, f"{v:.4f}", va="center", fontsize=7)
+        ax.set_xlabel("GOTY 亲和力（个性化 PageRank 得分）")
+        ax.set_title("喜欢 GOTY 的人还会喜欢…（非 GOTY 作品 Top10）")
         ax.grid(alpha=0.3, axis="x")
         return _save(fig, self.filename, ctx.out_dir)

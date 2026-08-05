@@ -1,0 +1,220 @@
+{
+  "n_seeds": 20,
+  "alpha": 0.85,
+  "top_games": [
+    {
+      "game_id": "game_021",
+      "title_zh": "辐射3",
+      "studio": "贝塞斯达游戏工作室",
+      "is_goty": false,
+      "affinity": 0.00527
+    },
+    {
+      "game_id": "game_022",
+      "title_zh": "辐射4",
+      "studio": "贝塞斯达游戏工作室",
+      "is_goty": false,
+      "affinity": 0.00527
+    },
+    {
+      "game_id": "game_076",
+      "title_zh": "神界2：龙刃",
+      "studio": "拉瑞安工作室",
+      "is_goty": false,
+      "affinity": 0.00506
+    },
+    {
+      "game_id": "game_071",
+      "title_zh": "赛博朋克2077",
+      "studio": "CD Projekt Red",
+      "is_goty": false,
+      "affinity": 0.00502
+    },
+    {
+      "game_id": "game_073",
+      "title_zh": "赛博朋克2077：往日之影",
+      "studio": "CD Projekt Red",
+      "is_goty": false,
+      "affinity": 0.00502
+    },
+    {
+      "game_id": "game_106",
+      "title_zh": "暗黑破坏神IV",
+      "studio": "暴雪娱乐",
+      "is_goty": false,
+      "affinity": 0.00494
+    },
+    {
+      "game_id": "game_027",
+      "title_zh": "侠盗猎车手III",
+      "studio": "Rockstar 游戏",
+      "is_goty": false,
+      "affinity": 0.0045
+    },
+    {
+      "game_id": "game_028",
+      "title_zh": "侠盗猎车手：罪恶都市",
+      "studio": "Rockstar 游戏",
+      "is_goty": false,
+      "affinity": 0.0045
+    },
+    {
+      "game_id": "game_029",
+      "title_zh": "侠盗猎车手：圣安地列斯",
+      "studio": "Rockstar 游戏",
+      "is_goty": false,
+      "affinity": 0.0045
+    },
+    {
+      "game_id": "game_031",
+      "title_zh": "恶霸鲁尼",
+      "studio": "Rockstar 游戏",
+      "is_goty": false,
+      "affinity": 0.0045
+    }
+  ],
+  "top_studios": [
+    {
+      "studio": "Rockstar 游戏",
+      "affinity": 0.07652
+    },
+    {
+      "studio": "贝塞斯达游戏工作室",
+      "affinity": 0.05165
+    },
+    {
+      "studio": "顽皮狗",
+      "affinity": 0.04614
+    },
+    {
+      "studio": "FromSoftware（フロムソフトウェア）",
+      "affinity": 0.04239
+    },
+    {
+      "studio": "CD Projekt Red",
+      "affinity": 0.03178
+    },
+    {
+      "studio": "暴雪娱乐",
+      "affinity": 0.03164
+    },
+    {
+      "studio": "拉瑞安工作室",
+      "affinity": 0.03119
+    },
+    {
+      "studio": "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
+      "affinity": 0.02826
+    },
+    {
+      "studio": "圣莫尼卡工作室",
+      "affinity": 0.0274
+    },
+    {
+      "studio": "Telltale游戏",
+      "affinity": 0.02701
+    }
+  ],
+  "seed_scores": [
+    {
+      "title_zh": "上古卷轴IV：湮没",
+      "studio": "贝塞斯达游戏工作室",
+      "affinity": 0.01493
+    },
+    {
+      "title_zh": "上古卷轴V：天际",
+      "studio": "贝塞斯达游戏工作室",
+      "affinity": 0.01493
+    },
+    {
+      "title_zh": "侠盗猎车手IV",
+      "studio": "Rockstar 游戏",
+      "affinity": 0.01464
+    },
+    {
+      "title_zh": "侠盗猎车手V",
+      "studio": "Rockstar 游戏",
+      "affinity": 0.01464
+    },
+    {
+      "title_zh": "荒野大镖客：救赎",
+      "studio": "Rockstar 游戏",
+      "affinity": 0.01586
+    },
+    {
+      "title_zh": "生化奇兵",
+      "studio": "非理性游戏",
+      "affinity": 0.01289
+    },
+    {
+      "title_zh": "神秘海域2：纵横四海",
+      "studio": "顽皮狗",
+      "affinity": 0.01368
+    },
+    {
+      "title_zh": "最后生还者 第二部",
+      "studio": "顽皮狗",
+      "affinity": 0.01441
+    },
+    {
+      "title_zh": "战神（2018）",
+      "studio": "圣莫尼卡工作室",
+      "affinity": 0.01375
+    },
+    {
+      "title_zh": "宇宙机器人",
+      "studio": "Asobi团队",
+      "affinity": 0.01353
+    },
+    {
+      "title_zh": "双人成行",
+      "studio": "Hazelight工作室",
+      "affinity": 0.01435
+    },
+    {
+      "title_zh": "龙腾世纪：审判",
+      "studio": "BioWare",
+      "affinity": 0.01298
+    },
+    {
+      "title_zh": "巫师3：狂猎",
+      "studio": "CD Projekt Red",
+      "affinity": 0.01463
+    },
+    {
+      "title_zh": "博德之门3",
+      "studio": "拉瑞安工作室",
+      "affinity": 0.01354
+    },
+    {
+      "title_zh": "行尸走肉（第一季）",
+      "studio": "Telltale游戏",
+      "affinity": 0.01285
+    },
+    {
+      "title_zh": "光与影：33号远征队",
+      "studio": "沙落互动",
+      "affinity": 0.01979
+    },
+    {
+      "title_zh": "只狼：影逝二度",
+      "studio": "FromSoftware（フロムソフトウェア）",
+      "affinity": 0.01365
+    },
+    {
+      "title_zh": "艾尔登法环",
+      "studio": "FromSoftware（フロムソフトウェア）",
+      "affinity": 0.01511
+    },
+    {
+      "title_zh": "塞尔达传说：旷野之息",
+      "studio": "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
+      "affinity": 0.01409
+    },
+    {
+      "title_zh": "守望先锋",
+      "studio": "暴雪娱乐",
+      "affinity": 0.0138
+    }
+  ]
+}

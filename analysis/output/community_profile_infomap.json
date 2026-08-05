@@ -1,25 +1,25 @@
 {
-  "method": "louvain",
-  "n_communities": 14,
+  "method": "infomap",
+  "n_communities": 15,
   "quality": {
-    "modularity": 0.6175,
-    "n_communities": 14
+    "codelength": 4.8924,
+    "modularity": 0.6173,
+    "n_communities": 15
   },
   "profiles": [
     {
       "community": 0,
-      "size": 17,
+      "size": 11,
       "goty_members": [
-        "战神（2018）",
-        "荒野大镖客：救赎",
         "侠盗猎车手IV",
-        "侠盗猎车手V"
+        "侠盗猎车手V",
+        "荒野大镖客：救赎"
       ],
-      "avg_rating": 90.5,
+      "avg_rating": 91.8,
       "top_genres": [
         [
           "动作冒险",
-          14
+          9
         ],
         [
           "西部动作冒险",
@@ -27,10 +27,6 @@
         ],
         [
           "侦探冒险",
-          1
-        ],
-        [
-          "未来竞速",
           1
         ],
         [
@@ -140,11 +136,11 @@
           4
         ],
         [
-          "太空角色扮演",
+          "大型多人在线角色扮演",
           1
         ],
         [
-          "大型多人在线角色扮演",
+          "太空角色扮演",
           1
         ],
         [
@@ -160,41 +156,6 @@
     },
     {
       "community": 5,
-      "size": 8,
-      "goty_members": [
-        "守望先锋"
-      ],
-      "avg_rating": 87.5,
-      "top_genres": [
-        [
-          "动作角色扮演",
-          3
-        ],
-        [
-          "英雄射击",
-          2
-        ],
-        [
-          "动作冒险",
-          1
-        ],
-        [
-          "数字卡牌",
-          1
-        ],
-        [
-          "即时战略",
-          1
-        ],
-        [
-          "大型多人在线角色扮演",
-          1
-        ]
-      ],
-      "representative": "守望先锋"
-    },
-    {
-      "community": 6,
       "size": 8,
       "goty_members": [
         "博德之门3"
@@ -221,7 +182,7 @@
       "representative": "博德之门3"
     },
     {
-      "community": 7,
+      "community": 6,
       "size": 8,
       "goty_members": [
         "艾尔登法环",
@@ -243,6 +204,41 @@
         ]
       ],
       "representative": "艾尔登法环"
+    },
+    {
+      "community": 7,
+      "size": 8,
+      "goty_members": [
+        "守望先锋"
+      ],
+      "avg_rating": 87.5,
+      "top_genres": [
+        [
+          "动作角色扮演",
+          3
+        ],
+        [
+          "英雄射击",
+          2
+        ],
+        [
+          "数字卡牌",
+          1
+        ],
+        [
+          "动作冒险",
+          1
+        ],
+        [
+          "即时战略",
+          1
+        ],
+        [
+          "大型多人在线角色扮演",
+          1
+        ]
+      ],
+      "representative": "守望先锋"
     },
     {
       "community": 8,
@@ -315,19 +311,19 @@
           1
         ],
         [
-          "银河恶魔城",
-          1
-        ],
-        [
           "生活模拟",
           1
         ],
         [
-          "3D平台跳跃",
+          "第三人称射击",
           1
         ],
         [
-          "第三人称射击",
+          "银河恶魔城",
+          1
+        ],
+        [
+          "3D平台跳跃",
           1
         ]
       ],
@@ -335,12 +331,35 @@
     },
     {
       "community": 11,
+      "size": 6,
+      "goty_members": [
+        "战神（2018）"
+      ],
+      "avg_rating": 88.0,
+      "top_genres": [
+        [
+          "动作冒险",
+          5
+        ],
+        [
+          "未来竞速",
+          1
+        ]
+      ],
+      "representative": "战神（2018）"
+    },
+    {
+      "community": 12,
       "size": 5,
       "goty_members": [
         "宇宙机器人"
       ],
       "avg_rating": 83.2,
       "top_genres": [
+        [
+          "平台跳跃",
+          1
+        ],
         [
           "3D平台跳跃",
           1
@@ -350,22 +369,18 @@
           1
         ],
         [
-          "平台跳跃",
+          "VR平台跳跃",
           1
         ],
         [
           "虚拟现实",
-          1
-        ],
-        [
-          "VR平台跳跃",
           1
         ]
       ],
       "representative": "宇宙机器人"
     },
     {
-      "community": 12,
+      "community": 13,
       "size": 4,
       "goty_members": [
         "双人成行"
@@ -388,7 +403,7 @@
       "representative": "双影奇境"
     },
     {
-      "community": 13,
+      "community": 14,
       "size": 1,
       "goty_members": [
         "光与影：33号远征队"

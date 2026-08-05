@@ -13,6 +13,8 @@ CSV_STUDIO_SIM = "studio_similarity.csv"
 CSV_STUDIO_STYLE = "studio_style.csv"
 CSV_GOTY_GENRE = "goty_genre.csv"
 CSV_COMMUNITIES_IM = "communities_infomap.csv"
+CSV_COMMUNITIES_WT = "communities_walktrap.csv"
+CSV_GOTY_AFFINITY = "goty_affinity.csv"
 
 JSON_FACTOR_DOC = "factor_doc.json"
 JSON_CLUSTER_PROFILE = "cluster_profile.json"
@@ -21,6 +23,8 @@ JSON_HOTSPOT_SUMMARY = "hotspot_summary.json"
 JSON_STUDIO_STYLE = "studio_style.json"
 JSON_GOTY_PROFILE = "goty_profile.json"
 JSON_COMMUNITY_PROFILE_IM = "community_profile_infomap.json"
+JSON_COMMUNITY_PROFILE_WT = "community_profile_walktrap.json"
+JSON_GOTY_AFFINITY = "goty_affinity.json"
 MD_REPORT = "ML_REPORT.md"
 
 # PNG 文件名（analyzer 在报告中引用，visualizer 负责生成）
@@ -31,10 +35,12 @@ PNG = {
     "cluster_profile": "cluster_profile.png",
     "community": "community_graph.png",
     "community_infomap": "community_infomap.png",
+    "community_walktrap": "community_walktrap.png",
     "hotspot": "hotspot_trend.png",
     "centrality": "centrality_top.png",
     "studio_sim": "studio_similarity_heatmap.png",
     "studio_style_scatter": "studio_style_scatter.png",
     "goty_distinguish": "goty_distinguish.png",
     "goty_genre": "goty_genre_overindex.png",
+    "goty_affinity": "goty_affinity.png",
 }

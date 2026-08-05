@@ -5,42 +5,42 @@
     [
       "贝塞斯达游戏工作室",
       "CD Projekt Red",
-      0.699
+      0.944
+    ],
+    [
+      "Rockstar 游戏",
+      "圣莫尼卡工作室",
+      0.922
+    ],
+    [
+      "贝塞斯达游戏工作室",
+      "Rockstar 游戏",
+      0.9
     ],
     [
       "贝塞斯达游戏工作室",
       "FromSoftware（フロムソフトウェア）",
-      0.686
-    ],
-    [
-      "贝塞斯达游戏工作室",
-      "暴雪娱乐",
-      0.684
+      0.899
     ],
     [
       "CD Projekt Red",
       "FromSoftware（フロムソフトウェア）",
-      0.682
+      0.864
+    ],
+    [
+      "暴雪娱乐",
+      "CD Projekt Red",
+      0.863
     ],
     [
       "贝塞斯达游戏工作室",
-      "拉瑞安工作室",
-      0.682
-    ],
-    [
       "暴雪娱乐",
-      "CD Projekt Red",
-      0.682
+      0.856
     ],
     [
+      "BioWare",
       "CD Projekt Red",
-      "拉瑞安工作室",
-      0.679
-    ],
-    [
-      "暴雪娱乐",
-      "FromSoftware（フロムソフトウェア）",
-      0.67
+      0.856
     ]
   ],
   "groups": [
@@ -55,7 +55,7 @@
     },
     {
       "community": 11,
-      "label": "3D平台跳跃、平台跳跃",
+      "label": "3D平台跳跃、增强现实",
       "studios": [
         "Asobi团队"
       ],
@@ -87,7 +87,7 @@
     },
     {
       "community": 9,
-      "label": "角色扮演、动作角色扮演",
+      "label": "动作角色扮演、动作冒险",
       "studios": [
         "CD Projekt Red"
       ],
@@ -119,7 +119,7 @@
     },
     {
       "community": 6,
-      "label": "CRPG、动作角色扮演",
+      "label": "动作角色扮演、CRPG",
       "studios": [
         "拉瑞安工作室"
       ],
@@ -127,7 +127,7 @@
     },
     {
       "community": 1,
-      "label": "动作冒险、生存恐怖",
+      "label": "动作冒险、平台跳跃",
       "studios": [
         "顽皮狗"
       ],
@@ -135,7 +135,7 @@
     },
     {
       "community": 10,
-      "label": "动作冒险、第三人称射击",
+      "label": "动作冒险、横向卷轴平台",
       "studios": [
         "任天堂企划制作本部（Nintendo Entertainment Planning & Development）"
       ],
