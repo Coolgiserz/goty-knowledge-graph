@@ -9,7 +9,7 @@ pipeline 按注册表顺序调用 analyze(ctx)，各自：
 新增一种分析只需写子类并注册，pipeline 自动串联——即「可插拔」。
 """
 import json
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 import numpy as np
 import pandas as pd
@@ -298,96 +298,135 @@ class HotspotAnalyzer(Analyzer):
     def analyze(self, ctx: PipelineContext) -> AnalyzerResult:
         res = AnalyzerResult()
         cfg = ctx.config.hotspot
-        games = ctx.games
         dd = ctx.config.design_dims
         studio_name = ctx.studio_names
-        genre_names = ctx.genre_names
-        ERAS = cfg.eras
+        games = ctx.games
 
-        def era_of(year):
-            for lo, hi, name in ERAS:
-                if lo <= year <= hi:
-                    return name
-            return None
+        # 热点 = 奖项的「品味」如何随时间变化。最干净的样本是 GOTY 获奖作本身：
+        # 每年 1 款、两半段各 10 款，固定且无「其他作品」分母偏差。
+        YEAR_LO, YEAR_HI = 2006, 2025
+        years = list(range(YEAR_LO, YEAR_HI + 1))
+        goty = [n for n in games
+                if n["raw"].get("is_goty")
+                and isinstance(n["raw"].get("year"), int)
+                and YEAR_LO <= n["raw"]["year"] <= YEAR_HI]
+        goty_sorted = sorted(goty, key=lambda n: n["raw"]["year"])
 
-        era_game_count = defaultdict(int)
-        era_genre_count = defaultdict(lambda: defaultdict(int))
-        for n in games:
-            y = n["raw"].get("year")
-            e = era_of(y)
-            if not e:
-                continue
-            era_game_count[e] += 1
-            for gn in n["raw"].get("genres", []):
-                if gn in dd:
-                    continue
-                era_genre_count[e][gn] += 1
+        # 每年 GOTY 的标签出现（1 款/年，故 0/1）
+        year_tag = {y: Counter() for y in years}
+        for n in goty_sorted:
+            for t in n["raw"].get("tiers", []):
+                year_tag[n["raw"]["year"]][t] += 1
 
+        # 关键集合：3 个设计维度 + GOTY 中高频玩法类别 Top（避免 39 子类噪声）
+        all_tag = Counter()
+        for y in years:
+            all_tag.update(year_tag[y])
+        gameplay_top = [t for t, _ in all_tag.most_common() if t not in dd][:7]
+        key_dims = [d for d in ("开放世界", "多人合作", "在线") if d in dd]
+        key_set = key_dims + gameplay_top
+
+        # 滚动 3 年占比（用于趋势图）：窗口内带该标签的 GOTY 数 ÷ 窗口年数
+        W = 3
         rows = []
-        for lo, hi, name in ERAS:
-            total = era_game_count[name]
-            for gn in genre_names:
-                cnt = era_genre_count[name].get(gn, 0)
-                rows.append({"era": name, "genre": gn, "count": cnt,
-                             "share": round(cnt / total, 4) if total else 0.0})
-        era_df = pd.DataFrame(rows)
+        for y in years:
+            ys = [yy for yy in range(y - W + 1, y + 1) if YEAR_LO <= yy <= YEAR_HI]
+            denom = len(ys)
+            for t in key_set:
+                c = sum(year_tag[yy].get(t, 0) for yy in ys)
+                rows.append({"year": y, "tag": t,
+                             "rolling_share": round(100.0 * c / denom, 1) if denom else 0.0})
+        year_df = pd.DataFrame(rows)
 
-        first, last = ERAS[0][2], ERAS[-1][2]
-        first_map = {r["genre"]: r["share"] for r in rows if r["era"] == first}
-        last_map = {r["genre"]: r["share"] for r in rows if r["era"] == last}
-        rising = []
-        for gn in genre_names:
-            diff = last_map.get(gn, 0) - first_map.get(gn, 0)
-            rising.append({"genre": gn, "first_share": first_map.get(gn, 0),
-                           "last_share": last_map.get(gn, 0), "delta": round(diff, 4)})
-        rising.sort(key=lambda x: -x["delta"])
-        rising_up = [r for r in rising if r["delta"] > 0][:10]
-        rising_down = [r for r in rising if r["delta"] < 0][:10]
+        # 时代分桶（GOTY 各时代标签计数，便于对照）
+        era_rows = []
+        for lo, hi, name in cfg.eras:
+            gs = [n for n in goty_sorted if lo <= n["raw"]["year"] <= hi]
+            base = len(gs)
+            c = Counter()
+            for n in gs:
+                for t in n["raw"].get("tiers", []):
+                    c[t] += 1
+            for t in key_set:
+                era_rows.append({"era": name, "tag": t, "count": c.get(t, 0),
+                                 "share": round(100.0 * c.get(t, 0) / base, 1) if base else 0.0})
+        era_df = pd.DataFrame(era_rows)
 
-        # 工作室滚动热度
-        goty_years = sorted({n["raw"]["year"] for n in games if n["raw"].get("is_goty")})
-        studio_window = []
-        w = cfg.rolling_window
-        for y in goty_years:
-            wins = defaultdict(int)
+        # 趋势：前十年(<=2015) vs 后十年(>=2016)，各 10 款 GOTY 的标签计数
+        h1 = [n for n in goty_sorted if n["raw"]["year"] <= 2015]
+        h2 = [n for n in goty_sorted if n["raw"]["year"] >= 2016]
+        n1, n2 = len(h1), len(h2)
+
+        def _cnt(games):
+            c = Counter()
             for n in games:
-                if n["raw"].get("is_goty") and y - (w - 1) <= n["raw"]["year"] <= y:
-                    sid = n["raw"].get("developer_id")
-                    wins[studio_name.get(sid, n["raw"].get("developer"))] += 1
-            top = sorted(wins.items(), key=lambda x: -x[1])[:3]
-            studio_window.append({"year": y, "top_studios": [[k, v] for k, v in top]})
+                for t in n["raw"].get("tiers", []):
+                    c[t] += 1
+            return c
+        t1, t2 = _cnt(h1), _cnt(h2)
+        trend = []
+        for t in key_set:
+            a, b = t1.get(t, 0), t2.get(t, 0)
+            trend.append({"tag": t, "first_half": a, "second_half": b,
+                          "first_pp": round(100.0 * a / n1, 1) if n1 else 0.0,
+                          "second_pp": round(100.0 * b / n2, 1) if n2 else 0.0,
+                          "delta_pp": round(100.0 * (b - a) / n1, 1) if n1 else 0.0,
+                          "is_design": t in dd})
+        rising = sorted([x for x in trend if x["delta_pp"] > 0], key=lambda x: -x["delta_pp"])
+        falling = sorted([x for x in trend if x["delta_pp"] < 0], key=lambda x: x["delta_pp"])
 
-        timeline = []
-        for n in sorted([x for x in games if x["raw"].get("is_goty")], key=lambda x: x["raw"]["year"]):
-            timeline.append({"year": n["raw"]["year"], "title_zh": n["raw"]["title_zh"],
-                             "tiers": n["raw"].get("tiers", []), "rating": n["raw"].get("player_rating")})
+        # 工作室 GOTY 主导度（夺冠次数，替代原「滚动热度」：每年仅 1 个 GOTY，滚动窗口无意义）
+        studio_wins = Counter()
+        for n in goty_sorted:
+            sid = n["raw"].get("developer_id")
+            studio_wins[studio_name.get(sid, n["raw"].get("developer"))] += 1
+        studio_tally = [{"studio": k, "wins": v} for k, v in studio_wins.most_common()]
+
+        timeline = [{"year": n["raw"]["year"], "title_zh": n["raw"]["title_zh"],
+                     "tiers": n["raw"].get("tiers", []), "rating": n["raw"].get("player_rating")}
+                    for n in goty_sorted]
 
         summary = {
-            "eras": [e[2] for e in ERAS],
-            "era_game_counts": dict(era_game_count),
-            "rising_genres": rising_up,
-            "falling_genres": rising_down,
-            "studio_rolling_hotness": studio_window,
+            "years": years,
+            "key_dims": key_dims,
+            "key_gameplay": gameplay_top,
+            "rising": rising,
+            "falling": falling,
+            "n_first_half": n1,
+            "n_second_half": n2,
+            "studio_goty_tally": studio_tally,
             "goty_timeline": timeline,
         }
+        res.add("hotspot_year", year_df)
         res.add("hotspot_era", era_df)
         res.add("hotspot_summary", summary)
 
-        up = "、".join(f"{r['genre']}(+{r['delta']:.2f})" for r in rising_up[:6])
-        down = "、".join(f"{r['genre']}({r['delta']:.2f})" for r in rising_down[:5])
         res.write(
-            "\n## 四、热点统计（时代演变）\n",
-            "时代分桶：" + " / ".join(summary["eras"]) + "\n",
-            f"- **上升类型**（末代−首代占比差）：{up}\n",
-            f"- **下降类型**：{down}\n",
-            "\n**工作室滚动热度（近%d年 GOTY 夺冠数 Top3）：**\n" % w,
-            "| 年份 | 热门工作室 |",
-            "|---|---|",
+            "\n## 四、热点统计：奖项的「品味」如何演变\n",
+            "> **方法（一句话）**：热点 = GOTY 获奖作本身的类型构成随时间的变化（每年 1 款、两半段各 "
+            f"**{n1}** 款，样本固定、无「其他作品」分母偏差）。某类型「占比」= 该半段带此标签的获奖作 ÷ {n1}。"
+            "比较 **2006–2015** 与 **2016–2025** 两个半段判断上升/下降。\n",
+            f"> **样本提示**：每半段仅 {n1} 款，结果为**示意性趋势**而非统计推断。\n",
+            "\n**设计维度趋势（跨玩法的特征标签）：**",
         )
-        for sw in studio_window:
-            s = "、".join(f"{k}({v})" for k, v in sw["top_studios"])
-            res.write(f"| {sw['year']} | {s} |")
-        res.write(f"\n![类型热度]({PNG['hotspot']})\n")
+        for x in rising:
+            if x["is_design"]:
+                res.write(f"- 🔼 **{x['tag']}**：{x['first_half']}/{n1} 款 → {x['second_half']}/{n2} 款（{x['delta_pp']:+}pp）")
+        for x in falling:
+            if x["is_design"]:
+                res.write(f"- 🔽 **{x['tag']}**：{x['first_half']}/{n1} 款 → {x['second_half']}/{n2} 款（{x['delta_pp']:+}pp）")
+        res.write("\n**玩法类别趋势（上升 / 下降 Top）：**")
+        for x in rising[:5]:
+            if not x["is_design"]:
+                res.write(f"- 🔼 **{x['tag']}**：{x['first_half']}/{n1} 款 → {x['second_half']}/{n2} 款（{x['delta_pp']:+}pp）")
+        for x in falling[:5]:
+            if not x["is_design"]:
+                res.write(f"- 🔽 **{x['tag']}**：{x['first_half']}/{n1} 款 → {x['second_half']}/{n2} 款（{x['delta_pp']:+}pp）")
+        res.write("\n**GOTY 主导工作室（夺冠次数）：**",
+                  "| 工作室 | GOTY 次数 |", "|---|---|")
+        for s in studio_tally[:8]:
+            res.write(f"| {s['studio']} | {s['wins']} |")
+        res.write(f"\n![类型热度演变]({PNG['hotspot']})\n")
         return res
 
 

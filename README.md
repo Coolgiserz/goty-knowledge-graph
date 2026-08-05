@@ -171,7 +171,7 @@ python analysis/run_ml.py --k 6                          # 固定 k，跳过选 
 
 产物写入 `analysis/output/`：
 - `factors.csv`：107 款游戏 × 63 列因子（图拓扑 4 / 属性 6 / 声誉 3 / 类型 one-hot 44 / 标识 6）
-- `clusters.csv`、`communities.csv`、`hotspot_era.csv` 及各 `*_profile.json`
+- `clusters.csv`、`communities.csv`、`hotspot_era.csv`、`hotspot_year.csv` 及各 `*_profile.json`
 - **`studio_style.csv` / `studio_similarity.csv` / `studio_style.json`**：开发商风格向量、风格余弦相似度矩阵、风格分层聚类
 - **`goty_genre.csv` / `goty_profile.json`**：GOTY vs 其他作品的区分因子（Cohen's d）与类型 Over-index
 - `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名、**开发商风格相似性**、**GOTY 特征分析**等（共七节）
@@ -179,6 +179,7 @@ python analysis/run_ml.py --k 6                          # 固定 k，跳过选 
 
 > “高频因子”在此指从图结构派生的细粒度截面因子矩阵；原数据没有日内 tick 级时序，年份是最细时间粒度。
 > 方法说明：聚类默认**先做 PCA 白化**再 KMeans，以缓解 44 维类型 one-hot 带来的维度灾难；`studio_wins` 由 `is_goty` 派生（标签泄漏），可用 `--exclude-reputation` 关闭；轮廓系数普遍偏低（<0.25），簇为探索性划分而非严谨边界。
+> 热点统计以 **GOTY 获奖作本身**（每年 1 款、两半段各 10 款，固定样本、无「其他作品」分母偏差）衡量奖项「品味」演变；比较 2006–2015 与 2016–2025 两半段的类型占比（百分点 pp），并用滚动 3 年占比画图。每半段仅 10 款，结论为示意性趋势而非统计推断。
 
 ---
 

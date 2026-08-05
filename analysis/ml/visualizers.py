@@ -214,22 +214,32 @@ class HotspotTrendViz(Visualizer):
 
     def render(self, ctx: PipelineContext) -> str:
         summary = ctx.get("hotspot_summary")
-        era_df = ctx.get("hotspot_era")
-        if summary is None or era_df is None:
+        year_df = ctx.get("hotspot_year")
+        if summary is None or year_df is None:
             return None
-        pick = [r["genre"] for r in summary["rising_genres"][:6]] + \
-               [r["genre"] for r in summary["falling_genres"][:3]]
-        pick = list(dict.fromkeys(pick))
-        eras = summary["eras"]
-        fig, ax = plt.subplots(figsize=(9, 5.5))
-        for i, gn in enumerate(pick):
-            sub = era_df[era_df["genre"] == gn].set_index("era").reindex(eras)
-            ax.plot(eras, sub["share"].values * 100, "o-",
-                    color=PALETTE[i % len(PALETTE)], label=gn)
-        ax.set_xlabel("时代"); ax.set_ylabel("类型占比 (%)")
-        ax.set_title("类型热度演变（上升 vs 下降类型）")
-        ax.legend(fontsize=8, loc="best")
-        ax.grid(alpha=0.3)
+        years = summary["years"]
+        dims = summary["key_dims"]
+        gp = summary["key_gameplay"]
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.5))
+        # 左：设计维度（跨玩法的特征标签）—— 头条故事
+        for i, t in enumerate(dims):
+            sub = year_df[year_df["tag"] == t].set_index("year").reindex(years)
+            ax1.plot(years, sub["rolling_share"].values, "o-", lw=2,
+                     color=PALETTE[i % len(PALETTE)], label=t)
+        ax1.set_title("设计维度趋势（开放世界 / 多人合作 / 在线）")
+        ax1.set_xlabel("年份"); ax1.set_ylabel("滚动(3年)占比 (%)")
+        ax1.legend(fontsize=9, loc="best"); ax1.grid(alpha=0.3)
+        # 右：玩法类别 Top
+        for i, t in enumerate(gp):
+            sub = year_df[year_df["tag"] == t].set_index("year").reindex(years)
+            ax2.plot(years, sub["rolling_share"].values, "o-", lw=2,
+                     color=PALETTE[(i + 3) % len(PALETTE)], label=t)
+        ax2.set_title("玩法类别趋势（Top 类别）")
+        ax2.set_xlabel("年份"); ax2.set_ylabel("滚动(3年)占比 (%)")
+        ax2.legend(fontsize=9, loc="best"); ax2.grid(alpha=0.3)
+        fig.suptitle("GOTY 获奖作中各类型的滚动(3年)占比：某年数值 = 前后3年内带该标签的获奖作比例",
+                     fontsize=12)
+        fig.tight_layout(rect=[0, 0, 1, 0.95])
         return _save(fig, self.filename, ctx.out_dir)
 
 

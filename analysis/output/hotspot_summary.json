@@ -1,444 +1,167 @@
 {
-  "eras": [
-    "2006-2010",
-    "2011-2015",
-    "2016-2020",
-    "2021-2025"
+  "years": [
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
   ],
-  "era_game_counts": {
-    "2006-2010": 18,
-    "2011-2015": 28,
-    "2016-2020": 24,
-    "2021-2025": 15
-  },
-  "rising_genres": [
+  "key_dims": [
+    "开放世界",
+    "多人合作",
+    "在线"
+  ],
+  "key_gameplay": [
+    "动作冒险",
+    "角色扮演",
+    "冒险",
+    "射击",
+    "平台跳跃"
+  ],
+  "rising": [
     {
-      "genre": "合作冒险",
-      "first_share": 0.0,
-      "last_share": 0.1333,
-      "delta": 0.1333
+      "tag": "多人合作",
+      "first_half": 0,
+      "second_half": 3,
+      "first_pp": 0.0,
+      "second_pp": 30.0,
+      "delta_pp": 30.0,
+      "is_design": true
     },
     {
-      "genre": "3D平台跳跃",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
+      "tag": "在线",
+      "first_half": 0,
+      "second_half": 1,
+      "first_pp": 0.0,
+      "second_pp": 10.0,
+      "delta_pp": 10.0,
+      "is_design": true
     },
     {
-      "genre": "CRPG",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
+      "tag": "冒险",
+      "first_half": 1,
+      "second_half": 2,
+      "first_pp": 10.0,
+      "second_pp": 20.0,
+      "delta_pp": 10.0,
+      "is_design": false
     },
     {
-      "genre": "回合制角色扮演",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
-    },
-    {
-      "genre": "太空角色扮演",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
-    },
-    {
-      "genre": "机甲动作",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
-    },
-    {
-      "genre": "横向卷轴平台",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
-    },
-    {
-      "genre": "英雄射击",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
-    },
-    {
-      "genre": "银河恶魔城",
-      "first_share": 0.0,
-      "last_share": 0.0667,
-      "delta": 0.0667
+      "tag": "平台跳跃",
+      "first_half": 0,
+      "second_half": 1,
+      "first_pp": 0.0,
+      "second_pp": 10.0,
+      "delta_pp": 10.0,
+      "is_design": false
     }
   ],
-  "falling_genres": [
+  "falling": [
     {
-      "genre": "动作角色扮演",
-      "first_share": 0.2222,
-      "last_share": 0.2,
-      "delta": -0.0222
+      "tag": "开放世界",
+      "first_half": 7,
+      "second_half": 2,
+      "first_pp": 70.0,
+      "second_pp": 20.0,
+      "delta_pp": -50.0,
+      "is_design": true
     },
     {
-      "genre": "第一人称射击",
-      "first_share": 0.0556,
-      "last_share": 0.0,
-      "delta": -0.0556
+      "tag": "动作冒险",
+      "first_half": 7,
+      "second_half": 5,
+      "first_pp": 70.0,
+      "second_pp": 50.0,
+      "delta_pp": -20.0,
+      "is_design": false
     },
     {
-      "genre": "西部动作冒险",
-      "first_share": 0.0556,
-      "last_share": 0.0,
-      "delta": -0.0556
-    },
-    {
-      "genre": "冒险",
-      "first_share": 0.1111,
-      "last_share": 0.0,
-      "delta": -0.1111
-    },
-    {
-      "genre": "科幻角色扮演",
-      "first_share": 0.1111,
-      "last_share": 0.0,
-      "delta": -0.1111
-    },
-    {
-      "genre": "角色扮演",
-      "first_share": 0.1111,
-      "last_share": 0.0,
-      "delta": -0.1111
-    },
-    {
-      "genre": "动作冒险",
-      "first_share": 0.5556,
-      "last_share": 0.3333,
-      "delta": -0.2223
+      "tag": "角色扮演",
+      "first_half": 4,
+      "second_half": 3,
+      "first_pp": 40.0,
+      "second_pp": 30.0,
+      "delta_pp": -10.0,
+      "is_design": false
     }
   ],
-  "studio_rolling_hotness": [
+  "n_first_half": 10,
+  "n_second_half": 10,
+  "studio_goty_tally": [
     {
-      "year": 2006,
-      "top_studios": [
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ]
-      ]
+      "studio": "Rockstar 游戏",
+      "wins": 3
     },
     {
-      "year": 2007,
-      "top_studios": [
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "非理性游戏",
-          1
-        ]
-      ]
+      "studio": "贝塞斯达游戏工作室",
+      "wins": 2
     },
     {
-      "year": 2008,
-      "top_studios": [
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "Rockstar 游戏",
-          1
-        ],
-        [
-          "非理性游戏",
-          1
-        ]
-      ]
+      "studio": "顽皮狗",
+      "wins": 2
     },
     {
-      "year": 2009,
-      "top_studios": [
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "Rockstar 游戏",
-          1
-        ],
-        [
-          "非理性游戏",
-          1
-        ]
-      ]
+      "studio": "FromSoftware（フロムソフトウェア）",
+      "wins": 2
     },
     {
-      "year": 2010,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          2
-        ],
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "非理性游戏",
-          1
-        ]
-      ]
+      "studio": "非理性游戏",
+      "wins": 1
     },
     {
-      "year": 2011,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          2
-        ],
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "非理性游戏",
-          1
-        ]
-      ]
+      "studio": "Telltale游戏",
+      "wins": 1
     },
     {
-      "year": 2012,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          2
-        ],
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "顽皮狗",
-          1
-        ]
-      ]
+      "studio": "BioWare",
+      "wins": 1
     },
     {
-      "year": 2013,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          2
-        ],
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "顽皮狗",
-          1
-        ]
-      ]
+      "studio": "CD Projekt Red",
+      "wins": 1
     },
     {
-      "year": 2014,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          2
-        ],
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "BioWare",
-          1
-        ]
-      ]
+      "studio": "暴雪娱乐",
+      "wins": 1
     },
     {
-      "year": 2015,
-      "top_studios": [
-        [
-          "贝塞斯达游戏工作室",
-          1
-        ],
-        [
-          "Rockstar 游戏",
-          1
-        ],
-        [
-          "BioWare",
-          1
-        ]
-      ]
+      "studio": "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
+      "wins": 1
     },
     {
-      "year": 2016,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          1
-        ],
-        [
-          "BioWare",
-          1
-        ],
-        [
-          "CD Projekt Red",
-          1
-        ]
-      ]
+      "studio": "圣莫尼卡工作室",
+      "wins": 1
     },
     {
-      "year": 2017,
-      "top_studios": [
-        [
-          "Rockstar 游戏",
-          1
-        ],
-        [
-          "BioWare",
-          1
-        ],
-        [
-          "CD Projekt Red",
-          1
-        ]
-      ]
+      "studio": "Hazelight工作室",
+      "wins": 1
     },
     {
-      "year": 2018,
-      "top_studios": [
-        [
-          "圣莫尼卡工作室",
-          1
-        ],
-        [
-          "BioWare",
-          1
-        ],
-        [
-          "CD Projekt Red",
-          1
-        ]
-      ]
+      "studio": "拉瑞安工作室",
+      "wins": 1
     },
     {
-      "year": 2019,
-      "top_studios": [
-        [
-          "圣莫尼卡工作室",
-          1
-        ],
-        [
-          "CD Projekt Red",
-          1
-        ],
-        [
-          "FromSoftware（フロムソフトウェア）",
-          1
-        ]
-      ]
+      "studio": "Asobi团队",
+      "wins": 1
     },
     {
-      "year": 2020,
-      "top_studios": [
-        [
-          "顽皮狗",
-          1
-        ],
-        [
-          "圣莫尼卡工作室",
-          1
-        ],
-        [
-          "FromSoftware（フロムソフトウェア）",
-          1
-        ]
-      ]
-    },
-    {
-      "year": 2021,
-      "top_studios": [
-        [
-          "顽皮狗",
-          1
-        ],
-        [
-          "圣莫尼卡工作室",
-          1
-        ],
-        [
-          "Hazelight工作室",
-          1
-        ]
-      ]
-    },
-    {
-      "year": 2022,
-      "top_studios": [
-        [
-          "FromSoftware（フロムソフトウェア）",
-          2
-        ],
-        [
-          "顽皮狗",
-          1
-        ],
-        [
-          "圣莫尼卡工作室",
-          1
-        ]
-      ]
-    },
-    {
-      "year": 2023,
-      "top_studios": [
-        [
-          "FromSoftware（フロムソフトウェア）",
-          2
-        ],
-        [
-          "顽皮狗",
-          1
-        ],
-        [
-          "Hazelight工作室",
-          1
-        ]
-      ]
-    },
-    {
-      "year": 2024,
-      "top_studios": [
-        [
-          "顽皮狗",
-          1
-        ],
-        [
-          "Asobi团队",
-          1
-        ],
-        [
-          "Hazelight工作室",
-          1
-        ]
-      ]
-    },
-    {
-      "year": 2025,
-      "top_studios": [
-        [
-          "Asobi团队",
-          1
-        ],
-        [
-          "Hazelight工作室",
-          1
-        ],
-        [
-          "拉瑞安工作室",
-          1
-        ]
-      ]
+      "studio": "沙落互动",
+      "wins": 1
     }
   ],
   "goty_timeline": [

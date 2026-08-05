@@ -19,7 +19,7 @@ from .features import FeatureEngine
 from .analyzers import Analyzer
 from .visualizers import Visualizer
 from .constants import (
-    CSV_FACTORS, CSV_CLUSTERS, CSV_COMMUNITIES, CSV_HOTSPOT_ERA,
+    CSV_FACTORS, CSV_CLUSTERS, CSV_COMMUNITIES, CSV_HOTSPOT_ERA, CSV_HOTSPOT_YEAR,
     CSV_STUDIO_SIM, CSV_STUDIO_STYLE, CSV_GOTY_GENRE,
     JSON_FACTOR_DOC, JSON_CLUSTER_PROFILE, JSON_COMMUNITY_PROFILE,
     JSON_HOTSPOT_SUMMARY, JSON_STUDIO_STYLE, JSON_GOTY_PROFILE,
@@ -123,6 +123,8 @@ def _persist(ctx: PipelineContext):
             _json.dump(a["community_profile"], f, ensure_ascii=False, indent=2)
     if "hotspot_era" in a:
         a["hotspot_era"].to_csv(os.path.join(out, CSV_HOTSPOT_ERA), index=False, encoding="utf-8-sig")
+    if "hotspot_year" in a:
+        a["hotspot_year"].to_csv(os.path.join(out, CSV_HOTSPOT_YEAR), index=False, encoding="utf-8-sig")
     if "hotspot_summary" in a:
         import json as _json
         with open(os.path.join(out, JSON_HOTSPOT_SUMMARY), "w", encoding="utf-8") as f:
