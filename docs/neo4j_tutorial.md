@@ -5,7 +5,7 @@
 - **20** 款年度最佳游戏（GOTY）
 - **107** 款游戏节点（含各开发商的其他代表作）
 - **15** 家开发商
-- **53** 个游戏类型
+- **51** 个游戏类型（含 **12** 个顶层原子类别 + 子类型，构成层级体系；已合并同义词、拆分复合词）
 - **20** 个年度大奖节点
 
 ## 节点与关系模型
@@ -14,13 +14,14 @@
 |------|------|----------|
 | `Game` | 游戏（含 GOTY 与开发商其他作品） | title, title_zh, year, is_goty, genre, developer, publisher, platforms, player_rating, gameplay, unique_features, drawbacks, awards, influence, description |
 | `Studio` | 开发商 | name, name_zh, founded, country, hq, parent, description |
-| `Genre` | 游戏类型 | name |
+| `Genre` | 游戏类型（含层级） | name, parent, tier |
 | `Award` | 年度最佳游戏奖 | name, year, body |
 
 关系：
 - `(:Studio)-[:DEVELOPED]->(:Game)` — 开发商开发了某游戏（含 GOTY 与“其他作品”）
 - `(:Game)-[:WON]->(:Award)` — 该游戏获得年度最佳（仅 GOTY 有）
-- `(:Game)-[:BELONGS_TO_GENRE]->(:Genre)` — 游戏所属类型
+- `(:Game)-[:BELONGS_TO_GENRE]->(:Genre)` — 游戏所属原子类型（一款游戏可属于多个类型）
+- `(:Genre)-[:SUBCLASS_OF]->(:Genre)` — 类型层级（子类型隶属于父类型，直至 12 个顶层原子类别）
 
 ## 数据集文件
 
@@ -34,7 +35,8 @@ data/neo4j/
 ├── awards.csv         (:ID(Award) ...)
 ├── rel_developed.csv  :START_ID(Studio),:END_ID(Game),:TYPE
 ├── rel_won.csv        :START_ID(Game),:END_ID(Award),:TYPE
-└── rel_genre.csv      :START_ID(Game),:END_ID(Genre),:TYPE
+├── rel_genre.csv      :START_ID(Game),:END_ID(Genre),:TYPE
+└── rel_subclass.csv   :START_ID(Genre),:END_ID(Genre),:TYPE   (类型层级 SUBCLASS_OF)
 ```
 
 `data/csv/` 下为 **普通表头** 的 CSV（供 Cypher `LOAD CSV` 使用，字段名不含冒号），并配套 `scripts/init.cypher` 一键导入脚本。
@@ -138,6 +140,18 @@ ORDER BY g.year;
 MATCH (s:Studio)-[:DEVELOPED]->(g:Game)-[:WON]->(:Award)
 WITH s, count(g) AS wins WHERE wins > 1
 RETURN s.name_zh AS 工作室, wins AS 夺冠次数;
+
+// 类型层级：列出某个顶层类别下的全部子类型（如“角色扮演”）
+MATCH (top:Genre {name:'角色扮演'})<-[:SUBCLASS_OF*1..5]-(sub:Genre)
+RETURN top.name AS 顶层类别, sub.name AS 子类型, sub.tier AS 层级
+ORDER BY sub.tier, sub.name;
+
+// 按“顶层原子类别”统计年度最佳游戏数量
+MATCH (g:Game)-[:WON]->(:Award)
+MATCH (g)-[:BELONGS_TO_GENRE]->(gn:Genre)
+WHERE gn.tier = 1
+RETURN gn.name AS 顶层类别, count(DISTINCT g) AS 年度最佳数量
+ORDER BY 年度最佳数量 DESC;
 ```
 
 ---

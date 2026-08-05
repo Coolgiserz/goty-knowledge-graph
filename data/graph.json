@@ -23,7 +23,13 @@
     "awards": "2006 年多项年度游戏（斯派克奖、GameSpot 等）;Metacritic 94 分普遍好评;GDC 等多项技术/设计提名",
     "influence": "确立了贝塞斯达以 Radiant AI 与无缝开放世界为核心的 RPG 设计范式。为后续《天际》奠定技术与叙事基础。是 21 世纪早期开放世界 RPG 的标杆之一。",
     "description": "贝塞斯达打造的奇幻开放世界 RPG，以 Radiant AI 与庞大自由度为特色的系列第四代作品。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "开放世界动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -49,7 +55,13 @@
     "awards": "2011 年度游戏（金摇杆奖、斯派克奖、IGN 等）;Metacritic 94 分;BAFTA 等多项大奖",
     "influence": "成为开放世界 RPG 与沉浸式叙事的行业标杆，至今仍被频繁重制与移植。其 Mod 生态深刻影响了后续 Bethesda 作品与社区文化。推动了奇幻题材在主机市场的普及。",
     "description": "贝塞斯达的奇幻开放世界 RPG 巅峰之作，玩家以龙裔身份在冰天雪地的天际省屠龙冒险。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "开放世界动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -75,7 +87,13 @@
     "awards": "2008 年度游戏（斯派克奖、时代周刊、纽约时报等）;Metacritic 98 分;BAFTA 7 项提名",
     "influence": "开启 GTA 系列的『HD 宇宙』，将叙事深度与写实物理推向新高度。对开放世界动作冒险的叙事与角色塑造影响深远。重定义了现代城市开放世界的沉浸标准。",
     "description": "Rockstar North 开发的写实主义开放世界犯罪动作游戏，以自由城为舞台的系列革新之作。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "开放世界动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -101,7 +119,13 @@
     "awards": "2013 年度游戏（金摇杆奖、BAFTA 英国游戏奖等）;Metacritic 97 分;多项技术/设计奖",
     "influence": "成为史上销量第二高的电子游戏，树立了开放世界与线上服务的商业范本。三主角设计影响后续叙事游戏。其开发商 Rockstar 被视为开放世界黄金标准。",
     "description": "Rockstar 的开放世界犯罪动作巨作，以三主角切换与洛圣都为舞台的系列新高峰。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "开放世界动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -127,7 +151,13 @@
     "awards": "2010 年度游戏（斯派克奖、GDC 奖等）;Metacritic 95 分;BAFTA 等多项提名",
     "influence": "将 Rockstar 的开放世界公式成功移植到西部题材，为《荒野大镖客2》铺路。其叙事深度与结局广受赞誉，提升了动作冒险游戏的艺术地位。",
     "description": "Rockstar San Diego 开发的西部题材开放世界动作冒险游戏，讲述亡命徒寻求救赎的史诗。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "西部动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -153,7 +183,13 @@
     "awards": "2007 年度游戏（BAFTA 最佳游戏、斯派克奖、IGN 等）;Metacritic 96 分;AIAS 艺术指导/音效/剧本奖",
     "influence": "重新定义了『叙事性射击游戏』，证明电子游戏可承载严肃哲学思辨。其环境叙事手法深刻影响了后续沉浸式模拟类游戏。被视为 21 世纪最具艺术野心的游戏之一。",
     "description": "Irrational Games 开发的反乌托邦第一人称射击游戏，以海底城 Rapture 与哲学叙事著称。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "第一人称射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -179,7 +215,13 @@
     "awards": "BAFTA最佳动作游戏; D.I.C.E.年度游戏; Game Developers Choice Awards年度游戏; Spike VGA年度游戏; IGN年度游戏",
     "influence": "确立了「电影化游戏」的行业标准，深刻影响了《地平线》《战神2018》等作品。推动了表演捕捉在叙事游戏中的普及。被视为PS3时代最具代表性的独占大作之一，常被列为史上最佳游戏。",
     "description": "顽皮狗出品的电影化动作冒险巅峰之作，以行云流水的叙事与关卡设计被誉为史上最佳续作之一。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -205,7 +247,15 @@
     "awards": "The Game Awards年度游戏; Golden Joystick年度游戏; D.I.C.E.年度游戏; BAFTA最佳叙事; 最佳表演(Laura Bailey)",
     "influence": "将3A叙事游戏的情感表达与制作水准推向新高度。其无障碍设计（高对比度、听觉辅助等）成为行业标杆。引发关于游戏叙事伦理与玩家期待权的广泛讨论。",
     "description": "顽皮狗以双线叙事探讨复仇与和解的生存动作神作，在技术与叙事上均树立了新的行业标杆。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "动作冒险",
+     "生存恐怖"
+    ],
+    "tiers": [
+     "冒险",
+     "动作冒险"
+    ]
    }
   },
   {
@@ -231,7 +281,13 @@
     "awards": "The Game Awards年度游戏; BAFTA最佳游戏; D.I.C.E.年度游戏; Game Developers Choice Awards年度游戏; IGN年度游戏",
     "influence": "重新定义了经典动作系列，证明「软重启+叙事驱动」可获巨大成功。影响了后续索尼第一方作品对角色深度的重视。被视为PS4时代标杆独占，并被玩家票选为IGN史上最佳游戏。",
     "description": "圣莫尼卡工作室将战神系列北欧化的软重启之作，以父子之情与一战斧重塑动作冒险标杆。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -257,7 +313,13 @@
     "awards": "The Game Awards年度游戏; D.I.C.E.年度游戏; 金摇杆年度游戏; BAFTA最佳家庭游戏",
     "influence": "成为史上获奖最多的平台游戏（累计超百项年度游戏提名与获奖）。重振了PlayStation第一方吉祥物IP。证明精致中型独占同样可夺得年度游戏，鼓舞了行业对平台游戏类型的信心。",
     "description": "Team Asobi打造的3D平台跳跃神作，以极致手感与DualSense创意致敬PlayStation三十周年。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "3D平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -283,7 +345,13 @@
     "awards": "2021年游戏大奖年度游戏;2021年游戏大奖最佳家庭游戏;2021年游戏大奖最佳多人游戏;英国电影学院奖(BAFTA)最佳多人游戏",
     "influence": "重新定义了现代双人合作游戏的设计范式，证明强叙事与玩法创新可以完美结合。其好友通行证模式被业界广泛借鉴，降低了合作游戏的社交成本。作为EA Originals扶持独立创意的成功案例，鼓励了更多中型工作室挑战传统品类。",
     "description": "一款将婚姻关系隐喻化为奇幻冒险、机制每关焕然一新的纯双人合作神作。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "合作冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -309,7 +377,13 @@
     "awards": "2014年游戏大奖年度游戏;2014年金摇杆奖年度游戏;IGN 2014年度最佳RPG;第18届DICE年度游戏",
     "influence": "延续了BioWare在剧情驱动RPG领域的统治地位，巩固了'选择与后果'叙事范式的行业标准。其开放世界与据点经营结合的尝试影响了后续众多CRPG。为重振《龙腾世纪》IP并延续至《龙腾世纪：影障守护者》奠定了基础。",
     "description": "BioWare打造的黑暗奇幻开放世界RPG巅峰，以宏大叙事与自由抉择赢得2014年度游戏。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -335,7 +409,13 @@
     "awards": "2015年游戏大奖年度游戏;2015年金摇杆奖年度游戏;第19届DICE年度游戏;2016年游戏开发者选择奖年度游戏",
     "influence": "被公认为史上最伟大游戏之一，树立了开放世界RPG在叙事密度与支线质量上的标杆。其成功带动波兰游戏产业崛起，并使CD Projekt成为欧洲市值最高的游戏公司。随Netflix剧集热播，进一步将《巫师》IP推向全球流行文化。",
     "description": "CD Projekt Red打造的波兰魔幻史诗，以无与伦比的开放世界与分支叙事夺得2015年度游戏。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "开放世界角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -361,7 +441,13 @@
     "awards": "TGA 2023 年度最佳游戏; BAFTA 2024 最佳游戏; 金摇杆奖 2023 年度最佳游戏; DICE 2024 年度游戏; GDCA 2024 年度游戏",
     "influence": "重振了等距视角CRPG这一曾经式微的品类。以众筹独立精神与完整玩家自由成为行业标杆，影响了后续众多RPG作品。证明了买断制单机大作仍能在3A时代取得巨大商业成功。",
     "description": "一款基于龙与地下城规则的史诗级CRPG，以极致自由与叙事深度成为现代角色扮演游戏的里程碑。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "CRPG"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -387,7 +473,13 @@
     "awards": "80+ 项年度游戏奖项（含IGN、GameSpot等媒体年度最佳）; 多项叙事与冒险类大奖",
     "influence": "重新定义了叙事驱动型冒险游戏，掀起'互动电影'浪潮。其章节式发售模式成为众多厂商效仿的范本。深刻影响了《Life is Strange》等同类型情感叙事作品。",
     "description": "一款以人性抉择与情感羁绊为核心的丧尸题材章节式冒险游戏，被视为叙事游戏的转折点。",
-    "body": "Spike VGA / VGX"
+    "body": "Spike VGA / VGX",
+    "genres": [
+     "互动电影冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -413,7 +505,13 @@
     "awards": "TGA 2025 年度最佳游戏; TGA 2025 最佳游戏指导; TGA 2025 最佳叙事; TGA 2025 最佳艺术指导; TGA 2025 最佳配乐与音乐; TGA 2025 最佳RPG; TGA 2025 最佳独立游戏; TGA 2025 最佳独立游戏首作; TGA 2025 最佳表演（Jennifer English）; 金摇杆奖 2025 年度最佳等7项",
     "influence": "成为史上获得年度游戏奖项最多的游戏（436项），并刷新TGA单届获奖纪录（9项）。作为法国独立工作室处女作即登顶，展现了小团队凭UE5实现3A品质的可能。复兴了被3A忽视的回合制RPG品类。",
     "description": "一款融合法式美术与回合制战棋的奇幻RPG，以惊人完成度成为2025年现象级年度游戏。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "回合制角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -439,7 +537,13 @@
     "awards": "The Game Awards 2019 年度最佳游戏; 金摇杆奖 2019 年度最佳游戏; D.I.C.E. 年度冒险游戏; 日本游戏大奖 2019 年度作品",
     "influence": "《只狼》以“精确剑戟”重新定义了硬核动作游戏，证明从RPG数值中抽离的纯技巧战斗同样能获得年度最佳。其架势系统与格挡手感深刻影响了后续动作游戏与类魂作品的设计思路。宫崎英高由此成为少数连续多部作品斩获GOTY的导演之一。",
     "description": "FromSoftware 打造的战国忍者动作杰作，以精准格挡与忍杀机制树立硬核近战新标杆。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -465,7 +569,13 @@
     "awards": "The Game Awards 2022 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度游戏; BAFTA 最佳游戏; 金摇杆奖 年度最佳游戏",
     "influence": "《艾尔登法环》将魂系难度与开放世界探索成功融合，成为2020年代最具代表性的游戏之一，全球销量超3000万份。它重新点燃业界对“开放世界+高难度”设计的热情，并推动大量类魂开放世界项目立项。其资料片《黄金树之影》更成为首款入围TGA年度最佳的DLC。",
     "description": "FromSoftware 与乔治·R·R·马丁联袂打造的开放世界魂系史诗，被誉为定义世代的巨作。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "开放世界动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -491,7 +601,13 @@
     "awards": "The Game Awards 2017 年度最佳游戏; 金摇杆奖 2017 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度最佳游戏",
     "influence": "《旷野之息》以“好奇心驱动的探索”重写了开放世界设计语言，直接影响了其后大量3A作品的爬墙、环境叙事与沙盒机制。它被视为Switch平台的奠基之作，全球销量逾3300万份。其续作《王国之泪》进一步将物理沙盒推向极致。",
     "description": "任天堂重新定义开放世界范式的塞尔达神作，以自由探索与物理沙盒树立行业标杆。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "开放世界动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -517,7 +633,13 @@
     "awards": "The Game Awards 2016 年度最佳游戏; 金摇杆奖 2016 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度游戏",
     "influence": "《守望先锋》将“英雄射击”从小众推向全球电竞主流，并凭借多彩角色与叙事化运营重塑了射击游戏的表达方式。它奠定了暴雪在多人服务型游戏上的新方向，并催生续作《守望先锋2》。其社区与赛事文化对后续团队射击产品影响深远。",
     "description": "暴雪打造的多元英雄团队射击游戏，以鲜明角色与团队配合开创英雄射击新时代。",
-    "body": "The Game Awards"
+    "body": "The Game Awards",
+    "genres": [
+     "英雄射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -543,7 +665,13 @@
     "awards": "",
     "influence": "",
     "description": "贝塞斯达接手辐射系列的首部作品，将废土 RPG 带入 3D 开放世界。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -569,7 +697,13 @@
     "awards": "",
     "influence": "",
     "description": "加入据点建造、武器改造与同伴系统，争议与好评并存。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -595,7 +729,13 @@
     "awards": "",
     "influence": "",
     "description": "系列首款纯在线多人作品，首发口碑与运营问题较多。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "大型多人在线角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -621,7 +761,13 @@
     "awards": "",
     "influence": "",
     "description": "贝塞斯达 25 年来首个全新 IP，以星际探索与飞船建造为题材。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "太空角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -647,7 +793,13 @@
     "awards": "",
     "influence": "",
     "description": "移动端避难所经营游戏，全球下载量破亿。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "模拟经营"
+    ],
+    "tiers": [
+     "模拟"
+    ]
    }
   },
   {
@@ -673,7 +825,13 @@
     "awards": "",
     "influence": "",
     "description": "面向移动端的《上古卷轴》衍生作品，含城镇建造要素。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -699,7 +857,13 @@
     "awards": "",
     "influence": "",
     "description": "将系列带入全 3D 开放世界，被视为现代开放世界游戏的奠基之作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -725,7 +889,13 @@
     "awards": "",
     "influence": "",
     "description": "以 1980 年代迈阿密为蓝本，配乐与氛围广受赞誉。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -751,7 +921,13 @@
     "awards": "",
     "influence": "",
     "description": "系列野心最大的 PS2 时代作品，含饮食、健身等大量 RPG 要素。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -777,7 +953,13 @@
     "awards": "",
     "influence": "",
     "description": "荒野大镖客系列首作，由 Capcom 转手 Rockstar San Diego 完成开发。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "西部动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -803,7 +985,13 @@
     "awards": "",
     "influence": "",
     "description": "以寄宿学校为背景的校园题材开放世界游戏，争议与好评并存。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -829,7 +1017,15 @@
     "awards": "",
     "influence": "",
     "description": "以 1940 年代洛杉矶为舞台，引入面部表情审讯系统。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险",
+     "侦探冒险"
+    ],
+    "tiers": [
+     "冒险",
+     "动作冒险"
+    ]
    }
   },
   {
@@ -855,7 +1051,13 @@
     "awards": "",
     "influence": "",
     "description": "由 Rockstar Studios 开发的硬派黑色风格射击游戏。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "第三人称射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -881,7 +1083,13 @@
     "awards": "",
     "influence": "",
     "description": "《荒野大镖客：救赎》前传，以极致细节与叙事获广泛赞誉。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -907,7 +1115,13 @@
     "awards": "",
     "influence": "",
     "description": "与 Looking Glass 合作的科幻生存射击 RPG，影响深远。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "第一人称射击RPG"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -933,7 +1147,13 @@
     "awards": "",
     "influence": "",
     "description": "以空中之城哥伦比亚为舞台，叙事与结局引发热烈讨论。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "第一人称射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -959,7 +1179,13 @@
     "awards": "",
     "influence": "",
     "description": "强调非致命制服与真实警察程序的战术 FPS。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "战术射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -985,7 +1211,13 @@
     "awards": "",
     "influence": "",
     "description": "超级英雄题材的回合制战术 RPG。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "策略角色扮演"
+    ],
+    "tiers": [
+     "策略"
+    ]
    }
   },
   {
@@ -1011,7 +1243,13 @@
     "awards": "",
     "influence": "",
     "description": "为 Tribes 系列打造单人战役的科幻 FPS。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "第一人称射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -1037,7 +1275,13 @@
     "awards": "",
     "influence": "",
     "description": "自由力量续作，加入二战题材与全新英雄。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "策略角色扮演"
+    ],
+    "tiers": [
+     "策略"
+    ]
    }
   },
   {
@@ -1063,7 +1307,13 @@
     "awards": "",
     "influence": "",
     "description": "工作室成名作，奠定了PS1平台动作游戏标杆，全球销量超680万份。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -1089,7 +1339,13 @@
     "awards": "",
     "influence": "",
     "description": "系列口碑与销量俱佳的续作，关卡设计更精进。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -1115,7 +1371,13 @@
     "awards": "",
     "influence": "",
     "description": "索尼对标价《马里奥赛车》的竞速作品，被誉为最优秀的卡丁车游戏之一。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "卡丁车竞速"
+    ],
+    "tiers": [
+     "竞速"
+    ]
    }
   },
   {
@@ -1141,7 +1403,13 @@
     "awards": "",
     "influence": "",
     "description": "成为索尼第一方后打造的全新IP，采用自研GOAL语言开发。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "平台动作"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -1167,7 +1435,13 @@
     "awards": "",
     "influence": "",
     "description": "系列开山之作，确立电影化动作冒险风格。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1193,7 +1467,13 @@
     "awards": "",
     "influence": "",
     "description": "系列第三部，沙漠城镇与飞机失事场景演出广受赞誉。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1219,7 +1499,15 @@
     "awards": "",
     "influence": "",
     "description": "后启示录叙事神作，将顽皮狗推向叙事游戏顶峰，后改编为HBO剧集。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险",
+     "生存恐怖"
+    ],
+    "tiers": [
+     "冒险",
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1245,7 +1533,13 @@
     "awards": "",
     "influence": "",
     "description": "工作室首款作品，验证了按时按预算交付能力，并孵化了Kinetica引擎。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "未来竞速"
+    ],
+    "tiers": [
+     "竞速"
+    ]
    }
   },
   {
@@ -1271,7 +1565,13 @@
     "awards": "",
     "influence": "",
     "description": "PS2平台续作，规模与爽快度进一步升级。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1297,7 +1597,13 @@
     "awards": "",
     "influence": "",
     "description": "希腊三部曲终章，以宏大神战场面收尾。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1323,7 +1629,13 @@
     "awards": "",
     "influence": "",
     "description": "系列前传，评价较前期作品回落，促使工作室寻求新方向。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1349,7 +1661,13 @@
     "awards": "",
     "influence": "",
     "description": "北欧篇章续作，成为索尼与工作室最畅销作品，BAFTA提名数创纪录。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1375,7 +1693,13 @@
     "awards": "",
     "influence": "",
     "description": "PS4首发预装演示，展示DualShock 4与PlayStation Camera玩法，首次引入机器人角色A5081。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "增强现实"
+    ],
+    "tiers": [
+     "虚拟现实"
+    ]
    }
   },
   {
@@ -1401,7 +1725,13 @@
     "awards": "",
     "influence": "",
     "description": "随PS VR推出的合集式演示，展示虚拟现实体验。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "虚拟现实"
+    ],
+    "tiers": [
+     "虚拟现实"
+    ]
    }
   },
   {
@@ -1427,7 +1757,13 @@
     "awards": "",
     "influence": "",
     "description": "PS VR平台跳跃佳作，首次以Astro为主角的完整冒险，奠定系列基调。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "VR平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -1453,7 +1789,13 @@
     "awards": "",
     "influence": "",
     "description": "PS5免费预装 launch 作品，充分展示DualSense触觉反馈，因好评使团队免于日本工作室裁撤。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -1479,7 +1821,13 @@
     "awards": "",
     "influence": "",
     "description": "Josef Fares担任编剧与导演的成名作，以双角色单手柄协同操作讲述兄弟救父的温情旅程。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "解谜冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -1505,7 +1853,13 @@
     "awards": "",
     "influence": "",
     "description": "史上首款纯双人合作第三人称动作冒险游戏，讲述两名囚犯联手越狱逃亡的故事。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "合作动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -1531,7 +1885,13 @@
     "awards": "",
     "influence": "",
     "description": "两位女作家被困于自己创作的故事中，在科幻与奇幻世界间穿梭合作，发售48小时即破百万销量并打破多项合作游戏纪录。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "合作冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -1557,7 +1917,13 @@
     "awards": "",
     "influence": "",
     "description": "基于龙与地下城规则的里程碑式CRPG，确立BioWare在角色扮演领域的顶尖地位，销量超两百万份。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1583,7 +1949,13 @@
     "awards": "",
     "influence": "",
     "description": "自带功能强大的地牢主工具，极大推动了模组社区与线上角色扮演文化的发展。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1609,7 +1981,13 @@
     "awards": "",
     "influence": "",
     "description": "将星战宇宙与前作风格叙事融合，被誉为史上最优秀的星战游戏之一。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1635,7 +2013,13 @@
     "awards": "",
     "influence": "",
     "description": "BioWare原创黑暗奇幻IP的开山之作，以多出身叙事与战术小队战斗广受赞誉。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1661,7 +2045,13 @@
     "awards": "",
     "influence": "",
     "description": "开创太空歌剧式的银河叙事与角色对话系统，奠定BioWare原创科幻IP基础。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "科幻角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1687,7 +2077,13 @@
     "awards": "",
     "influence": "",
     "description": "系列口碑巅峰，以招募队友与'自杀小队'式叙事被视为RPG史上最伟大的作品之一。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "科幻角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1713,7 +2109,13 @@
     "awards": "",
     "influence": "",
     "description": "系列外传，因技术瑕疵与角色塑造争议评价两极，被视为未达正传水准。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "科幻角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1739,7 +2141,13 @@
     "awards": "",
     "influence": "",
     "description": "BioWare进军服务型多人游戏的尝试，因内容空洞与完成度不足遭遇商业与口碑双重失利。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "在线动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1765,7 +2173,13 @@
     "awards": "",
     "influence": "",
     "description": "工作室首部作品，改编自波兰国宝级奇幻小说，以成熟黑暗的叙事崭露头角。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1791,7 +2205,13 @@
     "awards": "",
     "influence": "",
     "description": "采用自研REDengine引擎，战斗与政治叙事大幅升级，确立系列国际声誉。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1817,7 +2237,13 @@
     "awards": "",
     "influence": "",
     "description": "由《巫师3》昆特牌衍生，融合单人剧情与回合卡牌策略的独立作品。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "卡牌角色扮演"
+    ],
+    "tiers": [
+     "卡牌"
+    ]
    }
   },
   {
@@ -1843,7 +2269,13 @@
     "awards": "",
     "influence": "",
     "description": "基于桌上角色扮演的科幻开放世界巨作，PC版获好评但主机版因严重技术问题引发争议。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "开放世界角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1869,7 +2301,13 @@
     "awards": "",
     "influence": "",
     "description": "脱胎于《巫师3》内置小游戏的独立联机卡牌游戏，后登陆多平台。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "数字卡牌"
+    ],
+    "tiers": [
+     "卡牌"
+    ]
    }
   },
   {
@@ -1895,7 +2333,13 @@
     "awards": "",
     "influence": "",
     "description": "由Idris Elba参演的间谍惊悚式资料片，重制部分系统并被视为挽回口碑的转折点。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "开放世界角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1921,7 +2365,13 @@
     "awards": "",
     "influence": "",
     "description": "工作室早期成名作，奠定神界世界观。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1947,7 +2397,13 @@
     "awards": "",
     "influence": "",
     "description": "《神界》的衍生续作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1973,7 +2429,13 @@
     "awards": "",
     "influence": "",
     "description": "引入变身巨龙玩法的开放世界RPG。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -1999,7 +2461,13 @@
     "awards": "",
     "influence": "",
     "description": "结合战棋与政治策略的混合型作品。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "策略角色扮演"
+    ],
+    "tiers": [
+     "策略"
+    ]
    }
   },
   {
@@ -2025,7 +2493,13 @@
     "awards": "",
     "influence": "",
     "description": "众筹成功之作，以合作模式与环境互动 revitalized 等距CRPG。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "CRPG"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2051,7 +2525,13 @@
     "awards": "",
     "influence": "",
     "description": "口碑爆款，确立拉瑞安顶级RPG厂商地位并获BAFTA最佳多人游戏。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "CRPG"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2077,7 +2557,13 @@
     "awards": "",
     "influence": "",
     "description": "与Logic Artists合作开发，后开发中止，资源转向《博德之门3》。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "策略角色扮演"
+    ],
+    "tiers": [
+     "策略"
+    ]
    }
   },
   {
@@ -2103,7 +2589,13 @@
     "awards": "",
     "influence": "",
     "description": "经典《猴岛小英雄》IP的章节式重启。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2129,7 +2621,13 @@
     "awards": "",
     "influence": "",
     "description": "改编自经典科幻电影，由Telltale原创剧情延续。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2155,7 +2653,13 @@
     "awards": "",
     "influence": "",
     "description": "改编自比尔·威灵厄姆漫画《成人童话》，叙事口碑极高。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "互动电影冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2181,7 +2685,13 @@
     "awards": "",
     "influence": "",
     "description": "基于《无主之地》世界观的幽默叙事佳作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "喜剧冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2207,7 +2717,13 @@
     "awards": "",
     "influence": "",
     "description": "基于HBO剧集的授权改编章节游戏。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2233,7 +2749,13 @@
     "awards": "",
     "influence": "",
     "description": "面向年轻玩家的分支叙事作品，销量庞大。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "合家欢冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2259,7 +2781,13 @@
     "awards": "",
     "influence": "",
     "description": "以布鲁斯·韦恩内心抉择为核心的蝙蝠侠叙事作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2285,7 +2813,13 @@
     "awards": "",
     "influence": "",
     "description": "以少年Clementine为主视角的续作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "互动电影冒险"
+    ],
+    "tiers": [
+     "冒险"
+    ]
    }
   },
   {
@@ -2311,7 +2845,13 @@
     "awards": "",
     "influence": "",
     "description": "魂系游戏的鼻祖，以极具压迫感的高难度与精巧箱庭关卡奠定了系列基调。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2337,7 +2877,13 @@
     "awards": "",
     "influence": "",
     "description": "以互联世界设计与“传火”世界观确立魂系标杆，被广泛视为最具影响力的硬核动作RPG之一。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2363,7 +2909,13 @@
     "awards": "",
     "influence": "",
     "description": "引入即时快速旅行与更自由的职业构建，后续《原罪学者》版本进一步完善体验。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2389,7 +2941,13 @@
     "awards": "",
     "influence": "",
     "description": "融合克苏鲁式哥特美学与更快更激进的战斗，是魂系外极具个性的衍生杰作。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2415,7 +2973,13 @@
     "awards": "",
     "influence": "",
     "description": "三部曲收官之作，节奏更快、boss战华丽，为黑暗之魂系列画下句点。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2441,7 +3005,13 @@
     "awards": "",
     "influence": "",
     "description": "时隔十年重启的机甲组装对战作品，将魂系的战斗手感融入拼装与策略。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "机甲动作"
+    ],
+    "tiers": [
+     "动作"
+    ]
    }
   },
   {
@@ -2467,7 +3037,13 @@
     "awards": "",
     "influence": "",
     "description": "以“捕捉帽”凯皮为核心的沙盒式3D马里奥，自由度与创意获极高评价。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "3D平台跳跃"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -2493,7 +3069,13 @@
     "awards": "",
     "influence": "",
     "description": "无人岛经营与社交模拟，凭借治愈节奏成为现象级合家欢作品。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "生活模拟"
+    ],
+    "tiers": [
+     "模拟"
+    ]
    }
   },
   {
@@ -2519,7 +3101,13 @@
     "awards": "",
     "influence": "",
     "description": "以“涂地”为目标的四人团队射击游戏，融合潮流美术与强社交性。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "第三人称射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -2545,7 +3133,13 @@
     "awards": "",
     "influence": "",
     "description": "《旷野之息》的续作，新增“究极手”“余料建造”等系统，将物理沙盒推向新高度。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "开放世界动作冒险"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -2571,7 +3165,13 @@
     "awards": "",
     "influence": "",
     "description": "2D马里奥的革新之作，以“惊奇花”带来千变万化的关卡演出与手感。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "横向卷轴平台"
+    ],
+    "tiers": [
+     "平台跳跃"
+    ]
    }
   },
   {
@@ -2597,7 +3197,13 @@
     "awards": "",
     "influence": "",
     "description": "时隔多年的2D密特罗德正统续作，以 E.M.M.I. 追击营造紧张探索体验。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "银河恶魔城"
+    ],
+    "tiers": [
+     "动作冒险"
+    ]
    }
   },
   {
@@ -2623,7 +3229,13 @@
     "awards": "",
     "influence": "",
     "description": "暗黑系列里程碑，以随机掉落、职业构建与阴郁哥特氛围定义ARPG范式。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2649,7 +3261,13 @@
     "awards": "",
     "influence": "",
     "description": "三大种族平衡的科幻RTS，曾长期主导电子竞技与韩国职业联赛。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "即时战略"
+    ],
+    "tiers": [
+     "策略"
+    ]
    }
   },
   {
@@ -2675,7 +3293,13 @@
     "awards": "",
     "influence": "",
     "description": "史上最具影响力的MMORPG，以庞大世界观与持续运营塑造在线游戏标杆。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "大型多人在线角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2701,7 +3325,13 @@
     "awards": "",
     "influence": "",
     "description": "强化爽快连击与拍卖行系统，后续《死神之镰》资料片大幅改善体验。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2727,7 +3357,13 @@
     "awards": "",
     "influence": "",
     "description": "基于魔兽IP的免费数字卡牌游戏，以低门槛与强策略性风靡全球。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "数字卡牌"
+    ],
+    "tiers": [
+     "卡牌"
+    ]
    }
   },
   {
@@ -2753,7 +3389,13 @@
     "awards": "",
     "influence": "",
     "description": "回归暗黑黑暗写实基调，引入开放世界与赛季制持续运营内容。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "动作角色扮演"
+    ],
+    "tiers": [
+     "角色扮演"
+    ]
    }
   },
   {
@@ -2779,7 +3421,13 @@
     "awards": "",
     "influence": "",
     "description": "前作的免费续作，转向5v5与赛季更新，但因内容节奏引发争议。",
-    "body": ""
+    "body": "",
+    "genres": [
+     "英雄射击"
+    ],
+    "tiers": [
+     "射击"
+    ]
    }
   },
   {
@@ -3803,425 +4451,562 @@
   {
    "id": "genre_001",
    "group": "genre",
-   "label": "开放世界动作角色扮演",
+   "label": "角色扮演",
+   "tier1": true,
    "raw": {
-    "name": "开放世界动作角色扮演"
+    "name": "角色扮演",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_002",
    "group": "genre",
-   "label": "开放世界动作冒险",
+   "label": "动作",
+   "tier1": true,
    "raw": {
-    "name": "开放世界动作冒险"
+    "name": "动作",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_003",
    "group": "genre",
-   "label": "开放世界西部动作冒险",
+   "label": "射击",
+   "tier1": true,
    "raw": {
-    "name": "开放世界西部动作冒险"
+    "name": "射击",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_004",
    "group": "genre",
-   "label": "第一人称射击",
+   "label": "冒险",
+   "tier1": true,
    "raw": {
-    "name": "第一人称射击"
+    "name": "冒险",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_005",
    "group": "genre",
    "label": "动作冒险",
+   "tier1": true,
    "raw": {
-    "name": "动作冒险"
+    "name": "动作冒险",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_006",
    "group": "genre",
-   "label": "动作冒险 / 生存恐怖",
+   "label": "平台跳跃",
+   "tier1": true,
    "raw": {
-    "name": "动作冒险 / 生存恐怖"
+    "name": "平台跳跃",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_007",
    "group": "genre",
-   "label": "3D平台跳跃",
+   "label": "策略",
+   "tier1": true,
    "raw": {
-    "name": "3D平台跳跃"
+    "name": "策略",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_008",
    "group": "genre",
-   "label": "合作冒险",
+   "label": "模拟",
+   "tier1": true,
    "raw": {
-    "name": "合作冒险"
+    "name": "模拟",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_009",
    "group": "genre",
-   "label": "角色扮演",
+   "label": "竞速",
+   "tier1": true,
    "raw": {
-    "name": "角色扮演"
+    "name": "竞速",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_010",
    "group": "genre",
-   "label": "开放世界角色扮演",
+   "label": "卡牌",
+   "tier1": true,
    "raw": {
-    "name": "开放世界角色扮演"
+    "name": "卡牌",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_011",
    "group": "genre",
-   "label": "角色扮演（CRPG）",
+   "label": "解谜",
+   "tier1": true,
    "raw": {
-    "name": "角色扮演（CRPG）"
+    "name": "解谜",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_012",
    "group": "genre",
-   "label": "冒险 / 互动电影",
+   "label": "虚拟现实",
+   "tier1": true,
    "raw": {
-    "name": "冒险 / 互动电影"
+    "name": "虚拟现实",
+    "parent": "",
+    "is_tier1": true
    }
   },
   {
    "id": "genre_013",
    "group": "genre",
-   "label": "回合制角色扮演（含即时元素）",
+   "label": "动作角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "回合制角色扮演（含即时元素）"
+    "name": "动作角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_014",
    "group": "genre",
-   "label": "第一人称英雄射击",
+   "label": "在线动作角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "第一人称英雄射击"
+    "name": "在线动作角色扮演",
+    "parent": "动作角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_015",
    "group": "genre",
-   "label": "动作角色扮演",
+   "label": "开放世界动作角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "动作角色扮演"
+    "name": "开放世界动作角色扮演",
+    "parent": "动作角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_016",
    "group": "genre",
-   "label": "多人在线角色扮演",
+   "label": "回合制角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "多人在线角色扮演"
+    "name": "回合制角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_017",
    "group": "genre",
-   "label": "太空角色扮演",
+   "label": "大型多人在线角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "太空角色扮演"
+    "name": "大型多人在线角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_018",
    "group": "genre",
-   "label": "模拟经营",
+   "label": "CRPG",
+   "tier1": false,
    "raw": {
-    "name": "模拟经营"
+    "name": "CRPG",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_019",
    "group": "genre",
-   "label": "西部动作冒险",
+   "label": "太空角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "西部动作冒险"
+    "name": "太空角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_020",
    "group": "genre",
-   "label": "动作冒险/侦探",
+   "label": "科幻角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "动作冒险/侦探"
+    "name": "科幻角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_021",
    "group": "genre",
-   "label": "第三人称射击",
+   "label": "开放世界角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "第三人称射击"
+    "name": "开放世界角色扮演",
+    "parent": "角色扮演",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_022",
    "group": "genre",
-   "label": "第一人称射击RPG",
+   "label": "卡牌角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "第一人称射击RPG"
+    "name": "卡牌角色扮演",
+    "parent": "卡牌",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_023",
    "group": "genre",
-   "label": "战术射击",
+   "label": "机甲动作",
+   "tier1": false,
    "raw": {
-    "name": "战术射击"
+    "name": "机甲动作",
+    "parent": "动作",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_024",
    "group": "genre",
-   "label": "策略RPG",
+   "label": "第一人称射击",
+   "tier1": false,
    "raw": {
-    "name": "策略RPG"
+    "name": "第一人称射击",
+    "parent": "射击",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_025",
    "group": "genre",
-   "label": "平台跳跃",
+   "label": "第三人称射击",
+   "tier1": false,
    "raw": {
-    "name": "平台跳跃"
+    "name": "第三人称射击",
+    "parent": "射击",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_026",
    "group": "genre",
-   "label": "卡丁车竞速",
+   "label": "英雄射击",
+   "tier1": false,
    "raw": {
-    "name": "卡丁车竞速"
+    "name": "英雄射击",
+    "parent": "射击",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_027",
    "group": "genre",
-   "label": "平台动作",
+   "label": "战术射击",
+   "tier1": false,
    "raw": {
-    "name": "平台动作"
+    "name": "战术射击",
+    "parent": "射击",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_028",
    "group": "genre",
-   "label": "未来竞速",
+   "label": "第一人称射击RPG",
+   "tier1": false,
    "raw": {
-    "name": "未来竞速"
+    "name": "第一人称射击RPG",
+    "parent": "射击",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_029",
    "group": "genre",
-   "label": "增强现实 / 硬件展示",
+   "label": "互动电影冒险",
+   "tier1": false,
    "raw": {
-    "name": "增强现实 / 硬件展示"
+    "name": "互动电影冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_030",
    "group": "genre",
-   "label": "虚拟现实 / 合家欢",
+   "label": "喜剧冒险",
+   "tier1": false,
    "raw": {
-    "name": "虚拟现实 / 合家欢"
+    "name": "喜剧冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_031",
    "group": "genre",
-   "label": "VR平台跳跃",
+   "label": "合家欢冒险",
+   "tier1": false,
    "raw": {
-    "name": "VR平台跳跃"
+    "name": "合家欢冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_032",
    "group": "genre",
-   "label": "解谜冒险",
+   "label": "合作冒险",
+   "tier1": false,
    "raw": {
-    "name": "解谜冒险"
+    "name": "合作冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_033",
    "group": "genre",
-   "label": "合作动作冒险",
+   "label": "解谜冒险",
+   "tier1": false,
    "raw": {
-    "name": "合作动作冒险"
+    "name": "解谜冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_034",
    "group": "genre",
-   "label": "科幻角色扮演",
+   "label": "侦探冒险",
+   "tier1": false,
    "raw": {
-    "name": "科幻角色扮演"
+    "name": "侦探冒险",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_035",
    "group": "genre",
-   "label": "在线动作角色扮演",
+   "label": "生存恐怖",
+   "tier1": false,
    "raw": {
-    "name": "在线动作角色扮演"
+    "name": "生存恐怖",
+    "parent": "冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_036",
    "group": "genre",
-   "label": "卡牌角色扮演",
+   "label": "开放世界动作冒险",
+   "tier1": false,
    "raw": {
-    "name": "卡牌角色扮演"
+    "name": "开放世界动作冒险",
+    "parent": "动作冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_037",
    "group": "genre",
-   "label": "卡牌对战",
+   "label": "西部动作冒险",
+   "tier1": false,
    "raw": {
-    "name": "卡牌对战"
+    "name": "西部动作冒险",
+    "parent": "动作冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_038",
    "group": "genre",
-   "label": "开放世界角色扮演（资料片）",
+   "label": "合作动作冒险",
+   "tier1": false,
    "raw": {
-    "name": "开放世界角色扮演（资料片）"
+    "name": "合作动作冒险",
+    "parent": "动作冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_039",
    "group": "genre",
-   "label": "策略/角色扮演",
+   "label": "银河恶魔城",
+   "tier1": false,
    "raw": {
-    "name": "策略/角色扮演"
+    "name": "银河恶魔城",
+    "parent": "动作冒险",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_040",
    "group": "genre",
-   "label": "战术角色扮演",
+   "label": "3D平台跳跃",
+   "tier1": false,
    "raw": {
-    "name": "战术角色扮演"
+    "name": "3D平台跳跃",
+    "parent": "平台跳跃",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_041",
    "group": "genre",
-   "label": "冒险",
+   "label": "VR平台跳跃",
+   "tier1": false,
    "raw": {
-    "name": "冒险"
+    "name": "VR平台跳跃",
+    "parent": "平台跳跃",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_042",
    "group": "genre",
-   "label": "冒险/互动电影",
+   "label": "横向卷轴平台",
+   "tier1": false,
    "raw": {
-    "name": "冒险/互动电影"
+    "name": "横向卷轴平台",
+    "parent": "平台跳跃",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_043",
    "group": "genre",
-   "label": "冒险/喜剧",
+   "label": "平台动作",
+   "tier1": false,
    "raw": {
-    "name": "冒险/喜剧"
+    "name": "平台动作",
+    "parent": "平台跳跃",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_044",
    "group": "genre",
-   "label": "冒险/家庭",
+   "label": "即时战略",
+   "tier1": false,
    "raw": {
-    "name": "冒险/家庭"
+    "name": "即时战略",
+    "parent": "策略",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_045",
    "group": "genre",
-   "label": "机甲动作",
+   "label": "策略角色扮演",
+   "tier1": false,
    "raw": {
-    "name": "机甲动作"
+    "name": "策略角色扮演",
+    "parent": "策略",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_046",
    "group": "genre",
-   "label": "3D平台",
+   "label": "模拟经营",
+   "tier1": false,
    "raw": {
-    "name": "3D平台"
+    "name": "模拟经营",
+    "parent": "模拟",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_047",
    "group": "genre",
    "label": "生活模拟",
+   "tier1": false,
    "raw": {
-    "name": "生活模拟"
+    "name": "生活模拟",
+    "parent": "模拟",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_048",
    "group": "genre",
-   "label": "横向卷轴平台",
+   "label": "卡丁车竞速",
+   "tier1": false,
    "raw": {
-    "name": "横向卷轴平台"
+    "name": "卡丁车竞速",
+    "parent": "竞速",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_049",
    "group": "genre",
-   "label": "银河恶魔城/动作冒险",
+   "label": "未来竞速",
+   "tier1": false,
    "raw": {
-    "name": "银河恶魔城/动作冒险"
+    "name": "未来竞速",
+    "parent": "竞速",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_050",
    "group": "genre",
-   "label": "动作角色扮演（ARPG）",
+   "label": "数字卡牌",
+   "tier1": false,
    "raw": {
-    "name": "动作角色扮演（ARPG）"
+    "name": "数字卡牌",
+    "parent": "卡牌",
+    "is_tier1": false
    }
   },
   {
    "id": "genre_051",
    "group": "genre",
-   "label": "即时战略（RTS）",
+   "label": "增强现实",
+   "tier1": false,
    "raw": {
-    "name": "即时战略（RTS）"
-   }
-  },
-  {
-   "id": "genre_052",
-   "group": "genre",
-   "label": "大型多人在线角色扮演（MMORPG）",
-   "raw": {
-    "name": "大型多人在线角色扮演（MMORPG）"
-   }
-  },
-  {
-   "id": "genre_053",
-   "group": "genre",
-   "label": "数字卡牌",
-   "raw": {
-    "name": "数字卡牌"
+    "name": "增强现实",
+    "parent": "虚拟现实",
+    "is_tier1": false
    }
   },
   {
@@ -5083,32 +5868,32 @@
   },
   {
    "from": "game_001",
-   "to": "genre_001",
+   "to": "genre_015",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_002",
-   "to": "genre_001",
+   "to": "genre_015",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_003",
-   "to": "genre_002",
+   "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_004",
-   "to": "genre_002",
+   "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_005",
-   "to": "genre_003",
+   "to": "genre_037",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_006",
-   "to": "genre_004",
+   "to": "genre_024",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5118,7 +5903,12 @@
   },
   {
    "from": "game_008",
-   "to": "genre_006",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_008",
+   "to": "genre_035",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5128,37 +5918,37 @@
   },
   {
    "from": "game_010",
-   "to": "genre_007",
+   "to": "genre_040",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_011",
-   "to": "genre_008",
+   "to": "genre_032",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_012",
-   "to": "genre_009",
+   "to": "genre_001",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_013",
-   "to": "genre_010",
+   "to": "genre_021",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_014",
-   "to": "genre_011",
+   "to": "genre_018",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_015",
-   "to": "genre_012",
+   "to": "genre_029",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_016",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5168,47 +5958,47 @@
   },
   {
    "from": "game_018",
-   "to": "genre_001",
+   "to": "genre_015",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_019",
-   "to": "genre_002",
+   "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_020",
-   "to": "genre_014",
+   "to": "genre_026",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_021",
-   "to": "genre_015",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_022",
-   "to": "genre_015",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_023",
-   "to": "genre_016",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_024",
    "to": "genre_017",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_024",
+   "to": "genre_019",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_025",
-   "to": "genre_018",
+   "to": "genre_046",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_026",
-   "to": "genre_009",
+   "to": "genre_001",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5228,7 +6018,7 @@
   },
   {
    "from": "game_030",
-   "to": "genre_019",
+   "to": "genre_037",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5238,12 +6028,17 @@
   },
   {
    "from": "game_032",
-   "to": "genre_020",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_032",
+   "to": "genre_034",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_033",
-   "to": "genre_021",
+   "to": "genre_025",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5253,52 +6048,52 @@
   },
   {
    "from": "game_035",
-   "to": "genre_022",
+   "to": "genre_028",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_036",
-   "to": "genre_004",
+   "to": "genre_024",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_037",
-   "to": "genre_023",
+   "to": "genre_027",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_038",
-   "to": "genre_024",
+   "to": "genre_045",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_039",
-   "to": "genre_004",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_040",
    "to": "genre_024",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_040",
+   "to": "genre_045",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_041",
-   "to": "genre_025",
+   "to": "genre_006",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_042",
-   "to": "genre_025",
+   "to": "genre_006",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_043",
-   "to": "genre_026",
+   "to": "genre_048",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_044",
-   "to": "genre_027",
+   "to": "genre_043",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5313,12 +6108,17 @@
   },
   {
    "from": "game_047",
-   "to": "genre_006",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_047",
+   "to": "genre_035",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_048",
-   "to": "genre_028",
+   "to": "genre_049",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5343,217 +6143,217 @@
   },
   {
    "from": "game_053",
-   "to": "genre_029",
+   "to": "genre_051",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_054",
-   "to": "genre_030",
+   "to": "genre_012",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_055",
-   "to": "genre_031",
+   "to": "genre_041",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_056",
-   "to": "genre_025",
+   "to": "genre_006",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_057",
-   "to": "genre_032",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_058",
    "to": "genre_033",
    "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "game_059",
-   "to": "genre_008",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_060",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_061",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_062",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_063",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_064",
-   "to": "genre_034",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_065",
-   "to": "genre_034",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_066",
-   "to": "genre_034",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_067",
-   "to": "genre_035",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_068",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_069",
-   "to": "genre_009",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_070",
-   "to": "genre_036",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_071",
-   "to": "genre_010",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_072",
-   "to": "genre_037",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_073",
+   "from": "game_058",
    "to": "genre_038",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_059",
+   "to": "genre_032",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_060",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_061",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_062",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_063",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_064",
+   "to": "genre_020",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_065",
+   "to": "genre_020",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_066",
+   "to": "genre_020",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_067",
+   "to": "genre_014",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_068",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_069",
+   "to": "genre_001",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_070",
+   "to": "genre_022",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_071",
+   "to": "genre_021",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_072",
+   "to": "genre_050",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_073",
+   "to": "genre_021",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_074",
-   "to": "genre_015",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_075",
-   "to": "genre_015",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_076",
-   "to": "genre_015",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_077",
-   "to": "genre_039",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_078",
-   "to": "genre_011",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_079",
-   "to": "genre_011",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_080",
-   "to": "genre_040",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_081",
-   "to": "genre_041",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_082",
-   "to": "genre_041",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_083",
-   "to": "genre_042",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_084",
-   "to": "genre_043",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_085",
-   "to": "genre_041",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_086",
-   "to": "genre_044",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_087",
-   "to": "genre_041",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_088",
-   "to": "genre_042",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_089",
-   "to": "genre_015",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_090",
-   "to": "genre_015",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_091",
-   "to": "genre_015",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_092",
-   "to": "genre_015",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_093",
-   "to": "genre_015",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_094",
    "to": "genre_045",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_078",
+   "to": "genre_018",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_079",
+   "to": "genre_018",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_080",
+   "to": "genre_045",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_081",
+   "to": "genre_004",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_082",
+   "to": "genre_004",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_083",
+   "to": "genre_029",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_084",
+   "to": "genre_030",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_085",
+   "to": "genre_004",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_086",
+   "to": "genre_031",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_087",
+   "to": "genre_004",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_088",
+   "to": "genre_029",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_089",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_090",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_091",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_092",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_093",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_094",
+   "to": "genre_023",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_095",
-   "to": "genre_046",
+   "to": "genre_040",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5563,65 +6363,261 @@
   },
   {
    "from": "game_097",
-   "to": "genre_021",
+   "to": "genre_025",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_098",
-   "to": "genre_002",
+   "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_099",
-   "to": "genre_048",
+   "to": "genre_042",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_100",
-   "to": "genre_049",
+   "to": "genre_039",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_101",
-   "to": "genre_050",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_102",
-   "to": "genre_051",
+   "to": "genre_044",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_103",
-   "to": "genre_052",
+   "to": "genre_017",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_104",
-   "to": "genre_050",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_105",
-   "to": "genre_053",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_106",
    "to": "genre_050",
    "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "game_107",
-   "to": "genre_014",
+   "from": "game_106",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_107",
+   "to": "genre_026",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "genre_013",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_014",
+   "to": "genre_013",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_015",
+   "to": "genre_013",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_016",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_017",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_018",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_019",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_020",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_021",
+   "to": "genre_001",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_022",
+   "to": "genre_010",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_023",
+   "to": "genre_002",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_024",
+   "to": "genre_003",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_025",
+   "to": "genre_003",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_026",
+   "to": "genre_003",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_027",
+   "to": "genre_003",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_028",
+   "to": "genre_003",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_029",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_030",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_031",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_032",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_033",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_034",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_035",
+   "to": "genre_004",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_036",
+   "to": "genre_005",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_037",
+   "to": "genre_005",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_038",
+   "to": "genre_005",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_039",
+   "to": "genre_005",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_040",
+   "to": "genre_006",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_041",
+   "to": "genre_006",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_042",
+   "to": "genre_006",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_043",
+   "to": "genre_006",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_044",
+   "to": "genre_007",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_045",
+   "to": "genre_007",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_046",
+   "to": "genre_008",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_047",
+   "to": "genre_008",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_048",
+   "to": "genre_009",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_049",
+   "to": "genre_009",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_050",
+   "to": "genre_010",
+   "type": "SUBCLASS_OF"
+  },
+  {
+   "from": "genre_051",
+   "to": "genre_012",
+   "type": "SUBCLASS_OF"
   }
  ],
  "stats": {
   "goty": 20,
   "games": 107,
   "studios": 15,
-  "genres": 53,
+  "genres": 51,
+  "top_genres": 12,
   "awards": 20
  }
 }

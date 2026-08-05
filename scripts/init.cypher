@@ -23,7 +23,7 @@ CREATE (s:Studio { studio_id: row.studio_id, name: row.name, name_zh: row.name_z
   founded: toInteger(row.founded), country: row.country, hq: row.hq, parent: row.parent });
 
 LOAD CSV WITH HEADERS FROM 'file:///csv/genres.csv' AS row
-CREATE (g:Genre { genre_id: row.genre_id, name: row.name });
+CREATE (g:Genre { genre_id: row.genre_id, name: row.name, parent: row.parent, tier: toInteger(row.tier) });
 
 LOAD CSV WITH HEADERS FROM 'file:///csv/awards.csv' AS row
 CREATE (a:Award { award_id: row.award_id, game_id: row.game_id, name: row.name,
@@ -40,3 +40,7 @@ CREATE (g)-[:WON]->(a);
 LOAD CSV WITH HEADERS FROM 'file:///csv/rel_genre.csv' AS row
 MATCH (g:Game {game_id: row.game_id}), (gn:Genre {genre_id: row.genre_id})
 CREATE (g)-[:BELONGS_TO_GENRE]->(gn);
+
+LOAD CSV WITH HEADERS FROM 'file:///csv/rel_subclass.csv' AS row
+MATCH (c:Genre {genre_id: row.child_id}), (p:Genre {genre_id: row.parent_id})
+CREATE (c)-[:SUBCLASS_OF]->(p);

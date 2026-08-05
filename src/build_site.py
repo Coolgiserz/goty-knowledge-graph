@@ -32,10 +32,10 @@ studio_opts = sorted(
     key=lambda x: x["name"])
 studio_opt_html = "".join(f'<option value="{o["id"]}">{o["name"]}</option>' for o in studio_opts)
 
-genre_opts = sorted(
-    [{"id": n["id"], "name": n["raw"]["name"]} for n in G["nodes"] if n["group"] == "genre"],
-    key=lambda x: x["name"])
-genre_opt_html = "".join(f'<option value="{o["id"]}">{o["name"]}</option>' for o in genre_opts)
+tier1_genres = sorted(
+    [n["raw"]["name"] for n in G["nodes"] if n.get("tier1")],
+    key=lambda x: x)
+genre_opt_html = "".join(f'<option value="{esc_name}">{esc_name}</option>' for esc_name in tier1_genres)
 
 HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -148,9 +148,9 @@ HTML = r"""<!DOCTYPE html>
     · <b style="color:var(--gold)">金色星形</b> = 年度最佳游戏（GOTY）<br>
     · <b style="color:var(--blue)">蓝色圆点</b> = 该工作室的其他作品<br>
     · <b style="color:var(--purple)">紫色菱形</b> = 游戏开发商<br>
-    · <b style="color:var(--green)">绿色六边形</b> = 游戏类型<br>
+    · <b style="color:var(--green)">绿色六边形</b> = 游戏类型（大=顶层原子类别，小=子类型）<br>
     · <b style="color:var(--red)">红色三角</b> = 年度大奖<br><br>
-    边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」。点击节点会自动高亮其相邻节点。</p>
+    边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」；绿色点线「类型层级」（子类型→父类型）。点击节点会自动高亮其相邻节点。类型下拉按<b>顶层原子类别</b>筛选。</p>
   </div>
 </div>
 
@@ -166,6 +166,7 @@ HTML = r"""<!DOCTYPE html>
   <span class="grp"><i class="line" style="border-color:#4a5160"></i>开发了</span>
   <span class="grp"><i class="line" style="border-color:var(--gold);border-top-style:dashed"></i>获得</span>
   <span class="grp"><i class="line" style="border-color:var(--green);border-top-style:dashed"></i>属于类型</span>
+  <span class="grp"><i class="line" style="border-color:var(--green);border-top-style:dotted"></i>类型层级</span>
 </div>
 <div class="foot">数据来源：The Game Awards / Spike VGA 公开资料与 Metacritic 评分（综合整理，评分以 Metacritic 媒体均分为参考）。可导入 Neo4j：见 data/neo4j/ 与 docs/neo4j_tutorial.md。</div>
 
@@ -175,6 +176,8 @@ const GRAPH = __GRAPH_JSON__;
 const DEFAULT_HINT = document.getElementById('detail').innerHTML;
 const byId = {};
 GRAPH.nodes.forEach(n => byId[n.id] = n);
+const genreNameToId = {};
+GRAPH.nodes.forEach(n => { if (n.group === 'genre') genreNameToId[n.raw.name] = n.id; });
 const years = GRAPH.nodes.filter(n=>n.group==='game'||n.group==='goty')
   .map(n=>n.raw.year).filter(y=>typeof y==='number');
 const yMinAll = Math.min(...years), yMaxAll = Math.max(...years);
@@ -183,7 +186,7 @@ const yMinAll = Math.min(...years), yMaxAll = Math.max(...years);
 const s = GRAPH.stats;
 document.getElementById('chips').innerHTML = [
   ['年度最佳', s.goty], ['游戏总数', s.games], ['开发商', s.studios],
-  ['游戏类型', s.genres], ['奖项', s.awards], ['关系', GRAPH.edges.length]
+  ['顶层类别', s.top_genres], ['类型(含子类)', s.genres], ['奖项', s.awards], ['关系', GRAPH.edges.length]
 ].map(([k,v])=>`<span class="chip">${k} <b>${v}</b></span>`).join('');
 
 // year selects
@@ -199,7 +202,12 @@ const groupColors = {
   genre:{color:'#27ae60',border:'#52d68a'},
   award:{color:'#e74c3c',border:'#ff7a6a'}
 };
-GRAPH.nodes.forEach(n=>{const c=groupColors[n.group];n.color=c;});
+GRAPH.nodes.forEach(n=>{
+  if(n.group==='genre'){
+    if(n.tier1){ n.size=16; n.borderWidth=3; n.color={background:'#2f9e54',border:'#86efac'}; }
+    else { n.size=9; n.color=groupColors.genre; }
+  } else { n.color=groupColors[n.group]; }
+});
 const edgeColor = {DEVELOPED:'#4a5160', WON:'#f5b301', BELONGS_TO_GENRE:'#27ae60'};
 GRAPH.edges.forEach((e,i)=>{
   e.color=edgeColor[e.type];
@@ -281,7 +289,17 @@ function renderDetail(id){
     el.innerHTML = html;
   } else if(n.group==='genre'){
     const gs = GRAPH.edges.filter(e=>e.type==='BELONGS_TO_GENRE'&&e.to===id).map(e=>byId[e.from]);
-    let html=`<h2>${esc(d.name)}</h2><div style="color:var(--muted);font-size:12px">类型 · ${gs.length} 款游戏</div><dl>`;
+    const children = GRAPH.edges.filter(e=>e.type==='SUBCLASS_OF'&&e.from===id).map(e=>byId[e.to]);
+    let html=`<h2>${esc(d.name)}</h2><div style="color:var(--muted);font-size:12px">类型 · ${gs.length} 款游戏 · 层级 ${d.tier||1}</div>`;
+    const parts=[];
+    if(d.parent){const pid=genreNameToId[d.parent]; if(pid) parts.push(`<span class="gamelink" onclick="selectNode('${pid}')">↑ 父类：${esc(d.parent)}</span>`);}
+    if(children.length){
+      parts.push(`<dt style="margin-top:10px">子类（${children.length}）</dt>`);
+      children.sort((a,b)=>a.raw.name.localeCompare(b.raw.name,'zh')).forEach(c=>{
+        parts.push(`<span class="gamelink" onclick="selectNode('${c.id}')">${esc(c.raw.name)}</span>`);});
+    }
+    html+=parts.join('');
+    html+=`<dt style="margin-top:14px">所属游戏（${gs.length}）</dt>`;
     gs.sort((a,b)=>(a.raw.year||0)-(b.raw.year||0)).forEach(g=>{const r=g.raw;html+=`<span class="gamelink" onclick="selectNode('${g.id}')"><span class="yr">${r.year||'—'}</span>${esc(r.title_zh)}${r.is_goty?' <span class="star">★</span>':''}</span>`;});
     el.innerHTML=html;
   } else if(n.group==='award'){
@@ -320,7 +338,7 @@ function applyFilters(){
   focus = focus.filter(n=>{
     const y=n.raw.year; if(typeof y==='number'&&(y<yMin||y>yMax)) return false;
     if(onlyGoty && n.group!=='goty') return false;
-    if(genre!=='ALL' && n.raw.genre!==byId[genre].raw.name) return false;
+    if(genre!=='ALL' && !(n.raw.tiers||[]).includes(genre)) return false;
     if(q){const hay=(n.raw.title+' '+n.raw.title_zh+' '+(n.raw.description||'')).toLowerCase();
       if(!hay.includes(q)) return false;}
     return true;
@@ -339,7 +357,12 @@ function applyFilters(){
   });
   const visNodes=new Set(focusIds);
   if(showStudio) (studio!=='ALL'?visNodes.add(studio):visStudios.forEach(x=>visNodes.add(x)));
-  if(showGenre) visGenres.forEach(x=>visNodes.add(x));
+  if(showGenre){
+    const gfull=new Set(visGenres);
+    visGenres.forEach(gid=>{ let cur=byId[gid];
+      while(cur&&cur.raw&&cur.raw.parent){ const pid=genreNameToId[cur.raw.parent]; if(!pid) break; gfull.add(pid); cur=byId[pid]; } });
+    gfull.forEach(x=>visNodes.add(x));
+  }
   if(showAward) visAwards.forEach(x=>visNodes.add(x));
 
   nodesDS.update(GRAPH.nodes.map(n=>({id:n.id,hidden:!visNodes.has(n.id)})));

@@ -34,7 +34,6 @@ for i in range(1, 6):
 # ---------- 2. build game nodes ----------
 games = {}            # gid -> record
 title2gid = {}
-genre_ids = {}        # name -> gid
 
 def add_game(rec):
     gid = f"game_{len(games)+1:03d}"
@@ -72,24 +71,149 @@ for sid, s in studios.items():
             "awards": "", "influence": "", "description": og.get("note", ""), "body": "",
         })
 
-# ---------- 3. genres & awards ----------
+# ---------- 3. genre taxonomy & awards ----------
+# 类型层级：12 个顶层原子类别(parent=None) + 子类型(parent=父类别)。
+# 每条原始 genre 字符串映射到 1~N 个原子子类型（同义合并 / 复合拆分），
+# 从而满足「原子性 + 层级关系」。
+GENRE_PARENT = {
+    # 顶层原子类别（12 个，互不重叠）
+    "角色扮演": None, "动作": None, "射击": None, "冒险": None,
+    "动作冒险": None, "平台跳跃": None, "策略": None, "模拟": None,
+    "竞速": None, "卡牌": None, "解谜": None, "虚拟现实": None,
+    # 角色扮演 子类
+    "动作角色扮演": "角色扮演",
+    "在线动作角色扮演": "动作角色扮演",
+    "开放世界动作角色扮演": "动作角色扮演",
+    "回合制角色扮演": "角色扮演",
+    "大型多人在线角色扮演": "角色扮演",
+    "CRPG": "角色扮演",
+    "太空角色扮演": "角色扮演",
+    "科幻角色扮演": "角色扮演",
+    "开放世界角色扮演": "角色扮演",
+    "卡牌角色扮演": "卡牌",
+    # 动作 子类
+    "机甲动作": "动作",
+    # 射击 子类
+    "第一人称射击": "射击",
+    "第三人称射击": "射击",
+    "英雄射击": "射击",
+    "战术射击": "射击",
+    "第一人称射击RPG": "射击",
+    # 冒险 子类
+    "互动电影冒险": "冒险",
+    "喜剧冒险": "冒险",
+    "合家欢冒险": "冒险",
+    "合作冒险": "冒险",
+    "解谜冒险": "冒险",
+    "侦探冒险": "冒险",
+    "生存恐怖": "冒险",
+    # 动作冒险 子类
+    "开放世界动作冒险": "动作冒险",
+    "西部动作冒险": "动作冒险",
+    "合作动作冒险": "动作冒险",
+    "银河恶魔城": "动作冒险",
+    # 平台跳跃 子类
+    "3D平台跳跃": "平台跳跃",
+    "VR平台跳跃": "平台跳跃",
+    "横向卷轴平台": "平台跳跃",
+    "平台动作": "平台跳跃",
+    # 策略 子类
+    "即时战略": "策略",
+    "策略角色扮演": "策略",
+    # 模拟 子类
+    "模拟经营": "模拟",
+    "生活模拟": "模拟",
+    # 竞速 子类
+    "卡丁车竞速": "竞速",
+    "未来竞速": "竞速",
+    # 卡牌 子类
+    "数字卡牌": "卡牌",
+    # 虚拟现实 子类
+    "增强现实": "虚拟现实",
+}
+# 原始 genre 字符串 -> 原子子类型列表（同义合并 / 复合拆分）
+RAW_TO_LEAVES = {
+    "3D平台": ["3D平台跳跃"], "3D平台跳跃": ["3D平台跳跃"],
+    "VR平台跳跃": ["VR平台跳跃"], "冒险": ["冒险"],
+    "冒险 / 互动电影": ["互动电影冒险"], "冒险/互动电影": ["互动电影冒险"],
+    "冒险/喜剧": ["喜剧冒险"], "冒险/家庭": ["合家欢冒险"],
+    "动作冒险": ["动作冒险"], "动作冒险 / 生存恐怖": ["动作冒险", "生存恐怖"],
+    "动作冒险/侦探": ["动作冒险", "侦探冒险"],
+    "动作角色扮演": ["动作角色扮演"], "动作角色扮演（ARPG）": ["动作角色扮演"],
+    "卡丁车竞速": ["卡丁车竞速"], "卡牌对战": ["数字卡牌"],
+    "卡牌角色扮演": ["卡牌角色扮演"], "即时战略（RTS）": ["即时战略"],
+    "合作冒险": ["合作冒险"], "合作动作冒险": ["合作动作冒险"],
+    "回合制角色扮演（含即时元素）": ["回合制角色扮演"],
+    "在线动作角色扮演": ["在线动作角色扮演"],
+    "增强现实 / 硬件展示": ["增强现实"],
+    "多人在线角色扮演": ["大型多人在线角色扮演"],
+    "大型多人在线角色扮演（MMORPG）": ["大型多人在线角色扮演"],
+    "太空角色扮演": ["太空角色扮演"], "平台动作": ["平台动作"],
+    "平台跳跃": ["平台跳跃"], "开放世界动作冒险": ["开放世界动作冒险"],
+    "开放世界动作角色扮演": ["开放世界动作角色扮演"],
+    "开放世界西部动作冒险": ["西部动作冒险"],
+    "开放世界角色扮演": ["开放世界角色扮演"],
+    "开放世界角色扮演（资料片）": ["开放世界角色扮演"],
+    "战术射击": ["战术射击"], "战术角色扮演": ["策略角色扮演"],
+    "数字卡牌": ["数字卡牌"], "未来竞速": ["未来竞速"], "机甲动作": ["机甲动作"],
+    "模拟经营": ["模拟经营"], "横向卷轴平台": ["横向卷轴平台"],
+    "生活模拟": ["生活模拟"], "科幻角色扮演": ["科幻角色扮演"],
+    "第一人称射击": ["第一人称射击"], "第一人称射击RPG": ["第一人称射击RPG"],
+    "第一人称英雄射击": ["英雄射击"], "第三人称射击": ["第三人称射击"],
+    "策略/角色扮演": ["策略角色扮演"], "策略RPG": ["策略角色扮演"],
+    "虚拟现实 / 合家欢": ["虚拟现实"], "西部动作冒险": ["西部动作冒险"],
+    "角色扮演": ["角色扮演"], "角色扮演（CRPG）": ["CRPG"],
+    "解谜冒险": ["解谜冒险"], "银河恶魔城/动作冒险": ["银河恶魔城"],
+}
+
+def genre_top(leaf):
+    """返回某子类型所属的最顶层原子类别名。"""
+    cur = leaf
+    while cur in GENRE_PARENT and GENRE_PARENT[cur] is not None:
+        cur = GENRE_PARENT[cur]
+    return cur if cur in GENRE_PARENT else None
+
+def genre_tier(name):
+    t, cur = 1, name
+    while GENRE_PARENT.get(cur) is not None:
+        cur = GENRE_PARENT[cur]; t += 1
+    return t
+
+# assign genre ids：顶层类别先入（固定顺序），其次子类型
+genre_id = {}
+for name in GENRE_PARENT:                      # tier1 (parent None) 在前
+    genre_id[name] = f"genre_{len(genre_id)+1:03d}"
+
 awards = {}
 rel_developed = []
 rel_won = []
 rel_genre = []
+rel_subclass = []
 
 for gid, rec in games.items():
     rel_developed.append((rec["developer_id"], gid))
-    gn = rec["genre"].strip()
-    if gn:
-        if gn not in genre_ids:
-            genre_ids[gn] = f"genre_{len(genre_ids)+1:03d}"
-        rel_genre.append((gid, genre_ids[gn]))
+    raw = (rec.get("genre") or "").strip()
+    leaves = RAW_TO_LEAVES.get(raw)
+    if leaves is None:                         # 未知类别：兜底为独立顶层类型
+        leaves = [raw] if raw else []
+        if raw and raw not in genre_id:
+            genre_id[raw] = f"genre_{len(genre_id)+1:03d}"
+            GENRE_PARENT[raw] = None
+    for lv in leaves:
+        rel_genre.append((gid, genre_id[lv]))
+    tops = sorted({genre_top(lv) for lv in leaves if genre_top(lv)})
+    rec["genres"] = leaves                     # 原子子类型列表（展示用）
+    rec["tiers"] = tops                        # 顶层类别列表（筛选用）
     if rec["is_goty"]:
         aid = f"award_{gid}"
         awards[aid] = {"game_id": gid, "name": "年度最佳游戏 (Game of the Year)",
                        "year": rec["year"], "body": rec["body"]}
         rel_won.append((gid, aid))
+
+# 子类型 -> 父类型 的层级关系
+for child, parent in GENRE_PARENT.items():
+    if parent is not None:
+        rel_subclass.append((genre_id[child], genre_id[parent]))
 
 # ---------- 4. helper writers ----------
 def w_csv(path, header, rows):
@@ -113,8 +237,9 @@ w_csv(os.path.join(DATA_CSV, "studios.csv"),
       [[s["id"], s["name"], s["name_zh"], s["founded"], s["country"], s["hq"],
         s["parent"], s["description"]] for s in studios.values()])
 
-w_csv(os.path.join(DATA_CSV, "genres.csv"), ["genre_id","name"],
-      [[gid, name] for name, gid in genre_ids.items()])
+w_csv(os.path.join(DATA_CSV, "genres.csv"), ["genre_id","name","parent","tier"],
+      [[gid, name, (GENRE_PARENT[name] or ""), genre_tier(name)]
+       for name, gid in genre_id.items()])
 
 w_csv(os.path.join(DATA_CSV, "awards.csv"), ["award_id","game_id","name","year","body"],
       [[aid, a["game_id"], a["name"], a["year"], a["body"]] for aid, a in awards.items()])
@@ -122,6 +247,7 @@ w_csv(os.path.join(DATA_CSV, "awards.csv"), ["award_id","game_id","name","year",
 w_csv(os.path.join(DATA_CSV, "rel_developed.csv"), ["studio_id","game_id"], rel_developed)
 w_csv(os.path.join(DATA_CSV, "rel_won.csv"), ["game_id","award_id"], rel_won)
 w_csv(os.path.join(DATA_CSV, "rel_genre.csv"), ["game_id","genre_id"], rel_genre)
+w_csv(os.path.join(DATA_CSV, "rel_subclass.csv"), ["child_id","parent_id"], rel_subclass)
 
 # colon-header CSVs (for neo4j-admin import)
 w_csv(os.path.join(DATA_NEO, "games.csv"),
@@ -141,8 +267,10 @@ w_csv(os.path.join(DATA_NEO, "studios.csv"),
       [[s["id"], s["name"], s["name_zh"], s["founded"], s["country"], s["hq"],
         s["parent"], s["description"]] for s in studios.values()])
 
-w_csv(os.path.join(DATA_NEO, "genres.csv"), ["genre_id:ID(Genre)","name:string"],
-      [[gid, name] for name, gid in genre_ids.items()])
+w_csv(os.path.join(DATA_NEO, "genres.csv"),
+      ["genre_id:ID(Genre)","name:string","parent:string","tier:int"],
+      [[gid, name, (GENRE_PARENT[name] or ""), genre_tier(name)]
+       for name, gid in genre_id.items()])
 
 w_csv(os.path.join(DATA_NEO, "awards.csv"),
       ["award_id:ID(Award)","game_id:string","name:string","year:int","body:string"],
@@ -154,6 +282,9 @@ w_csv(os.path.join(DATA_NEO, "rel_won.csv"), [":START_ID(Game)",":END_ID(Award)"
       [[a, b, "WON"] for a, b in rel_won])
 w_csv(os.path.join(DATA_NEO, "rel_genre.csv"), [":START_ID(Game)",":END_ID(Genre)",":TYPE"],
       [[a, b, "BELONGS_TO_GENRE"] for a, b in rel_genre])
+w_csv(os.path.join(DATA_NEO, "rel_subclass.csv"),
+      [":START_ID(Genre)",":END_ID(Genre)",":TYPE"],
+      [[a, b, "SUBCLASS_OF"] for a, b in rel_subclass])
 
 # ---------- 5. graph.json for website ----------
 nodes = []
@@ -166,8 +297,13 @@ for gid, r in games.items():
 for sid, s in studios.items():
     nodes.append({"id": sid, "group": "studio",
                   "label": s["name_zh"], "raw": s})
-for name, gid in genre_ids.items():
-    nodes.append({"id": gid, "group": "genre", "label": name, "raw": {"name": name}})
+for name, gid in genre_id.items():
+    parent = GENRE_PARENT[name]
+    nodes.append({
+        "id": gid, "group": "genre", "label": name,
+        "tier1": parent is None,
+        "raw": {"name": name, "parent": parent or "", "is_tier1": parent is None},
+    })
 for aid, a in awards.items():
     nodes.append({"id": aid, "group": "award",
                   "label": f'GOTY {a["year"]}', "raw": a})
@@ -177,20 +313,24 @@ for a, b in rel_won:
     edges.append({"from": a, "to": b, "type": "WON"})
 for a, b in rel_genre:
     edges.append({"from": a, "to": b, "type": "BELONGS_TO_GENRE"})
+for a, b in rel_subclass:
+    edges.append({"from": a, "to": b, "type": "SUBCLASS_OF"})
 
 GRAPH = {
     "nodes": nodes, "edges": edges,
     "stats": {
         "goty": sum(1 for r in games.values() if r["is_goty"]),
         "games": len(games), "studios": len(studios),
-        "genres": len(genre_ids), "awards": len(awards),
+        "genres": len(genre_id),
+        "top_genres": sum(1 for p in GENRE_PARENT.values() if p is None),
+        "awards": len(awards),
     },
 }
 with open(os.path.join(ROOT, "data/graph.json"), "w", encoding="utf-8") as f:
     json.dump(GRAPH, f, ensure_ascii=False, indent=1)
 
 print("Games:", len(games), "Studios:", len(studios),
-      "Genres:", len(genre_ids), "Awards:", len(awards),
+      "Genres:", len(genre_id), "Awards:", len(awards),
       "Edges:", len(edges))
 
 # ---------- 6. tutorial ----------
@@ -201,7 +341,7 @@ tut = f"""# 年度最佳游戏知识图谱 · Neo4j 导入教程
 - **{GRAPH['stats']['goty']}** 款年度最佳游戏（GOTY）
 - **{GRAPH['stats']['games']}** 款游戏节点（含各开发商的其他代表作）
 - **{GRAPH['stats']['studios']}** 家开发商
-- **{GRAPH['stats']['genres']}** 个游戏类型
+- **{GRAPH['stats']['genres']}** 个游戏类型（含 **{GRAPH['stats']['top_genres']}** 个顶层原子类别 + 子类型，构成层级体系；已合并同义词、拆分复合词）
 - **{GRAPH['stats']['awards']}** 个年度大奖节点
 
 ## 节点与关系模型
@@ -210,13 +350,14 @@ tut = f"""# 年度最佳游戏知识图谱 · Neo4j 导入教程
 |------|------|----------|
 | `Game` | 游戏（含 GOTY 与开发商其他作品） | title, title_zh, year, is_goty, genre, developer, publisher, platforms, player_rating, gameplay, unique_features, drawbacks, awards, influence, description |
 | `Studio` | 开发商 | name, name_zh, founded, country, hq, parent, description |
-| `Genre` | 游戏类型 | name |
+| `Genre` | 游戏类型（含层级） | name, parent, tier |
 | `Award` | 年度最佳游戏奖 | name, year, body |
 
 关系：
 - `(:Studio)-[:DEVELOPED]->(:Game)` — 开发商开发了某游戏（含 GOTY 与“其他作品”）
 - `(:Game)-[:WON]->(:Award)` — 该游戏获得年度最佳（仅 GOTY 有）
-- `(:Game)-[:BELONGS_TO_GENRE]->(:Genre)` — 游戏所属类型
+- `(:Game)-[:BELONGS_TO_GENRE]->(:Genre)` — 游戏所属原子类型（一款游戏可属于多个类型）
+- `(:Genre)-[:SUBCLASS_OF]->(:Genre)` — 类型层级（子类型隶属于父类型，直至 12 个顶层原子类别）
 
 ## 数据集文件
 
@@ -230,7 +371,8 @@ data/neo4j/
 ├── awards.csv         (:ID(Award) ...)
 ├── rel_developed.csv  :START_ID(Studio),:END_ID(Game),:TYPE
 ├── rel_won.csv        :START_ID(Game),:END_ID(Award),:TYPE
-└── rel_genre.csv      :START_ID(Game),:END_ID(Genre),:TYPE
+├── rel_genre.csv      :START_ID(Game),:END_ID(Genre),:TYPE
+└── rel_subclass.csv   :START_ID(Genre),:END_ID(Genre),:TYPE   (类型层级 SUBCLASS_OF)
 ```
 
 `data/csv/` 下为 **普通表头** 的 CSV（供 Cypher `LOAD CSV` 使用，字段名不含冒号），并配套 `scripts/init.cypher` 一键导入脚本。
@@ -334,6 +476,18 @@ ORDER BY g.year;
 MATCH (s:Studio)-[:DEVELOPED]->(g:Game)-[:WON]->(:Award)
 WITH s, count(g) AS wins WHERE wins > 1
 RETURN s.name_zh AS 工作室, wins AS 夺冠次数;
+
+// 类型层级：列出某个顶层类别下的全部子类型（如“角色扮演”）
+MATCH (top:Genre {{name:'角色扮演'}})<-[:SUBCLASS_OF*1..5]-(sub:Genre)
+RETURN top.name AS 顶层类别, sub.name AS 子类型, sub.tier AS 层级
+ORDER BY sub.tier, sub.name;
+
+// 按“顶层原子类别”统计年度最佳游戏数量
+MATCH (g:Game)-[:WON]->(:Award)
+MATCH (g)-[:BELONGS_TO_GENRE]->(gn:Genre)
+WHERE gn.tier = 1
+RETURN gn.name AS 顶层类别, count(DISTINCT g) AS 年度最佳数量
+ORDER BY 年度最佳数量 DESC;
 ```
 
 ---
