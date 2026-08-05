@@ -8,11 +8,16 @@ CSV_FACTORS = "factors.csv"
 CSV_CLUSTERS = "clusters.csv"
 CSV_COMMUNITIES = "communities.csv"
 CSV_HOTSPOT_ERA = "hotspot_era.csv"
+CSV_STUDIO_SIM = "studio_similarity.csv"
+CSV_STUDIO_STYLE = "studio_style.csv"
+CSV_GOTY_GENRE = "goty_genre.csv"
 
 JSON_FACTOR_DOC = "factor_doc.json"
 JSON_CLUSTER_PROFILE = "cluster_profile.json"
 JSON_COMMUNITY_PROFILE = "community_profile.json"
 JSON_HOTSPOT_SUMMARY = "hotspot_summary.json"
+JSON_STUDIO_STYLE = "studio_style.json"
+JSON_GOTY_PROFILE = "goty_profile.json"
 MD_REPORT = "ML_REPORT.md"
 
 # PNG 文件名（analyzer 在报告中引用，visualizer 负责生成）
@@ -24,4 +29,8 @@ PNG = {
     "community": "community_graph.png",
     "hotspot": "hotspot_trend.png",
     "centrality": "centrality_top.png",
+    "studio_sim": "studio_similarity_heatmap.png",
+    "studio_style_scatter": "studio_style_scatter.png",
+    "goty_distinguish": "goty_distinguish.png",
+    "goty_genre": "goty_genre_overindex.png",
 }

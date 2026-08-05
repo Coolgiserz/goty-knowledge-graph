@@ -18,6 +18,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.cluster.hierarchy import linkage, fcluster
 
 from .context import PipelineContext
 from .clusterers import Clusterer
@@ -26,6 +28,17 @@ from .constants import PNG
 
 # 不参与聚类的标识/标签列
 _IDENT = {"game_id", "title", "title_zh", "developer_id", "developer", "is_goty"}
+
+
+def _style_cols(df: pd.DataFrame) -> list:
+    """用于「工作室风格 / GOTY 特征」的游戏玩法风格列：
+
+    - 排除标识列 _IDENT
+    - 排除 year（属于时间维度，不是玩法风格）
+    - 排除 studio_* 声誉列（避免「风格相似」被工作室声望主导，偏离玩法本意）
+    """
+    drop = _IDENT | {"year"}
+    return [c for c in df.columns if c not in drop and not c.startswith("studio_")]
 
 
 class AnalyzerResult:
@@ -375,4 +388,201 @@ class HotspotAnalyzer(Analyzer):
             s = "、".join(f"{k}({v})" for k, v in sw["top_studios"])
             res.write(f"| {sw['year']} | {s} |")
         res.write(f"\n![类型热度]({PNG['hotspot']})\n")
+        return res
+
+
+# ==========================================================================
+# 开发商游戏风格相似性
+# ==========================================================================
+@Analyzer.register
+class StudioStyleAnalyzer(Analyzer):
+    name = "studio_style"
+
+    def analyze(self, ctx: PipelineContext) -> AnalyzerResult:
+        res = AnalyzerResult()
+        df = ctx.get("factors")
+        cfg = ctx.config
+        studio_name = ctx.studio_names
+
+        cols = _style_cols(df)
+        X = df[cols].astype(float).values
+        Xs = StandardScaler().fit_transform(X)  # 标准化，避免量纲/one-hot 主导
+
+        # 每家工作室 = 其作品风格向量的均值（单作品工作室即该作向量）
+        by_studio = defaultdict(list)
+        for i, did in enumerate(df["developer_id"]):
+            by_studio[did].append(Xs[i])
+        studio_ids = sorted(by_studio.keys())
+        S = np.array([np.mean(by_studio[d], axis=0) for d in studio_ids])
+
+        # 余弦相似度（方向一致即风格接近，与长度无关）
+        sim = cosine_similarity(S)
+
+        # 工作室风格聚类（在标准化向量上做层次 Ward，簇数 ~ ceil(sqrt(n))）
+        n_stu = len(studio_ids)
+        k_stu = max(2, min(6, int(np.ceil(np.sqrt(n_stu)))))
+        Z = linkage(S, method="ward")
+        labels = fcluster(Z, k_stu, criterion="maxclust")
+
+        # PCA 二维用于散点可视化
+        pcs = PCA(n_components=2, random_state=cfg.random_state).fit_transform(S)
+
+        style_df = pd.DataFrame({
+            "studio_id": studio_ids,
+            "studio": [studio_name.get(s, s) for s in studio_ids],
+            "n_games": [len(by_studio[s]) for s in studio_ids],
+            "pca_x": pcs[:, 0], "pca_y": pcs[:, 1],
+            "style_cluster": labels,
+        })
+
+        # 最相似工作室对（去对角，取 Top8）
+        top_pairs = []
+        for i in range(n_stu):
+            for j in range(i + 1, n_stu):
+                top_pairs.append((studio_ids[i], studio_ids[j], float(sim[i, j])))
+        top_pairs.sort(key=lambda x: -x[2])
+        top_pairs = top_pairs[:8]
+
+        # 工作室风格簇分组
+        clusters = defaultdict(list)
+        for sid, lab in zip(studio_ids, labels):
+            clusters[int(lab)].append(studio_name.get(sid, sid))
+        cluster_groups = [{"cluster": c, "studios": names}
+                          for c, names in sorted(clusters.items())]
+
+        res.add("studio_style", style_df)
+        res.add("studio_sim_matrix", {"studio_ids": studio_ids,
+                                      "studio_names": [studio_name.get(s, s) for s in studio_ids],
+                                      "matrix": sim})
+        res.add("studio_style_summary",
+                {"n_studios": n_stu, "k_style": k_stu,
+                 "top_pairs": [[studio_name.get(a, a), studio_name.get(b, b), round(s, 3)]
+                               for a, b, s in top_pairs],
+                 "clusters": cluster_groups})
+
+        res.write(
+            "\n## 五、开发商游戏风格相似性\n",
+            "把每家工作室映射为其作品风格向量的均值，在标准化因子空间（玩法拓扑+属性+类型 one-hot，"
+            "**不含声誉列**）上计算余弦相似度——衡量「两家厂牌做出的游戏是否一脉相承」。\n",
+            f"共 **{n_stu} 家**工作室，风格层次聚类得 **{k_stu} 组**：\n",
+            "| 风格簇 | 成员工作室 |",
+            "|---|---|",
+        )
+        for g in cluster_groups:
+            res.write(f"| 簇{g['cluster']} | {'、'.join(g['studios'])} |")
+        res.write(
+            "\n**最相似的工作室对（Top8）：**\n",
+            "| 工作室 A | 工作室 B | 风格余弦相似度 |",
+            "|---|---|---|",
+        )
+        for a, b, s in res.artifacts["studio_style_summary"]["top_pairs"]:
+            res.write(f"| {a} | {b} | {s:.3f} |")
+        res.write(
+            f"\n> 注：相似度高代表两家厂牌的游戏在玩法类型/设计维度上高度重合"
+            "（如都爱做开放世界动作），可作为「厂牌基因」的量化证据；单作品工作室的向量即其唯一作品。\n",
+            f"![工作室风格相似度]({PNG['studio_sim']})\n",
+            f"![工作室风格散点]({PNG['studio_style_scatter']})\n",
+        )
+        return res
+
+
+# ==========================================================================
+# 年度最佳游戏（GOTY）特征分析
+# ==========================================================================
+@Analyzer.register
+class GotyProfileAnalyzer(Analyzer):
+    name = "goty_profile"
+
+    @staticmethod
+    def _cohen_d(a, b):
+        na, nb = len(a), len(b)
+        if na < 2 or nb < 2:
+            return 0.0
+        sp = np.sqrt(((na - 1) * a.var() + (nb - 1) * b.var()) / (na + nb - 2))
+        return float((a.mean() - b.mean()) / sp) if sp > 0 else 0.0
+
+    def analyze(self, ctx: PipelineContext) -> AnalyzerResult:
+        res = AnalyzerResult()
+        df = ctx.get("factors")
+
+        goty = df[df["is_goty"] == 1]
+        other = df[df["is_goty"] == 0]
+
+        # 用于区分的特征：数值列，排除标识/年份/直接泄漏的 studio_wins
+        num_cols = [c for c in df.columns
+                    if c not in _IDENT and c != "year" and c != "studio_wins"
+                    and not c.startswith("g_")]
+        factors = []
+        for c in num_cols:
+            a = goty[c].astype(float).dropna()
+            b = other[c].astype(float).dropna()
+            d = self._cohen_d(a, b)
+            factors.append({
+                "factor": c,
+                "mean_goty": round(float(a.mean()), 3) if len(a) else None,
+                "mean_other": round(float(b.mean()), 3) if len(b) else None,
+                "cohen_d": round(d, 3),
+                "abs_d": abs(d),
+            })
+        factors.sort(key=lambda x: -x["abs_d"])
+        top_factors = factors[:12]
+
+        # 类型 over-index：GOTY 中占比 / 全体占比
+        gcols = [c for c in df.columns if c.startswith("g_")]
+        share_goty = goty[gcols].mean()
+        share_all = df[gcols].mean()
+        rows = []
+        for c in gcols:
+            sg = float(share_goty[c]); sa = float(share_all[c])
+            oi = round(sg / sa, 2) if sa > 0 else (None if sg == 0 else 99.0)
+            rows.append({"genre": c[2:], "share_goty": round(sg, 3),
+                         "share_all": round(sa, 3), "overindex": oi})
+        genre_df = pd.DataFrame(rows)
+        genre_df = genre_df.sort_values("overindex", ascending=False, na_position="last")
+
+        # 概览统计
+        def rate(col):
+            return round(float(df[df["is_goty"] == 1][col].mean()), 3), \
+                   round(float(df[df["is_goty"] == 0][col].mean()), 3)
+
+        r_ow_g, r_ow_o = rate("has_open_world")
+        r_co_g, r_co_o = rate("has_coop")
+        r_on_g, r_on_o = rate("has_online")
+        summary = {
+            "n_goty": int(len(goty)), "n_other": int(len(other)),
+            "avg_rating_goty": round(float(goty["player_rating"].mean()), 1),
+            "avg_rating_other": round(float(other["player_rating"].mean()), 1),
+            "avg_year_goty": round(float(goty["year"].mean()), 1),
+            "avg_year_other": round(float(other["year"].mean()), 1),
+            "open_world_rate": [r_ow_g, r_ow_o],
+            "coop_rate": [r_co_g, r_co_o],
+            "online_rate": [r_on_g, r_on_o],
+            "n_genres_goty": round(float(goty["n_genres"].mean()), 2),
+            "n_genres_other": round(float(other["n_genres"].mean()), 2),
+        }
+
+        res.add("goty_profile", {"summary": summary, "factors": factors})
+        res.add("goty_genre", genre_df)
+
+        res.write(
+            "\n## 六、年度最佳游戏（GOTY）特征分析\n",
+            f"对比 **{summary['n_goty']} 款** GOTY 与 **{summary['n_other']} 款** 其他作品：\n",
+            f"- **媒体均分**：GOTY {summary['avg_rating_goty']} vs 其他 {summary['avg_rating_other']}；"
+            f"**发行年均年**：{summary['avg_year_goty']} vs {summary['avg_year_other']}\n",
+            f"- **设计维度占比**：开放世界 {summary['open_world_rate'][0]} vs {summary['open_world_rate'][1]}；"
+            f"多人合作 {summary['coop_rate'][0]} vs {summary['coop_rate'][1]}；"
+            f"在线 {summary['online_rate'][0]} vs {summary['online_rate'][1]}\n",
+            f"- **平均玩法类型数**：{summary['n_genres_goty']} vs {summary['n_genres_other']}\n",
+            "\n**区分度最高的因子（Cohen's d，|d| 越大区分越强；正=GOTY 更高）：**\n",
+            "| 因子 | GOTY均值 | 其他均值 | Cohen's d |",
+            "|---|---|---|---|",
+        )
+        for f in top_factors:
+            res.write(f"| {f['factor']} | {f['mean_goty']} | {f['mean_other']} | {f['cohen_d']} |")
+        res.write(
+            f"\n> 解读：Cohen's d 仅 0.2/0.5/0.8 为弱/中/强效应参考线；本数据样本小、GOTY 是精英子集，"
+            "d 偏向刻画「获奖作相对全体的偏移」而非因果。\n",
+            f"![GOTY 区分因子]({PNG['goty_distinguish']})\n",
+            f"![类型Over-index]({PNG['goty_genre']})\n",
+        )
         return res

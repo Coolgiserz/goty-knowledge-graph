@@ -1,0 +1,103 @@
+{
+  "summary": {
+    "n_goty": 20,
+    "n_other": 87,
+    "avg_rating_goty": 93.7,
+    "avg_rating_other": 86.5,
+    "avg_year_goty": 2015.5,
+    "avg_year_other": 2011.6,
+    "open_world_rate": [
+      0.45,
+      0.161
+    ],
+    "coop_rate": [
+      0.15,
+      0.057
+    ],
+    "online_rate": [
+      0.05,
+      0.057
+    ],
+    "n_genres_goty": 1.3,
+    "n_genres_other": 1.11
+  },
+  "factors": [
+    {
+      "factor": "player_rating",
+      "mean_goty": 93.65,
+      "mean_other": 86.483,
+      "cohen_d": 0.976,
+      "abs_d": 0.9758308604176245
+    },
+    {
+      "factor": "has_open_world",
+      "mean_goty": 0.45,
+      "mean_other": 0.161,
+      "cohen_d": 0.725,
+      "abs_d": 0.7249240671981199
+    },
+    {
+      "factor": "gg_degree",
+      "mean_goty": 25.75,
+      "mean_other": 17.253,
+      "cohen_d": 0.599,
+      "abs_d": 0.5987571301436048
+    },
+    {
+      "factor": "n_genres",
+      "mean_goty": 1.3,
+      "mean_other": 1.115,
+      "cohen_d": 0.525,
+      "abs_d": 0.5249119432367273
+    },
+    {
+      "factor": "gg_pagerank",
+      "mean_goty": 0.01,
+      "mean_other": 0.009,
+      "cohen_d": 0.507,
+      "abs_d": 0.5074195780727974
+    },
+    {
+      "factor": "has_coop",
+      "mean_goty": 0.15,
+      "mean_other": 0.057,
+      "cohen_d": 0.352,
+      "abs_d": 0.3518227417055856
+    },
+    {
+      "factor": "gg_clustering",
+      "mean_goty": 0.791,
+      "mean_other": 0.847,
+      "cohen_d": -0.321,
+      "abs_d": 0.3212306024965949
+    },
+    {
+      "factor": "studio_pagerank",
+      "mean_goty": 0.011,
+      "mean_other": 0.012,
+      "cohen_d": -0.223,
+      "abs_d": 0.22319826161414813
+    },
+    {
+      "factor": "studio_n_games",
+      "mean_goty": 7.7,
+      "mean_other": 7.943,
+      "cohen_d": -0.137,
+      "abs_d": 0.13744912939868492
+    },
+    {
+      "factor": "gg_betweenness",
+      "mean_goty": 0.012,
+      "mean_other": 0.01,
+      "cohen_d": 0.122,
+      "abs_d": 0.1221144695774613
+    },
+    {
+      "factor": "has_online",
+      "mean_goty": 0.05,
+      "mean_other": 0.057,
+      "cohen_d": -0.032,
+      "abs_d": 0.032172079729234596
+    }
+  ]
+}

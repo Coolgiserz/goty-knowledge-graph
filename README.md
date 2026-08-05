@@ -105,7 +105,7 @@ make neo4j
     ├── INSIGHTS.md         # 数据挖掘报告（奖项品味 / 工作室格局 / 评分门槛 / 研究课题）
     └── DEVELOPMENT.md      # 如何重新生成 / 扩展数据
 ```
-（运行后会生成 `analysis/output/ML_REPORT.md` 与 7 张可视化 PNG。）
+（运行后会生成 `analysis/output/ML_REPORT.md` 与 11 张可视化 PNG。）
 
 ---
 
@@ -151,8 +151,8 @@ analysis/ml/
 ├── io_utils.py      # 图谱加载、共享计算（去重）
 ├── features.py      # FeatureEngine + 可注册特征组（Strategy）
 ├── clusterers.py    # 聚类算法策略注册表（kmeans/hierarchical/spectral/dbscan）
-├── analyzers.py     # Analyzer 基类 + 注册表（聚类 / 社区 / 热点）
-├── visualizers.py   # Visualizer 基类 + 注册表（7 张图）
+├── analyzers.py     # Analyzer 基类 + 注册表（聚类 / 社区 / 热点 / 工作室风格 / GOTY 特征）
+├── visualizers.py   # Visualizer 基类 + 注册表（11 张图）
 └── pipeline.py      # run_pipeline 统一编排：特征→分析→落盘→可视化→报告
 ```
 
@@ -172,8 +172,10 @@ python analysis/run_ml.py --k 6                          # 固定 k，跳过选 
 产物写入 `analysis/output/`：
 - `factors.csv`：107 款游戏 × 63 列因子（图拓扑 4 / 属性 6 / 声誉 3 / 类型 one-hot 44 / 标识 6）
 - `clusters.csv`、`communities.csv`、`hotspot_era.csv` 及各 `*_profile.json`
-- `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名等
-- 7 张 PNG：`factor_correlation.png` / `k_silhouette.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png`
+- **`studio_style.csv` / `studio_similarity.csv` / `studio_style.json`**：开发商风格向量、风格余弦相似度矩阵、风格分层聚类
+- **`goty_genre.csv` / `goty_profile.json`**：GOTY vs 其他作品的区分因子（Cohen's d）与类型 Over-index
+- `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名、**开发商风格相似性**、**GOTY 特征分析**等（共七节）
+- 11 张 PNG：`factor_correlation.png` / `k_silhouette.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png` / `studio_similarity_heatmap.png` / `studio_style_scatter.png` / `goty_distinguish.png` / `goty_genre_overindex.png`
 
 > “高频因子”在此指从图结构派生的细粒度截面因子矩阵；原数据没有日内 tick 级时序，年份是最细时间粒度。
 > 方法说明：聚类默认**先做 PCA 白化**再 KMeans，以缓解 44 维类型 one-hot 带来的维度灾难；`studio_wins` 由 `is_goty` 派生（标签泄漏），可用 `--exclude-reputation` 关闭；轮廓系数普遍偏低（<0.25），簇为探索性划分而非严谨边界。

@@ -249,3 +249,106 @@ class CentralityTopViz(Visualizer):
         ax.set_xlabel("游戏投影图 PageRank")
         ax.set_title("玩法关系网中心性 Top 15（金=年度最佳）")
         return _save(fig, self.filename, ctx.out_dir)
+
+
+# --------------------------------------------------------------------------
+@Visualizer.register
+class StudioSimilarityViz(Visualizer):
+    name = "studio_sim"
+    filename = PNG["studio_sim"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        blob = ctx.get("studio_sim_matrix")
+        if blob is None:
+            return None
+        names = blob["studio_names"]
+        M = np.array(blob["matrix"])
+        fig, ax = plt.subplots(figsize=(10, 9))
+        im = ax.imshow(M, vmin=-1, vmax=1, cmap="RdBu_r")
+        ax.set_xticks(range(len(names))); ax.set_yticks(range(len(names)))
+        ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
+        ax.set_yticklabels(names, fontsize=8)
+        for i in range(len(names)):
+            for j in range(len(names)):
+                v = M[i, j]
+                ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6,
+                        color="white" if abs(v) > 0.5 else "black")
+        ax.set_title("开发商游戏风格余弦相似度（排除声誉列）")
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class StudioStyleScatterViz(Visualizer):
+    name = "studio_style_scatter"
+    filename = PNG["studio_style_scatter"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        df = ctx.get("studio_style")
+        if df is None:
+            return None
+        fig, ax = plt.subplots(figsize=(9, 8))
+        for c in sorted(df["style_cluster"].unique()):
+            sub = df[df["style_cluster"] == c]
+            ax.scatter(sub["pca_x"], sub["pca_y"], s=120, alpha=0.8,
+                       color=PALETTE[int(c) % len(PALETTE)], label=f"风格簇{c}")
+        for _, r in df.iterrows():
+            ax.annotate(r["studio"], (r["pca_x"], r["pca_y"]), fontsize=7,
+                        xytext=(4, 3), textcoords="offset points")
+        ax.set_xlabel("风格 PCA-1"); ax.set_ylabel("风格 PCA-2")
+        ax.set_title("开发商风格空间（点=工作室，色=风格簇）")
+        ax.legend(fontsize=8, loc="best")
+        ax.grid(alpha=0.3)
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class GotyDistinguishViz(Visualizer):
+    name = "goty_distinguish"
+    filename = PNG["goty_distinguish"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        blob = ctx.get("goty_profile")
+        if blob is None:
+            return None
+        top = blob["factors"][:12][::-1]  # 横向条形，最大在上方
+        labels = [f["factor"] for f in top]
+        vals = [f["cohen_d"] for f in top]
+        colors = ["#c0392b" if v > 0 else "#3a7ca5" for v in vals]
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.barh(range(len(top)), vals, color=colors)
+        ax.set_yticks(range(len(top))); ax.set_yticklabels(labels, fontsize=8)
+        ax.axvline(0, color="black", linewidth=0.8)
+        ax.set_xlabel("Cohen's d（红=GOTY 更高，蓝=其他更高）")
+        ax.set_title("年度最佳 vs 其他作品：区分度最高的因子")
+        ax.grid(alpha=0.3, axis="x")
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class GotyGenreViz(Visualizer):
+    name = "goty_genre"
+    filename = PNG["goty_genre"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        df = ctx.get("goty_genre")
+        if df is None:
+            return None
+        d = df[df["overindex"].notna()].sort_values("overindex", ascending=False).head(12)
+        if d.empty:
+            return None
+        labels = d["genre"].tolist()
+        vals = d["overindex"].tolist()
+        plot_vals = [min(v, 5.0) for v in vals]  # 极端值(仅GOTY有)截断以保可读性
+        colors = ["#e8a33d" if v >= 1 else "#7f8c8d" for v in vals]
+        fig, ax = plt.subplots(figsize=(8, 6.5))
+        ax.barh(range(len(d)), plot_vals, color=colors)
+        ax.set_yticks(range(len(d))); ax.set_yticklabels(labels, fontsize=8)
+        ax.axvline(1.0, color="black", linestyle="--", linewidth=0.8)
+        for i, v in enumerate(vals):
+            ax.text(plot_vals[i] + 0.05, i, f"{v}", va="center", fontsize=7)
+        ax.set_xlabel("类型 Over-index = GOTY 中占比 / 全体占比（≥1 即 GOTY 偏爱）")
+        ax.set_title("GOTY 偏爱的玩法类型（Over-index Top12）")
+        ax.invert_yaxis()
+        ax.grid(alpha=0.3, axis="x")
+        return _save(fig, self.filename, ctx.out_dir)

@@ -1,0 +1,83 @@
+{
+  "n_studios": 15,
+  "k_style": 4,
+  "top_pairs": [
+    [
+      "贝塞斯达游戏工作室",
+      "CD Projekt Red",
+      0.453
+    ],
+    [
+      "Rockstar 游戏",
+      "圣莫尼卡工作室",
+      0.266
+    ],
+    [
+      "贝塞斯达游戏工作室",
+      "Rockstar 游戏",
+      0.21
+    ],
+    [
+      "顽皮狗",
+      "圣莫尼卡工作室",
+      0.156
+    ],
+    [
+      "非理性游戏",
+      "拉瑞安工作室",
+      0.131
+    ],
+    [
+      "BioWare",
+      "CD Projekt Red",
+      0.125
+    ],
+    [
+      "Hazelight工作室",
+      "拉瑞安工作室",
+      0.097
+    ],
+    [
+      "贝塞斯达游戏工作室",
+      "FromSoftware（フロムソフトウェア）",
+      0.097
+    ]
+  ],
+  "clusters": [
+    {
+      "cluster": 1,
+      "studios": [
+        "贝塞斯达游戏工作室",
+        "BioWare",
+        "暴雪娱乐",
+        "CD Projekt Red",
+        "FromSoftware（フロムソフトウェア）",
+        "拉瑞安工作室",
+        "顽皮狗",
+        "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
+        "Rockstar 游戏",
+        "圣莫尼卡工作室"
+      ]
+    },
+    {
+      "cluster": 2,
+      "studios": [
+        "Asobi团队",
+        "非理性游戏",
+        "Telltale游戏"
+      ]
+    },
+    {
+      "cluster": 3,
+      "studios": [
+        "Hazelight工作室"
+      ]
+    },
+    {
+      "cluster": 4,
+      "studios": [
+        "沙落互动"
+      ]
+    }
+  ]
+}
