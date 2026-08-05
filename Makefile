@@ -2,10 +2,11 @@
 # 常用： make build  /  make serve  /  make up  /  make neo4j
 
 PY ?= python3
+VENV ?= /Users/tarnished/.workbuddy/binaries/python/envs/default/bin/python
 PORT ?= 8080
 IMG ?= goty-knowledge-graph
 
-.PHONY: all build site serve docker run up down neo4j clean help
+.PHONY: all build site serve docker run up down neo4j analysis clean help
 
 all: build
 
@@ -39,6 +40,10 @@ down:
 ## neo4j：单独起一个 Neo4j 并自动导入数据集
 neo4j:
 	bash scripts/neo4j_import.sh
+
+## analysis：运行数据挖掘/统计机器学习流水线（生成报告与 7 张 PNG）
+analysis:
+	$(VENV) analysis/run_ml.py
 
 ## clean：清理生成的站点与打包产物（不删数据）
 clean:

@@ -95,11 +95,16 @@ make neo4j
 │   ├── init.cypher         # Neo4j 自动导入脚本
 │   ├── serve.sh            # 本地静态服务器
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
+├── analysis/
+│   ├── run_ml.py           # 统计机器学习流水线入口
+│   ├── ml/                 # 高频因子 / 聚类 / 社区发现 / 热点 / 可视化模块
+│   └── output/             # 运行产物：CSV / JSON / PNG / ML_REPORT.md
 └── docs/
     ├── neo4j_tutorial.md   # Neo4j 导入教程
     ├── INSIGHTS.md         # 数据挖掘报告（奖项品味 / 工作室格局 / 评分门槛 / 研究课题）
     └── DEVELOPMENT.md      # 如何重新生成 / 扩展数据
 ```
+（运行后会生成 `analysis/output/ML_REPORT.md` 与 7 张可视化 PNG。）
 
 ---
 
@@ -131,6 +136,39 @@ make build             # = build.py + build_site.py
 - **重新拉取第三方库**：从 `https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js` 更新 `vendor/vis-network.min.js`。
 
 详见 **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**。
+
+---
+
+## 🔬 统计机器学习（数据挖掘）
+
+`analysis/` 下是一套可直接复用的图数据挖掘流水线，输入为 `data/graph.json`：
+
+```
+analysis/
+├── run_ml.py              # 一键运行全部
+└── ml/
+    ├── factors.py         # 高频因子（特征工程）
+    ├── cluster.py         # KMeans / 层次聚类
+    ├── community.py       # Louvain 社区发现
+    ├── hotspot.py         # 热点 / 时代演变统计
+    └── visualize.py       # 生成 7 张 PNG 可视化
+```
+
+运行：
+
+```bash
+make analysis
+# 或等价
+/Users/tarnished/.workbuddy/binaries/python/envs/default/bin/python analysis/run_ml.py
+```
+
+产物写入 `analysis/output/`：
+- `factors.csv`：107 款游戏 × 57 个因子（图拓扑 / 属性 / 声誉 / 类型 one-hot）
+- `clusters.csv`、`communities.csv`、`hotspot_era.csv`
+- `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名等
+- 7 张 PNG：`factor_correlation.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png` / `k_silhouette.png`
+
+> “高频因子”在此指从图结构派生的细粒度截面因子矩阵；原数据没有日内 tick 级时序，年份是最细时间粒度。
 
 ---
 
