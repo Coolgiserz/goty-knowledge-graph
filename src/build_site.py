@@ -477,11 +477,20 @@ function buildTable(){
 }
 function toggleView(){
   currentView = currentView==='graph'?'table':'graph';
-  document.getElementById('tableView').style.display = currentView==='table'?'block':'none';
-  document.getElementById('graph').style.display = currentView==='graph'?'block':'none';
-  document.getElementById('detail').style.display = currentView==='graph'?'block':'none';
-  document.getElementById('toggleView').textContent = currentView==='graph'?'表格视图':'图谱视图';
-  if(currentView==='table') buildTable();
+  const isTable = currentView==='table';
+  // 切换整个 .main（图谱+详情）与表格视图的显隐，避免隐藏图谱后仍留空黑带
+  document.querySelector('.main').style.display = isTable?'none':'flex';
+  document.getElementById('tableView').style.display = isTable?'block':'none';
+  document.getElementById('toggleView').textContent = isTable?'图谱视图':'表格视图';
+  if(isTable){
+    buildTable();
+    window.scrollTo({top:0,behavior:'smooth'});
+  } else {
+    // 容器从 display:none 恢复后画布尺寸可能归零，重绘即可保留用户当前的缩放/平移
+    requestAnimationFrame(()=>{
+      if(typeof net.redraw==='function') net.redraw();
+    });
+  }
 }
 document.getElementById('toggleView').onclick=toggleView;
 
