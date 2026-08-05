@@ -16,6 +16,7 @@ import pandas as pd
 import networkx as nx
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.manifold import MDS
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics.pairwise import cosine_similarity
@@ -520,14 +521,20 @@ class StudioStyleAnalyzer(Analyzer):
         Z = linkage(S, method="ward")
         labels = fcluster(Z, k_stu, criterion="maxclust")
 
-        # PCA 二维用于散点可视化
-        pcs = PCA(n_components=2, random_state=cfg.random_state).fit_transform(S)
+        # 二维散点：用 MDS 嵌入「余弦距离矩阵」(Dcos = 1 - 余弦相似度)。
+        # 这与上面报告所用的余弦相似度是同一指标——若改用 PCA(Euclidean)，
+        # 在 53 维标准化空间 + 仅 15 家工作室时，2D 投影与余弦相似度几乎无关
+        # (实测 Spearman≈0.14)，散点会与相似度表对不上、违背直觉。
+        Dcos = 1.0 - sim
+        coords = MDS(n_components=2, metric=True, dissimilarity="precomputed",
+                     init="random", random_state=cfg.random_state, n_init=10
+                     ).fit_transform(Dcos)
 
         style_df = pd.DataFrame({
             "studio_id": studio_ids,
             "studio": [studio_name.get(s, s) for s in studio_ids],
             "n_games": [len(by_studio[s]) for s in studio_ids],
-            "pca_x": pcs[:, 0], "pca_y": pcs[:, 1],
+            "style_x": coords[:, 0], "style_y": coords[:, 1],
             "style_cluster": labels,
         })
 
@@ -575,7 +582,9 @@ class StudioStyleAnalyzer(Analyzer):
             res.write(f"| {a} | {b} | {s:.3f} |")
         res.write(
             f"\n> 注：相似度高代表两家厂牌的游戏在玩法类型/设计维度上高度重合"
-            "（如都爱做开放世界动作），可作为「厂牌基因」的量化证据；单作品工作室的向量即其唯一作品。\n",
+            "（如都爱做开放世界动作），可作为「厂牌基因」的量化证据；单作品工作室的向量即其唯一作品。\n"
+            "> 散点图用 **MDS 嵌入余弦距离矩阵**（而非 PCA）：因为本报告以余弦相似度衡量风格接近度，"
+            "只有 MDS(余弦距离) 才能忠实还原「点越近≈相似度越高」的几何关系——此前用 PCA 会因欧氏/角度度量不一致而扭曲排布。\n",
             f"![工作室风格相似度]({PNG['studio_sim']})\n",
             f"![工作室风格散点]({PNG['studio_style_scatter']})\n",
         )

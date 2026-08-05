@@ -321,13 +321,13 @@ class StudioStyleScatterViz(Visualizer):
         fig, ax = plt.subplots(figsize=(9, 8))
         for c in sorted(df["style_cluster"].unique()):
             sub = df[df["style_cluster"] == c]
-            ax.scatter(sub["pca_x"], sub["pca_y"], s=120, alpha=0.8,
+            ax.scatter(sub["style_x"], sub["style_y"], s=120, alpha=0.8,
                        color=PALETTE[int(c) % len(PALETTE)], label=f"风格簇{c}")
         for _, r in df.iterrows():
-            ax.annotate(r["studio"], (r["pca_x"], r["pca_y"]), fontsize=7,
+            ax.annotate(r["studio"], (r["style_x"], r["style_y"]), fontsize=7,
                         xytext=(4, 3), textcoords="offset points")
-        ax.set_xlabel("风格 PCA-1"); ax.set_ylabel("风格 PCA-2")
-        ax.set_title("开发商风格空间（点=工作室，色=风格簇）")
+        ax.set_xlabel("风格 MDS-1（基于余弦距离）"); ax.set_ylabel("风格 MDS-2（基于余弦距离）")
+        ax.set_title("开发商风格空间（点=工作室，色=风格簇；两点越近=余弦相似度越高）")
         ax.legend(fontsize=8, loc="best")
         ax.grid(alpha=0.3)
         return _save(fig, self.filename, ctx.out_dir)
