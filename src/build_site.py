@@ -99,6 +99,7 @@ HTML = r"""<!DOCTYPE html>
   .legend .grp{display:inline-flex;gap:6px;align-items:center}
   .legend .sep{border-left:1px solid var(--line);height:14px;margin:0 4px}
   .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .nglyph{font-style:normal;font-size:14px;line-height:1;display:inline-block;width:15px;text-align:center}
   .line{width:18px;height:0;border-top:2px solid;display:inline-block}
   #tableView{display:none;padding:18px 20px;overflow:auto;height:calc(100vh - 188px)}
   table{border-collapse:collapse;width:100%;font-size:13px}
@@ -161,16 +162,18 @@ HTML = r"""<!DOCTYPE html>
 <div id="tableView"></div>
 
 <div class="legend">
-  <span class="grp"><i class="dot" style="background:var(--gold)"></i>年度最佳 GOTY</span>
-  <span class="grp"><i class="dot" style="background:var(--blue)"></i>其他作品</span>
-  <span class="grp"><i class="dot" style="background:var(--purple)"></i>开发商</span>
-  <span class="grp"><i class="dot" style="background:var(--green)"></i>类型</span>
-  <span class="grp"><i class="dot" style="background:var(--red)"></i>奖项</span>
+  <span class="grp"><i class="nglyph" style="color:var(--gold)">★</i>年度最佳 GOTY</span>
+  <span class="grp"><i class="nglyph" style="color:var(--blue)">●</i>其他作品</span>
+  <span class="grp"><i class="nglyph" style="color:var(--purple)">◆</i>开发商</span>
+  <span class="grp"><i class="nglyph" style="color:var(--green)">⬡</i>类型</span>
+  <span class="grp"><i class="nglyph" style="color:var(--red)">▲</i>奖项</span>
   <span class="sep"></span>
   <span class="grp"><i class="line" style="border-color:#4a5160"></i>开发了</span>
   <span class="grp"><i class="line" style="border-color:var(--gold);border-top-style:dashed"></i>获得</span>
   <span class="grp"><i class="line" style="border-color:var(--green);border-top-style:dashed"></i>属于类型</span>
   <span class="grp"><i class="line" style="border-color:var(--green);border-top-style:dotted"></i>类型层级</span>
+  <span class="sep"></span>
+  <span class="grp"><i class="dot" style="background:#171a21;border:2px solid var(--gold)"></i>已折叠（双击展开）</span>
 </div>
 <div class="foot">数据来源：The Game Awards / Spike VGA 公开资料与 Metacritic 评分（综合整理，评分以 Metacritic 媒体均分为参考）。可导入 Neo4j：见 data/neo4j/ 与 docs/neo4j_tutorial.md。</div>
 
@@ -214,11 +217,12 @@ GRAPH.nodes.forEach(n=>{
   } else { col=groupColors[n.group]; ob=groupColors[n.group].border; obw=2; }
   n.color=col; n._origColor=JSON.parse(JSON.stringify(col)); n._origBorder=ob; n._origBorderW=obw;
 });
-const edgeColor = {DEVELOPED:'#4a5160', WON:'#f5b301', BELONGS_TO_GENRE:'#27ae60'};
+const edgeColor = {DEVELOPED:'#4a5160', WON:'#f5b301', BELONGS_TO_GENRE:'#27ae60', SUBCLASS_OF:'#27ae60'};
 GRAPH.edges.forEach((e,i)=>{
-  e.color=edgeColor[e.type];
+  e.color=edgeColor[e.type] || '#6b7280';
   if(e.type==='WON') e.dashes=true;
-  if(e.type==='BELONGS_TO_GENRE') e.dashes=[2,4];
+  else if(e.type==='BELONGS_TO_GENRE') e.dashes=[2,4];
+  else if(e.type==='SUBCLASS_OF') e.dashes=[1,5];
   e.width = e.type==='WON'?2:1;
   e.id = 'e'+i;
 });
