@@ -97,6 +97,7 @@ make neo4j
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
 └── docs/
     ├── neo4j_tutorial.md   # Neo4j 导入教程
+    ├── INSIGHTS.md         # 数据挖掘报告（奖项品味 / 工作室格局 / 评分门槛 / 研究课题）
     └── DEVELOPMENT.md      # 如何重新生成 / 扩展数据
 ```
 

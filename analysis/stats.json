@@ -1,0 +1,583 @@
+{
+  "totals": {
+    "games": 107,
+    "goty": 20,
+    "studios": 15,
+    "genres": 47
+  },
+  "goty_design_dims": [
+    {
+      "name": "开放世界",
+      "count": 9,
+      "pct": 45.0
+    },
+    {
+      "name": "多人合作",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "在线",
+      "count": 1,
+      "pct": 5.0
+    }
+  ],
+  "all_design_dims": [
+    {
+      "name": "开放世界",
+      "count": 23,
+      "pct": 21.5
+    },
+    {
+      "name": "多人合作",
+      "count": 8,
+      "pct": 7.5
+    },
+    {
+      "name": "在线",
+      "count": 6,
+      "pct": 5.6
+    }
+  ],
+  "goty_tiers": [
+    {
+      "name": "动作冒险",
+      "count": 12,
+      "pct": 60.0
+    },
+    {
+      "name": "开放世界",
+      "count": 9,
+      "pct": 45.0
+    },
+    {
+      "name": "角色扮演",
+      "count": 7,
+      "pct": 35.0
+    },
+    {
+      "name": "冒险",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "多人合作",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "射击",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "平台跳跃",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "在线",
+      "count": 1,
+      "pct": 5.0
+    }
+  ],
+  "all_tiers": [
+    {
+      "name": "角色扮演",
+      "count": 40,
+      "pct": 37.4
+    },
+    {
+      "name": "动作冒险",
+      "count": 35,
+      "pct": 32.7
+    },
+    {
+      "name": "开放世界",
+      "count": 23,
+      "pct": 21.5
+    },
+    {
+      "name": "冒险",
+      "count": 15,
+      "pct": 14.0
+    },
+    {
+      "name": "射击",
+      "count": 9,
+      "pct": 8.4
+    },
+    {
+      "name": "平台跳跃",
+      "count": 8,
+      "pct": 7.5
+    },
+    {
+      "name": "多人合作",
+      "count": 8,
+      "pct": 7.5
+    },
+    {
+      "name": "在线",
+      "count": 6,
+      "pct": 5.6
+    },
+    {
+      "name": "策略",
+      "count": 5,
+      "pct": 4.7
+    },
+    {
+      "name": "卡牌",
+      "count": 3,
+      "pct": 2.8
+    },
+    {
+      "name": "模拟",
+      "count": 2,
+      "pct": 1.9
+    },
+    {
+      "name": "竞速",
+      "count": 2,
+      "pct": 1.9
+    },
+    {
+      "name": "虚拟现实",
+      "count": 2,
+      "pct": 1.9
+    },
+    {
+      "name": "动作",
+      "count": 1,
+      "pct": 0.9
+    }
+  ],
+  "studio_wins": {
+    "Rockstar 游戏": 3,
+    "贝塞斯达游戏工作室": 2,
+    "顽皮狗": 2,
+    "FromSoftware": 2,
+    "非理性游戏": 1,
+    "圣莫尼卡工作室": 1,
+    "Asobi团队": 1,
+    "Hazelight工作室": 1,
+    "BioWare": 1,
+    "CD Projekt Red": 1,
+    "拉瑞安工作室": 1,
+    "Telltale游戏": 1,
+    "沙落互动": 1,
+    "任天堂企划制作本部（Nintendo Entertainment Planning & Development）": 1,
+    "暴雪娱乐": 1
+  },
+  "multi_winners": {
+    "贝塞斯达游戏工作室": 2,
+    "Rockstar 游戏": 3,
+    "顽皮狗": 2,
+    "FromSoftware": 2
+  },
+  "multi_winner_share": 45.0,
+  "ip_timeline": [
+    {
+      "year": 2006,
+      "title": "上古卷轴IV：湮没",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2007,
+      "title": "生化奇兵",
+      "type": "新IP"
+    },
+    {
+      "year": 2008,
+      "title": "侠盗猎车手IV",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2009,
+      "title": "神秘海域2：纵横四海",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2010,
+      "title": "荒野大镖客：救赎",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2011,
+      "title": "上古卷轴V：天际",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2012,
+      "title": "行尸走肉（第一季）",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2013,
+      "title": "侠盗猎车手V",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2014,
+      "title": "龙腾世纪：审判",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2015,
+      "title": "巫师3：狂猎",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2016,
+      "title": "守望先锋",
+      "type": "新IP"
+    },
+    {
+      "year": 2017,
+      "title": "塞尔达传说：旷野之息",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2018,
+      "title": "战神（2018）",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2019,
+      "title": "只狼：影逝二度",
+      "type": "新IP"
+    },
+    {
+      "year": 2020,
+      "title": "最后生还者 第二部",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2021,
+      "title": "双人成行",
+      "type": "新IP"
+    },
+    {
+      "year": 2022,
+      "title": "艾尔登法环",
+      "type": "新IP"
+    },
+    {
+      "year": 2023,
+      "title": "博德之门3",
+      "type": "续作/IP"
+    },
+    {
+      "year": 2024,
+      "title": "宇宙机器人",
+      "type": "新IP"
+    },
+    {
+      "year": 2025,
+      "title": "光与影：33号远征队",
+      "type": "新IP"
+    }
+  ],
+  "new_ip_count": 7,
+  "ratings": {
+    "goty_mean": 93.7,
+    "goty_median": 94.0,
+    "nongoty_mean": 86,
+    "nongoty_median": 88,
+    "all_mean": 87.6,
+    "club90": [
+      "上古卷轴IV：湮没",
+      "上古卷轴V：天际",
+      "侠盗猎车手IV",
+      "侠盗猎车手V",
+      "荒野大镖客：救赎",
+      "生化奇兵",
+      "神秘海域2：纵横四海",
+      "最后生还者 第二部",
+      "战神（2018）",
+      "宇宙机器人",
+      "巫师3：狂猎",
+      "博德之门3",
+      "光与影：33号远征队",
+      "只狼：影逝二度",
+      "艾尔登法环",
+      "塞尔达传说：旷野之息",
+      "守望先锋"
+    ],
+    "club90_count": 17,
+    "goty_under90": [
+      "双人成行",
+      "龙腾世纪：审判",
+      "行尸走肉（第一季）"
+    ]
+  },
+  "country_wins": {
+    "美国": 11,
+    "日本": 4,
+    "瑞典": 1,
+    "加拿大": 1,
+    "波兰": 1,
+    "比利时": 1,
+    "法国": 1
+  },
+  "publisher_wins": {
+    "Rockstar Games": 3,
+    "Sony Interactive Entertainment": 3,
+    "Bethesda Softworks / 2K Games": 1,
+    "Bethesda Softworks": 1,
+    "2K Games": 1,
+    "Sony Computer Entertainment": 1,
+    "Electronic Arts（EA Originals）": 1,
+    "Electronic Arts": 1,
+    "CD Projekt": 1,
+    "Larian Studios（自研自发）": 1,
+    "Telltale Games": 1,
+    "Kepler Interactive": 1,
+    "Activision（动视；日本由 FromSoftware 发行）": 1,
+    "Bandai Namco Entertainment（万代南梦宫）": 1,
+    "Nintendo（任天堂）": 1,
+    "Blizzard Entertainment（暴雪娱乐）": 1
+  },
+  "platform_wins": {
+    "PC": 14,
+    "PlayStation 4": 9,
+    "Xbox 360": 8,
+    "PlayStation 5": 8,
+    "PS3": 6,
+    "Xbox One": 6,
+    "Xbox Series X/S": 5,
+    "Nintendo Switch": 5,
+    "PlayStation 3": 3,
+    "Microsoft Windows": 1,
+    "iOS": 1,
+    "Android": 1,
+    "Wii U": 1
+  },
+  "theme_goty": [
+    {
+      "name": "叙事",
+      "count": 30,
+      "pct": 150.0
+    },
+    {
+      "name": "开放世界",
+      "count": 11,
+      "pct": 55.0
+    },
+    {
+      "name": "情感",
+      "count": 5,
+      "pct": 25.0
+    },
+    {
+      "name": "物理",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "系统",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "探索",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "创新",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "战斗",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "关卡",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "艺术",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "合作",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "手感",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "剧情",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "沙盒",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "多人",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "氛围",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "配乐",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "故事",
+      "count": 1,
+      "pct": 5.0
+    }
+  ],
+  "theme_all": [
+    {
+      "name": "叙事",
+      "count": 30,
+      "pct": 150.0
+    },
+    {
+      "name": "开放世界",
+      "count": 11,
+      "pct": 55.0
+    },
+    {
+      "name": "情感",
+      "count": 5,
+      "pct": 25.0
+    },
+    {
+      "name": "物理",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "系统",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "探索",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "创新",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "战斗",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "关卡",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "艺术",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "合作",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "手感",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "剧情",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "沙盒",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "多人",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "氛围",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "配乐",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "故事",
+      "count": 1,
+      "pct": 5.0
+    }
+  ],
+  "draw_goty": [
+    {
+      "name": "节奏",
+      "count": 8,
+      "pct": 40.0
+    },
+    {
+      "name": "bug",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "争议",
+      "count": 4,
+      "pct": 20.0
+    },
+    {
+      "name": "优化",
+      "count": 3,
+      "pct": 15.0
+    },
+    {
+      "name": "难度",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "技术",
+      "count": 2,
+      "pct": 10.0
+    },
+    {
+      "name": "服务器",
+      "count": 1,
+      "pct": 5.0
+    },
+    {
+      "name": "平衡",
+      "count": 1,
+      "pct": 5.0
+    }
+  ]
+}
