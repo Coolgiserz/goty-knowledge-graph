@@ -23,6 +23,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 
 from .context import PipelineContext
 from .clusterers import Clusterer
+from .community import CommunityDetector
 from .constants import PNG
 
 
@@ -215,7 +216,7 @@ class ClusterAnalyzer(Analyzer):
 
 
 # ==========================================================================
-# 社区发现（Louvain）
+# 社区发现（可插拔：主方法 Louvain/Infomap + Infomap 作为补充对照）
 # ==========================================================================
 @Analyzer.register
 class CommunityAnalyzer(Analyzer):
@@ -225,16 +226,13 @@ class CommunityAnalyzer(Analyzer):
         res = AnalyzerResult()
         GG = ctx.GG
         cfg = ctx.config.community
-        communities = nx.community.louvain_communities(
-            GG, weight="weight", seed=cfg.seed, resolution=cfg.resolution)
-        mod = nx.community.modularity(GG, communities, weight="weight")
 
-        comm_sorted = sorted(communities, key=len, reverse=True)
-        node2comm = {}
-        for cid, members in enumerate(comm_sorted):
-            for m in members:
-                node2comm[m] = cid
-        ncomm = len(comm_sorted)
+        # ---- 主方法（可配：louvain / infomap）----
+        det = CommunityDetector.get(cfg.method)()
+        node2comm, info = det.detect(GG, cfg)
+        method_name = det.name
+        method_label = method_name.capitalize()
+        ncomm = info["n_communities"]
 
         prof = self._profile(ctx, node2comm)
         prof.sort(key=lambda x: -x["size"])
@@ -244,12 +242,20 @@ class CommunityAnalyzer(Analyzer):
         res.add("communities", comm_df)
         res.add("community_map", node2comm)
         res.add("community_profile",
-                {"n_communities": ncomm, "modularity": round(mod, 4), "profiles": prof})
+                {"method": method_name, "n_communities": ncomm,
+                 "quality": info, "profiles": prof})
 
+        # ---- 报告：主方法 ----
+        if "modularity" in info and "codelength" not in info:
+            qtxt = f"**模块度 Q={info['modularity']}**"
+            qnote = "（越接近 1 划分越清晰）"
+        else:
+            qtxt = f"**编码长度 L={info['codelength']}**"
+            qnote = "（越小越好，代表随机游走的平均描述长度越短）"
         res.write(
-            "\n## 三、社区发现（Louvain）\n",
-            f"在游戏-游戏相似投影图上做 Louvain 划分，得到 **{ncomm} 个社区**，",
-            f"**模块度 Q={mod:.4f}**（越接近 1 划分越清晰）。社区即「玩法家族」：\n",
+            f"\n## 三、社区发现（{method_label}）\n",
+            f"在游戏-游戏相似投影图上做 {method_name} 划分，得到 **{ncomm} 个社区**，{qtxt}{qnote}。"
+            "社区即「玩法家族」：\n",
             "| 社区 | 规模 | 年度最佳成员 | 代表游戏 | 主导玩法类型 |",
             "|---|---|---|---|---|",
         )
@@ -258,7 +264,58 @@ class CommunityAnalyzer(Analyzer):
             goty = "、".join(c["goty_members"]) or "—"
             res.write(f"| C{c['community']} | {c['size']} | {goty} | {c['representative']} | {topg} |")
         res.write(f"\n![社区图]({PNG['community']})\n")
+
+        # ---- Infomap 作为补充方法（主方法非 infomap 时始终尝试，避免与主方法重复）----
+        im_info = self._maybe_infomap(ctx, res, cfg) if cfg.method != "infomap" else None
+        if im_info is not None:
+            res.write(
+                "\n**主方法与 Infomap（Map Equation）对照：**\n",
+                "| 方法 | 社区数 | 模块度 Q | 编码长度 L |",
+                "|---|---|---|---|",
+                f"| {method_label}（主） | {ncomm} | {info.get('modularity','—')} | {info.get('codelength','—')} |",
+                f"| infomap | {im_info['n_communities']} | {im_info.get('modularity','—')} | {im_info.get('codelength','—')} |",
+                "\n> **Infomap** 基于**地图方程（Map Equation）**：在图上模拟随机游走，"
+                "求能使信息流被最短平均编码的模块划分；天然支持层级结构、无需 resolution 调参。"
+                "其质量指标是**编码长度 L**（越小越好），与模块度 Q 视角不同、可互为印证。"
+                "二者社区数接近说明「玩法家族」结构稳健。\n",
+                f"![Infomap 社区图]({PNG['community_infomap']})\n",
+            )
         return res
+
+    @staticmethod
+    def _maybe_infomap(ctx, res, cfg):
+        """尝试用 Infomap 探测并写报告；不可用/失败时返回 None。"""
+        try:
+            from .community import InfomapDetector
+        except Exception:
+            return None
+        try:
+            GG = ctx.GG
+            node2comm, info = InfomapDetector().detect(GG, cfg)
+        except Exception as e:
+            res.write(f"\n> 注：Infomap 探测失败（{e}），已跳过。\n")
+            return None
+
+        prof = CommunityAnalyzer._profile(ctx, node2comm)
+        prof.sort(key=lambda x: -x["size"])
+        comm_df = pd.DataFrame([{"game_id": nid, "community": c}
+                                for nid, c in node2comm.items()])
+        res.add("communities_infomap", comm_df)
+        res.add("community_map_infomap", node2comm)
+        res.add("community_profile_infomap",
+                {"method": "infomap", "n_communities": info["n_communities"],
+                 "quality": info, "profiles": prof})
+
+        res.write(
+            "\n**Infomap 社区（玩法家族，按规模）：**\n",
+            "| 社区 | 规模 | 年度最佳成员 | 代表游戏 | 主导玩法类型 |",
+            "|---|---|---|---|---|",
+        )
+        for c in prof:
+            topg = "、".join(f"{gn}({v})" for gn, v in c["top_genres"][:5])
+            goty = "、".join(c["goty_members"]) or "—"
+            res.write(f"| C{c['community']} | {c['size']} | {goty} | {c['representative']} | {topg} |")
+        return info
 
     @staticmethod
     def _profile(ctx, node2comm):

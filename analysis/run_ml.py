@@ -6,9 +6,11 @@
   python analysis/run_ml.py --no-pca                # 关掉 PCA 预处理
   python analysis/run_ml.py --exclude-reputation    # 关掉 studio_wins（防标签泄漏）
   python analysis/run_ml.py --k 6                   # 固定 k，跳过选 k
+  python analysis/run_ml.py --community infomap     # 社区发现主方法换成 Infomap
   python analysis/run_ml.py --graph data/graph.json --out analysis/output
 
-依赖：analysis/requirements.txt（numpy/pandas/scikit-learn/networkx/matplotlib/scipy）。
+依赖：analysis/requirements.txt（numpy/pandas/scikit-learn/networkx/matplotlib/scipy；
+可选 infomap 提供社区发现的 Infomap 对照）。
 建议在隔离 venv 中运行（见 Makefile 的 `make analysis`）。
 """
 import os
@@ -30,6 +32,8 @@ def main():
     ap.add_argument("--k", type=int, default=None, help="固定 k（跳过选 k）")
     ap.add_argument("--exclude-reputation", action="store_true",
                     help="关闭 studio_wins 特征（防止 is_goty 标签泄漏）")
+    ap.add_argument("--community", default=None,
+                    help="社区发现主方法：louvain | infomap")
     ap.add_argument("--graph", default=None, help="graph.json 路径")
     ap.add_argument("--out", default=None, help="输出目录")
     args = ap.parse_args()
@@ -43,6 +47,8 @@ def main():
         cfg.cluster.fixed_k = args.k
     if args.exclude_reputation:
         cfg.features.include_studio_wins = False
+    if args.community:
+        cfg.community.method = args.community
 
     run_pipeline(cfg, args.graph, args.out)
 

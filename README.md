@@ -151,12 +151,13 @@ analysis/ml/
 ├── io_utils.py      # 图谱加载、共享计算（去重）
 ├── features.py      # FeatureEngine + 可注册特征组（Strategy）
 ├── clusterers.py    # 聚类算法策略注册表（kmeans/hierarchical/spectral/dbscan）
+├── community.py     # 社区发现策略注册表（louvain / infomap，可插拔）
 ├── analyzers.py     # Analyzer 基类 + 注册表（聚类 / 社区 / 热点 / 工作室风格 / GOTY 特征）
-├── visualizers.py   # Visualizer 基类 + 注册表（11 张图）
+├── visualizers.py   # Visualizer 基类 + 注册表（12 张图）
 └── pipeline.py      # run_pipeline 统一编排：特征→分析→落盘→可视化→报告
 ```
 
-**设计模式**：Strategy（聚类算法 / 特征组可替换）、Registry（特征组 / 聚类器 / Analyzer / Visualizer 按注册表发现）、Pipeline（统一串联）、Context Object（内存传参）。**新增一种特征组 / 算法 / 分析 / 图表 = 写个子类并 `@register`，无需改动 pipeline。**
+**设计模式**：Strategy（聚类算法 / 社区发现 / 特征组可替换）、Registry（特征组 / 聚类器 / 社区探测器 / Analyzer / Visualizer 按注册表发现）、Pipeline（统一串联）、Context Object（内存传参）。**新增一种特征组 / 算法 / 分析 / 图表 = 写个子类并 `@register`，无需改动 pipeline。**
 
 运行：
 
@@ -165,20 +166,22 @@ make analysis                       # 默认 KMeans + PCA 白化
 python analysis/run_ml.py --clusterer spectral --no-pca   # 换谱聚类、关 PCA
 python analysis/run_ml.py --exclude-reputation           # 关 studio_wins 防标签泄漏
 python analysis/run_ml.py --k 6                          # 固定 k，跳过选 k
+python analysis/run_ml.py --community infomap            # 社区发现主方法换成 Infomap
 ```
 
 > 依赖见 `analysis/requirements.txt`，建议在隔离 venv 中运行（见 `make analysis`）。
 
 产物写入 `analysis/output/`：
 - `factors.csv`：107 款游戏 × 63 列因子（图拓扑 4 / 属性 6 / 声誉 3 / 类型 one-hot 44 / 标识 6）
-- `clusters.csv`、`communities.csv`、`hotspot_era.csv`、`hotspot_year.csv` 及各 `*_profile.json`
+- `clusters.csv`、`communities.csv`、`communities_infomap.csv`、`hotspot_era.csv`、`hotspot_year.csv` 及各 `*_profile.json`
 - **`studio_style.csv` / `studio_similarity.csv` / `studio_style.json`**：开发商风格向量、风格余弦相似度矩阵、风格分层聚类
 - **`goty_genre.csv` / `goty_profile.json`**：GOTY vs 其他作品的区分因子（Cohen's d）与类型 Over-index
 - `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名、**开发商风格相似性**、**GOTY 特征分析**等（共七节）
-- 11 张 PNG：`factor_correlation.png` / `k_silhouette.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png` / `studio_similarity_heatmap.png` / `studio_style_scatter.png` / `goty_distinguish.png` / `goty_genre_overindex.png`
+- 12 张 PNG：`factor_correlation.png` / `k_silhouette.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / **`community_infomap.png`** / `hotspot_trend.png` / `centrality_top.png` / `studio_similarity_heatmap.png` / `studio_style_scatter.png` / `goty_distinguish.png` / `goty_genre_overindex.png`
 
 > “高频因子”在此指从图结构派生的细粒度截面因子矩阵；原数据没有日内 tick 级时序，年份是最细时间粒度。
 > 方法说明：聚类默认**先做 PCA 白化**再 KMeans，以缓解 44 维类型 one-hot 带来的维度灾难；`studio_wins` 由 `is_goty` 派生（标签泄漏），可用 `--exclude-reputation` 关闭；轮廓系数普遍偏低（<0.25），簇为探索性划分而非严谨边界。
+> **社区发现**采用**可插拔**策略：默认 **Louvain**（质量指标模块度 Q）作为主方法；若已安装 `infomap` 包，则额外运行 **Infomap（地图方程 Map Equation）** 作补充，报告二者对照（社区数 / 模块度 Q / 编码长度 L）。Infomap 无需 resolution 调参、天然支持层级结构，其编码长度 L 越小越好；本数据两者社区数接近（Louvain 14 vs Infomap 15）、Q 几乎一致（0.6175 vs 0.6173），说明「玩法家族」结构稳健。可用 `--community infomap` 将主方法直接切换为 Infomap。
 > 热点统计以 **GOTY 获奖作本身**（每年 1 款、两半段各 10 款，固定样本、无「其他作品」分母偏差）衡量奖项「品味」演变；比较 2006–2015 与 2016–2025 两半段的类型占比（百分点 pp），并用滚动 3 年占比画图。每半段仅 10 款，结论为示意性趋势而非统计推断。
 
 ---

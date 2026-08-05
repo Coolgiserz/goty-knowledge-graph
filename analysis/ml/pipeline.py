@@ -19,9 +19,11 @@ from .features import FeatureEngine
 from .analyzers import Analyzer
 from .visualizers import Visualizer
 from .constants import (
-    CSV_FACTORS, CSV_CLUSTERS, CSV_COMMUNITIES, CSV_HOTSPOT_ERA, CSV_HOTSPOT_YEAR,
+    CSV_FACTORS, CSV_CLUSTERS, CSV_COMMUNITIES, CSV_COMMUNITIES_IM,
+    CSV_HOTSPOT_ERA, CSV_HOTSPOT_YEAR,
     CSV_STUDIO_SIM, CSV_STUDIO_STYLE, CSV_GOTY_GENRE,
     JSON_FACTOR_DOC, JSON_CLUSTER_PROFILE, JSON_COMMUNITY_PROFILE,
+    JSON_COMMUNITY_PROFILE_IM,
     JSON_HOTSPOT_SUMMARY, JSON_STUDIO_STYLE, JSON_GOTY_PROFILE,
     MD_REPORT, PNG,
 )
@@ -44,9 +46,10 @@ def run_pipeline(config: MLConfig = None, graph_path: str = None, out_dir: str =
         f"> 自动生成于 `analysis/run_ml.py`，输入为 `data/graph.json`"
         f"（{n_games} 款游戏 / {len(ctx.studio_names)} 家工作室 / {len(ctx.genre_names)} 个玩法类型）。\n",
         f"- 样本：{n_games} 款游戏（其中年度最佳 {n_goty} 款）\n",
-        "- 方法：高频因子特征工程 → 聚类(可插拔算法+PCA) → Louvain 社区发现 → 时代热点统计"
+        "- 方法：高频因子特征工程 → 聚类(可插拔算法+PCA) → 社区发现"
+        "(Louvain 主方法 + Infomap/Map Equation 对照) → 时代热点统计"
         " → 开发商风格相似性 → 年度最佳(GOTY)特征分析\n",
-        "- 产物：`analysis/output/` 下的 CSV / JSON / 7 张 PNG\n",
+        "- 产物：`analysis/output/` 下的 CSV / JSON / 12 张 PNG\n",
         "\n## 一、高频因子（特征工程）\n",
         f"把每张游戏节点视为一个「资产」，从图谱派生宽因子表（`{CSV_FACTORS}`，"
         f"{df.shape[1]} 列 = {len(factor_doc)} 个因子）。因子分四组：\n",
@@ -95,8 +98,10 @@ def run_pipeline(config: MLConfig = None, graph_path: str = None, out_dir: str =
     # ---- 控制台摘要 ----
     cp = ctx.get("cluster_profile")
     cop = ctx.get("community_profile")
+    cim = ctx.get("community_profile_infomap")
+    cim_txt = f"  infomap_modules={cim['n_communities']}(L={cim['quality'].get('codelength')})" if cim else ""
     print(f"\n[ok] factors={df.shape}  clusters k={cp['best_k']}  "
-          f"communities={cop['n_communities']} (Q={cop['modularity']})  -> {ctx.out_dir}")
+          f"communities={cop['n_communities']}(method={cop['method']}){cim_txt}  -> {ctx.out_dir}")
     return ctx
 
 
@@ -121,6 +126,13 @@ def _persist(ctx: PipelineContext):
         import json as _json
         with open(os.path.join(out, JSON_COMMUNITY_PROFILE), "w", encoding="utf-8") as f:
             _json.dump(a["community_profile"], f, ensure_ascii=False, indent=2)
+    if "communities_infomap" in a:
+        a["communities_infomap"].to_csv(os.path.join(out, CSV_COMMUNITIES_IM),
+                                        index=False, encoding="utf-8-sig")
+    if "community_profile_infomap" in a:
+        import json as _json
+        with open(os.path.join(out, JSON_COMMUNITY_PROFILE_IM), "w", encoding="utf-8") as f:
+            _json.dump(a["community_profile_infomap"], f, ensure_ascii=False, indent=2)
     if "hotspot_era" in a:
         a["hotspot_era"].to_csv(os.path.join(out, CSV_HOTSPOT_ERA), index=False, encoding="utf-8-sig")
     if "hotspot_year" in a:

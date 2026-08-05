@@ -39,9 +39,16 @@ class ClusterConfig:
 
 @dataclass
 class CommunityConfig:
-    """社区发现（Louvain）。"""
-    resolution: float = 1.0
+    """社区发现（可插拔：louvain | infomap）。
+
+    method 选择主方法（注册表键，见 community.py）；
+    Infomap 作为补充方法始终尝试（若已安装 infomap 包），
+    二者在报告中并列对照（Map Equation 编码长度 L vs 模块度 Q）。
+    """
+    method: str = "louvain"          # 主方法：louvain | infomap
+    resolution: float = 1.0          # Louvain 分辨率（越大社区越碎）
     seed: int = 42
+    num_trials: int = 20             # Infomap 随机游走重复次数（越多越稳定）
 
 
 @dataclass

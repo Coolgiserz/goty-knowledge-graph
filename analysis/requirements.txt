@@ -4,3 +4,7 @@ scikit-learn>=1.5
 networkx>=3.0
 matplotlib>=3.8
 scipy>=1.13
+
+# 可选：社区发现的 Infomap（Map Equation）对照方法
+# 安装：pip install "infomap"
+infomap>=2.0

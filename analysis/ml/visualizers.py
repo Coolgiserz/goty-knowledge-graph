@@ -180,31 +180,52 @@ class CommunityGraphViz(Visualizer):
     filename = PNG["community"]
 
     def render(self, ctx: PipelineContext) -> str:
-        GG = ctx.GG
         node2comm = ctx.get("community_map")
         if node2comm is None:
             return None
-        SG = nx.Graph()
-        for u, v, d in GG.edges(data=True):
-            if d["weight"] >= 2:
-                SG.add_edge(u, v, weight=d["weight"])
-        for nid in GG.nodes():
-            SG.add_node(nid)
-        pos = nx.spring_layout(SG, seed=42, k=0.6)
-        byid = {n["id"]: n for n in ctx.graph["nodes"]}
-        fig, ax = plt.subplots(figsize=(11, 9))
-        node_colors = [PALETTE[node2comm.get(n, 0) % len(PALETTE)] for n in SG.nodes()]
-        sizes = [90 if byid[n]["raw"].get("is_goty") else 28 for n in SG.nodes()]
-        nx.draw_networkx_nodes(SG, pos, node_color=node_colors, node_size=sizes, ax=ax, alpha=0.9)
-        ew = [d["weight"] for _, _, d in SG.edges(data=True)]
-        nx.draw_networkx_edges(SG, pos, width=[min(2.0, w * 0.3) for w in ew],
-                               alpha=0.18, ax=ax, edge_color="#888")
-        labels = {n: byid[n]["raw"]["title"] for n in SG.nodes() if byid[n]["raw"].get("is_goty")}
-        nx.draw_networkx_labels(SG, pos, labels=labels, font_size=7, ax=ax,
-                                font_color="#111", font_weight="bold")
-        ax.set_title("社区发现：游戏玩法家族（Louvain，★=年度最佳，色=社区）")
-        ax.axis("off")
-        return _save(fig, self.filename, ctx.out_dir)
+        return _draw_community(ctx, node2comm,
+                               "社区发现：游戏玩法家族（Louvain，★=年度最佳，色=社区）",
+                               self.filename)
+
+
+@Visualizer.register
+class CommunityInfomapViz(Visualizer):
+    name = "community_infomap"
+    filename = PNG["community_infomap"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        node2comm = ctx.get("community_map_infomap")
+        if node2comm is None:
+            return None
+        return _draw_community(ctx, node2comm,
+                               "社区发现：游戏玩法家族（Infomap / Map Equation，★=年度最佳，色=社区）",
+                               self.filename)
+
+
+def _draw_community(ctx: PipelineContext, node2comm: dict, title: str, filename: str) -> str:
+    """社区网络图：只在权重>=2 的边上绘制，避免巨型团糊成一团。"""
+    GG = ctx.GG
+    SG = nx.Graph()
+    for u, v, d in GG.edges(data=True):
+        if d["weight"] >= 2:
+            SG.add_edge(u, v, weight=d["weight"])
+    for nid in GG.nodes():
+        SG.add_node(nid)
+    pos = nx.spring_layout(SG, seed=42, k=0.6)
+    byid = {n["id"]: n for n in ctx.graph["nodes"]}
+    fig, ax = plt.subplots(figsize=(11, 9))
+    node_colors = [PALETTE[node2comm.get(n, 0) % len(PALETTE)] for n in SG.nodes()]
+    sizes = [90 if byid[n]["raw"].get("is_goty") else 28 for n in SG.nodes()]
+    nx.draw_networkx_nodes(SG, pos, node_color=node_colors, node_size=sizes, ax=ax, alpha=0.9)
+    ew = [d["weight"] for _, _, d in SG.edges(data=True)]
+    nx.draw_networkx_edges(SG, pos, width=[min(2.0, w * 0.3) for w in ew],
+                           alpha=0.18, ax=ax, edge_color="#888")
+    labels = {n: byid[n]["raw"]["title"] for n in SG.nodes() if byid[n]["raw"].get("is_goty")}
+    nx.draw_networkx_labels(SG, pos, labels=labels, font_size=7, ax=ax,
+                            font_color="#111", font_weight="bold")
+    ax.set_title(title)
+    ax.axis("off")
+    return _save(fig, filename, ctx.out_dir)
 
 
 @Visualizer.register
