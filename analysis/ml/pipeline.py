@@ -21,7 +21,8 @@ from .visualizers import Visualizer
 from .constants import (
     CSV_FACTORS, CSV_CLUSTERS, CSV_COMMUNITIES, CSV_COMMUNITIES_IM, CSV_COMMUNITIES_WT,
     CSV_HOTSPOT_ERA, CSV_HOTSPOT_YEAR,
-    CSV_STUDIO_SIM, CSV_STUDIO_STYLE, CSV_GOTY_GENRE, CSV_GOTY_AFFINITY,
+    CSV_STUDIO_SIM, CSV_STUDIO_SIM_RW, CSV_STUDIO_STYLE, CSV_STUDIO_STYLE_RW,
+    CSV_GOTY_GENRE, CSV_GOTY_AFFINITY,
     JSON_FACTOR_DOC, JSON_CLUSTER_PROFILE, JSON_COMMUNITY_PROFILE,
     JSON_COMMUNITY_PROFILE_IM, JSON_COMMUNITY_PROFILE_WT,
     JSON_HOTSPOT_SUMMARY, JSON_STUDIO_STYLE, JSON_GOTY_PROFILE, JSON_GOTY_AFFINITY,
@@ -48,9 +49,9 @@ def run_pipeline(config: MLConfig = None, graph_path: str = None, out_dir: str =
         f"- 样本：{n_games} 款游戏（其中年度最佳 {n_goty} 款）\n",
         "- 方法：高频因子特征工程 → 聚类(可插拔算法+PCA) → 社区发现"
         "(Louvain 主方法 + Infomap/Walktrap 随机游走对照) → 时代热点统计"
-        " → 开发商风格相似性(图谱随机游走嵌入) → 年度最佳(GOTY)特征分析"
+        " → 开发商风格相似性(图谱距离 + 随机游走嵌入 双视角) → 年度最佳(GOTY)特征分析"
         " → GOTY 品味网络(个性化随机游走)\n",
-        "- 产物：`analysis/output/` 下的 CSV / JSON / 14 张 PNG\n",
+        "- 产物：`analysis/output/` 下的 CSV / JSON / 16 张 PNG\n",
         "\n## 一、高频因子（特征工程）\n",
         f"把每张游戏节点视为一个「资产」，从图谱派生宽因子表（`{CSV_FACTORS}`，"
         f"{df.shape[1]} 列 = {len(factor_doc)} 个因子）。因子分四组：\n",
@@ -149,13 +150,20 @@ def _persist(ctx: PipelineContext):
         import json as _json
         with open(os.path.join(out, JSON_HOTSPOT_SUMMARY), "w", encoding="utf-8") as f:
             _json.dump(a["hotspot_summary"], f, ensure_ascii=False, indent=2)
-    if "studio_style" in a:
-        a["studio_style"].to_csv(os.path.join(out, CSV_STUDIO_STYLE), index=False, encoding="utf-8-sig")
-    if "studio_sim_matrix" in a:
-        blob = a["studio_sim_matrix"]
+    if "studio_style_sp" in a:
+        a["studio_style_sp"].to_csv(os.path.join(out, CSV_STUDIO_STYLE), index=False, encoding="utf-8-sig")
+    if "studio_sim_sp_matrix" in a:
+        blob = a["studio_sim_sp_matrix"]
         pd.DataFrame(blob["matrix"], index=blob["studio_names"],
                      columns=blob["studio_names"]).to_csv(
             os.path.join(out, CSV_STUDIO_SIM), encoding="utf-8-sig")
+    if "studio_style_rw" in a:
+        a["studio_style_rw"].to_csv(os.path.join(out, CSV_STUDIO_STYLE_RW), index=False, encoding="utf-8-sig")
+    if "studio_sim_rw_matrix" in a:
+        blob = a["studio_sim_rw_matrix"]
+        pd.DataFrame(blob["matrix"], index=blob["studio_names"],
+                     columns=blob["studio_names"]).to_csv(
+            os.path.join(out, CSV_STUDIO_SIM_RW), encoding="utf-8-sig")
     if "studio_style_summary" in a:
         import json as _json
         with open(os.path.join(out, JSON_STUDIO_STYLE), "w", encoding="utf-8") as f:

@@ -303,7 +303,7 @@ class StudioSimilarityViz(Visualizer):
     filename = PNG["studio_sim"]
 
     def render(self, ctx: PipelineContext) -> str:
-        blob = ctx.get("studio_sim_matrix")
+        blob = ctx.get("studio_sim_sp_matrix")
         if blob is None:
             return None
         names = blob["studio_names"]
@@ -318,6 +318,32 @@ class StudioSimilarityViz(Visualizer):
                 v = M[i, j]
                 ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6,
                         color="white" if v > 0.55 else "black")
+        ax.set_title("开发商风格相似度（图谱距离 / 最短路径）")
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class StudioSimilarityRWViz(Visualizer):
+    name = "studio_sim_rw"
+    filename = PNG["studio_sim_rw"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        blob = ctx.get("studio_sim_rw_matrix")
+        if blob is None:
+            return None
+        names = blob["studio_names"]
+        M = np.array(blob["matrix"])
+        fig, ax = plt.subplots(figsize=(10, 9))
+        im = ax.imshow(M, vmin=-1, vmax=1, cmap="RdBu_r")
+        ax.set_xticks(range(len(names))); ax.set_yticks(range(len(names)))
+        ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
+        ax.set_yticklabels(names, fontsize=8)
+        for i in range(len(names)):
+            for j in range(len(names)):
+                v = M[i, j]
+                ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6,
+                        color="white" if abs(v) > 0.5 else "black")
         ax.set_title("开发商风格相似度（随机游走共现 / 游戏嵌入余弦）")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         return _save(fig, self.filename, ctx.out_dir)
@@ -329,7 +355,34 @@ class StudioStyleScatterViz(Visualizer):
     filename = PNG["studio_style_scatter"]
 
     def render(self, ctx: PipelineContext) -> str:
-        df = ctx.get("studio_style")
+        df = ctx.get("studio_style_sp")
+        if df is None:
+            return None
+        fig, ax = plt.subplots(figsize=(9, 8))
+        comms = sorted(df["dominant_community"].unique())
+        cmap = {c: PALETTE[i % len(PALETTE)] for i, c in enumerate(comms)}
+        for c in comms:
+            sub = df[df["dominant_community"] == c]
+            lab = sub["dominant_community_label"].iloc[0]
+            ax.scatter(sub["style_x"], sub["style_y"], s=130, alpha=0.85,
+                       color=cmap[c], label=f"{lab}")
+        for _, r in df.iterrows():
+            ax.annotate(r["studio"], (r["style_x"], r["style_y"]), fontsize=7,
+                        xytext=(4, 3), textcoords="offset points")
+        ax.set_xlabel("风格 MDS-1（图谱距离）"); ax.set_ylabel("风格 MDS-2（图谱距离）")
+        ax.set_title("开发商风格空间（点=工作室，色=主导玩法家族；两点越近=风格越接近）")
+        ax.legend(fontsize=8, loc="best")
+        ax.grid(alpha=0.3)
+        return _save(fig, self.filename, ctx.out_dir)
+
+
+@Visualizer.register
+class StudioStyleRWViz(Visualizer):
+    name = "studio_style_rw_scatter"
+    filename = PNG["studio_style_rw_scatter"]
+
+    def render(self, ctx: PipelineContext) -> str:
+        df = ctx.get("studio_style_rw")
         if df is None:
             return None
         fig, ax = plt.subplots(figsize=(9, 8))
@@ -344,7 +397,7 @@ class StudioStyleScatterViz(Visualizer):
             ax.annotate(r["studio"], (r["style_x"], r["style_y"]), fontsize=7,
                         xytext=(4, 3), textcoords="offset points")
         ax.set_xlabel("风格 MDS-1（随机游走嵌入）"); ax.set_ylabel("风格 MDS-2（随机游走嵌入）")
-        ax.set_title("开发商风格空间（点=工作室，色=主导玩法家族；两点越近=风格越接近）")
+        ax.set_title("开发商风格空间（随机游走嵌入，点=工作室，色=主导玩法家族）")
         ax.legend(fontsize=8, loc="best")
         ax.grid(alpha=0.3)
         return _save(fig, self.filename, ctx.out_dir)
