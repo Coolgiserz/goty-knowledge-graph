@@ -1,0 +1,83 @@
+{
+  "studios": [
+    {
+      "id": "studio_larian",
+      "name": "Larian Studios",
+      "name_zh": "拉瑞安工作室",
+      "founded": 1996,
+      "country": "比利时",
+      "hq": "根特",
+      "parent": "独立（无母公司，自研自发）",
+      "description": "由 Swen Vincke 于1996年在比利时根特创立，专注角色扮演游戏。以《神界》系列与《博德之门3》闻名，是欧洲规模最大的独立RPG开发商之一，坚持玩家自由与系统性玩法的设计理念。",
+      "other_games": [
+        {"title": "Divine Divinity", "title_zh": "神界", "year": 2002, "genre": "动作角色扮演", "note": "工作室早期成名作，奠定神界世界观。"},
+        {"title": "Beyond Divinity", "title_zh": "超越神界", "year": 2004, "genre": "动作角色扮演", "note": "《神界》的衍生续作。"},
+        {"title": "Divinity II: Ego Draconis", "title_zh": "神界2：龙刃", "year": 2009, "genre": "动作角色扮演", "note": "引入变身巨龙玩法的开放世界RPG。"},
+        {"title": "Divinity: Dragon Commander", "title_zh": "神界：龙指挥官", "year": 2013, "genre": "策略/角色扮演", "note": "结合战棋与政治策略的混合型作品。"},
+        {"title": "Divinity: Original Sin", "title_zh": "神界：原罪", "year": 2014, "genre": "角色扮演（CRPG）", "rating": 87, "rating_source": "Metacritic", "note": "众筹成功之作，以合作模式与环境互动 revitalized 等距CRPG。"},
+        {"title": "Divinity: Original Sin 2", "title_zh": "神界：原罪2", "year": 2017, "genre": "角色扮演（CRPG）", "rating": 93, "rating_source": "Metacritic", "note": "口碑爆款，确立拉瑞安顶级RPG厂商地位并获BAFTA最佳多人游戏。"},
+        {"title": "Divinity: Fallen Heroes", "title_zh": "神界：陨落英雄", "year": 2019, "genre": "战术角色扮演", "note": "与Logic Artists合作开发，后开发中止，资源转向《博德之门3》。"}
+      ]
+    },
+    {
+      "id": "studio_telltale",
+      "name": "Telltale Games",
+      "name_zh": "Telltale游戏",
+      "founded": 2004,
+      "country": "美国",
+      "hq": "圣拉斐尔",
+      "parent": "已破产重组（2018年倒闭，由LCG Entertainment接手重组）",
+      "description": "2004年成立于加州圣拉斐尔，以章节式、授权IP驱动的叙事冒险游戏闻名。开创了'互动电影'式叙事风潮，2018年破产后由LCG Entertainment重组并恢复运营。",
+      "other_games": [
+        {"title": "Tales of Monkey Island", "title_zh": "猴岛传说", "year": 2009, "genre": "冒险", "note": "经典《猴岛小英雄》IP的章节式重启。"},
+        {"title": "Back to the Future: The Game", "title_zh": "回到未来", "year": 2010, "genre": "冒险", "note": "改编自经典科幻电影，由Telltale原创剧情延续。"},
+        {"title": "The Wolf Among Us", "title_zh": "我们之中的狼", "year": 2013, "genre": "冒险/互动电影", "rating": 84, "rating_source": "Metacritic", "note": "改编自比尔·威灵厄姆漫画《成人童话》，叙事口碑极高。"},
+        {"title": "Tales from the Borderlands", "title_zh": "无主之地传说", "year": 2014, "genre": "冒险/喜剧", "rating": 86, "rating_source": "Metacritic", "note": "基于《无主之地》世界观的幽默叙事佳作。"},
+        {"title": "Game of Thrones: Season 1", "title_zh": "权力的游戏：第一季", "year": 2014, "genre": "冒险", "rating": 75, "rating_source": "Metacritic", "note": "基于HBO剧集的授权改编章节游戏。"},
+        {"title": "Minecraft: Story Mode", "title_zh": "我的世界：故事模式", "year": 2015, "genre": "冒险/家庭", "rating": 61, "rating_source": "Metacritic", "note": "面向年轻玩家的分支叙事作品，销量庞大。"},
+        {"title": "Batman: The Telltale Series", "title_zh": "蝙蝠侠：Telltale系列", "year": 2016, "genre": "冒险", "rating": 70, "rating_source": "Metacritic", "note": "以布鲁斯·韦恩内心抉择为核心的蝙蝠侠叙事作。"},
+        {"title": "The Walking Dead: Season Two", "title_zh": "行尸走肉：第二季", "year": 2013, "genre": "冒险/互动电影", "rating": 80, "rating_source": "Metacritic", "note": "以少年Clementine为主视角的续作。"}
+      ]
+    },
+    {
+      "id": "studio_sandfall",
+      "name": "Sandfall Interactive",
+      "name_zh": "沙落互动",
+      "founded": 2020,
+      "country": "法国",
+      "hq": "巴黎",
+      "parent": "Kepler Interactive（发行与合作关系）",
+      "description": "2020年成立于法国，由前育碧员工为核心组建的独立工作室，CEO为Guillaume Broche。处女作《光与影：33号远征队》即于2025年斩获TGA年度最佳游戏，是史上最获奖的年度游戏。目前暂无其他已发售作品。",
+      "other_games": []
+    }
+  ],
+  "goty_games": [
+    {
+      "award_year": 2023, "title": "Baldur's Gate 3", "title_zh": "博德之门3", "genre": "角色扮演（CRPG）", "developer_id": "studio_larian", "developer": "Larian Studios", "publisher": "Larian Studios（自研自发）", "platforms": "PC; PlayStation 5; Xbox Series X/S", "release_date": "2023-08-03", "player_rating": 96, "rating_source": "Metacritic",
+      "gameplay": "基于龙与地下城5版规则的回合制战斗，强调队伍协作与战术站位。玩家拥有极高自由度，可通过对话、潜行、机关破解等多种方式解决遭遇。支持完整单人剧情与最多四人合作模式。",
+      "unique_features": "几乎每个NPC都可对话、贿赂或击杀，选择会产生连锁后果。环境互动丰富，可将敌人推下悬崖或点燃油面。电影化叙事与深度角色构筑无缝衔接。",
+      "drawbacks": "前期规则复杂，学习与上手门槛较高。后期部分章节节奏略显拖沓。对硬件性能要求较高。",
+      "awards": "TGA 2023 年度最佳游戏; BAFTA 2024 最佳游戏; 金摇杆奖 2023 年度最佳游戏; DICE 2024 年度游戏; GDCA 2024 年度游戏",
+      "influence": "重振了等距视角CRPG这一曾经式微的品类。以众筹独立精神与完整玩家自由成为行业标杆，影响了后续众多RPG作品。证明了买断制单机大作仍能在3A时代取得巨大商业成功。",
+      "description": "一款基于龙与地下城规则的史诗级CRPG，以极致自由与叙事深度成为现代角色扮演游戏的里程碑。"
+    },
+    {
+      "award_year": 2012, "title": "The Walking Dead", "title_zh": "行尸走肉（第一季）", "genre": "冒险 / 互动电影", "developer_id": "studio_telltale", "developer": "Telltale Games", "publisher": "Telltale Games", "platforms": "PC; PlayStation 3; Xbox 360; Nintendo Switch; iOS; Android", "release_date": "2012-04-25", "player_rating": 89, "rating_source": "Metacritic",
+      "gameplay": "以章节式叙事驱动的点击解谜与对话选择玩法为主。玩家通过快速反应事件（QTE）在紧张场景中做出抉择。剧情聚焦于护工Lee与女孩Clementine在丧尸末世中的羁绊。",
+      "unique_features": "将'选择有意义'的叙事理念推向主流，角色关系因选项而持久改变。采用独特的'Graphic Black'漫画美术风格。以情感冲击与道德困境取代传统战斗。",
+      "drawbacks": "动作段落过度依赖重复的QTE，操作略显单调。早期版本存在画面掉帧与程序错误。解谜环节相对简单。",
+      "awards": "80+ 项年度游戏奖项（含IGN、GameSpot等媒体年度最佳）; 多项叙事与冒险类大奖",
+      "influence": "重新定义了叙事驱动型冒险游戏，掀起'互动电影'浪潮。其章节式发售模式成为众多厂商效仿的范本。深刻影响了《Life is Strange》等同类型情感叙事作品。",
+      "description": "一款以人性抉择与情感羁绊为核心的丧尸题材章节式冒险游戏，被视为叙事游戏的转折点。"
+    },
+    {
+      "award_year": 2025, "title": "Clair Obscur: Expedition 33", "title_zh": "光与影：33号远征队", "genre": "回合制角色扮演（含即时元素）", "developer_id": "studio_sandfall", "developer": "Sandfall Interactive", "publisher": "Kepler Interactive", "platforms": "PC; PlayStation 5; Xbox Series X/S", "release_date": "2025-04-24", "player_rating": 92, "rating_source": "Metacritic",
+      "gameplay": "融合回合制指令与即时闪避/招架机制的战斗系统，玩家需在敌方攻击瞬间输入动作以削减伤害。探索采用箱庭式地图，战斗外界面极简沉浸。以法国'美好年代'风格奇幻世界为背景的线性叙事冒险。",
+      "unique_features": "将传统日式回合制RPG与类魂系即时操作结合，刷新了回合制体验。全程采用虚幻引擎5打造电影级画面与法式美术。由乐团录制的高质量原创配乐贯穿全程。",
+      "drawbacks": "部分后期敌人数值曲线陡峭，难度波动明显。队伍角色切换与养成系统对新手略显复杂。法语口音英文字幕对部分玩家存在理解门槛。",
+      "awards": "TGA 2025 年度最佳游戏; TGA 2025 最佳游戏指导; TGA 2025 最佳叙事; TGA 2025 最佳艺术指导; TGA 2025 最佳配乐与音乐; TGA 2025 最佳RPG; TGA 2025 最佳独立游戏; TGA 2025 最佳独立游戏首作; TGA 2025 最佳表演（Jennifer English）; 金摇杆奖 2025 年度最佳等7项",
+      "influence": "成为史上获得年度游戏奖项最多的游戏（436项），并刷新TGA单届获奖纪录（9项）。作为法国独立工作室处女作即登顶，展现了小团队凭UE5实现3A品质的可能。复兴了被3A忽视的回合制RPG品类。",
+      "description": "一款融合法式美术与回合制战棋的奇幻RPG，以惊人完成度成为2025年现象级年度游戏。"
+    }
+  ]
+}

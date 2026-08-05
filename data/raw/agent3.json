@@ -1,0 +1,86 @@
+{
+  "studios": [
+    {
+      "id": "studio_hazelight",
+      "name": "Hazelight Studios",
+      "name_zh": "Hazelight工作室",
+      "founded": 2014,
+      "country": "瑞典",
+      "hq": "斯德哥尔摩",
+      "parent": "Electronic Arts（EA Originals计划）",
+      "description": "由电影导演Josef Fares于2014年在斯德哥尔摩创立的独立游戏工作室，专注于纯双人合作体验。旗下作品均通过EA Originals计划发行，以天马行空的创意关卡设计著称，代表作包括《兄弟：双子传说》《逃出生天》《双人成行》《双影奇境》。",
+      "other_games": [
+        {"title": "Brother: A Tale of Two Sons", "title_zh": "兄弟：双子传说", "year": 2013, "genre": "解谜冒险", "rating": 86, "rating_source": "Metacritic", "note": "Josef Fares担任编剧与导演的成名作，以双角色单手柄协同操作讲述兄弟救父的温情旅程。"},
+        {"title": "A Way Out", "title_zh": "逃出生天", "year": 2018, "genre": "合作动作冒险", "rating": 78, "rating_source": "Metacritic", "note": "史上首款纯双人合作第三人称动作冒险游戏，讲述两名囚犯联手越狱逃亡的故事。"},
+        {"title": "Split Fiction", "title_zh": "双影奇境", "year": 2025, "genre": "合作冒险", "rating": 91, "rating_source": "Metacritic", "note": "两位女作家被困于自己创作的故事中，在科幻与奇幻世界间穿梭合作，发售48小时即破百万销量并打破多项合作游戏纪录。"}
+      ]
+    },
+    {
+      "id": "studio_bioware",
+      "name": "BioWare",
+      "name_zh": "BioWare",
+      "founded": 1995,
+      "country": "加拿大",
+      "hq": "埃德蒙顿",
+      "parent": "Electronic Arts（2007年收购）",
+      "description": "由Ray Muzyka、Greg Zeschuk和Augustine Yip于1995年在埃德蒙顿创立，2007年被EA收购。以剧情驱动、强调选择与后果的RPG闻名，打造了《博德之门》《无冬之夜》《星球大战：旧共和国武士》《质量效应》《龙腾世纪》等经典系列。",
+      "other_games": [
+        {"title": "Baldur's Gate", "title_zh": "博德之门", "year": 1998, "genre": "角色扮演", "note": "基于龙与地下城规则的里程碑式CRPG，确立BioWare在角色扮演领域的顶尖地位，销量超两百万份。"},
+        {"title": "Neverwinter Nights", "title_zh": "无冬之夜", "year": 2002, "genre": "角色扮演", "rating": 91, "rating_source": "Metacritic", "note": "自带功能强大的地牢主工具，极大推动了模组社区与线上角色扮演文化的发展。"},
+        {"title": "Star Wars: Knights of the Old Republic", "title_zh": "星球大战：旧共和国武士", "year": 2003, "genre": "角色扮演", "rating": 93, "rating_source": "Metacritic", "note": "将星战宇宙与前作风格叙事融合，被誉为史上最优秀的星战游戏之一。"},
+        {"title": "Dragon Age: Origins", "title_zh": "龙腾世纪：起源", "year": 2009, "genre": "角色扮演", "rating": 91, "rating_source": "Metacritic", "note": "BioWare原创黑暗奇幻IP的开山之作，以多出身叙事与战术小队战斗广受赞誉。"},
+        {"title": "Mass Effect", "title_zh": "质量效应", "year": 2007, "genre": "科幻角色扮演", "rating": 89, "rating_source": "Metacritic", "note": "开创太空歌剧式的银河叙事与角色对话系统，奠定BioWare原创科幻IP基础。"},
+        {"title": "Mass Effect 2", "title_zh": "质量效应2", "year": 2010, "genre": "科幻角色扮演", "rating": 94, "rating_source": "Metacritic", "note": "系列口碑巅峰，以招募队友与'自杀小队'式叙事被视为RPG史上最伟大的作品之一。"},
+        {"title": "Mass Effect: Andromeda", "title_zh": "质量效应：仙女座", "year": 2017, "genre": "科幻角色扮演", "rating": 76, "rating_source": "Metacritic", "note": "系列外传，因技术瑕疵与角色塑造争议评价两极，被视为未达正传水准。"},
+        {"title": "Anthem", "title_zh": "圣歌", "year": 2019, "genre": "在线动作角色扮演", "rating": 60, "rating_source": "Metacritic", "note": "BioWare进军服务型多人游戏的尝试，因内容空洞与完成度不足遭遇商业与口碑双重失利。"}
+      ]
+    },
+    {
+      "id": "studio_cdpr",
+      "name": "CD Projekt Red",
+      "name_zh": "CD Projekt Red",
+      "founded": 2002,
+      "country": "波兰",
+      "hq": "华沙",
+      "parent": "CD Projekt",
+      "description": "CD Projekt集团旗下工作室，2002年成立于华沙，以还原波兰作家Sapkowski原著《猎魔人》系列的《巫师》三部曲闻名。坚持玩家友好政策与内容充实的开放世界RPG，后续推出《赛博朋克2077》及其资料片《往日之影》。",
+      "other_games": [
+        {"title": "The Witcher", "title_zh": "巫师", "year": 2007, "genre": "角色扮演", "rating": 81, "rating_source": "Metacritic", "note": "工作室首部作品，改编自波兰国宝级奇幻小说，以成熟黑暗的叙事崭露头角。"},
+        {"title": "The Witcher 2: Assassins of Kings", "title_zh": "巫师2：国王刺客", "year": 2011, "genre": "角色扮演", "rating": 88, "rating_source": "Metacritic", "note": "采用自研REDengine引擎，战斗与政治叙事大幅升级，确立系列国际声誉。"},
+        {"title": "Thronebreaker: The Witcher Tales", "title_zh": "王权的陨落：巫师传说", "year": 2018, "genre": "卡牌角色扮演", "rating": 79, "rating_source": "Metacritic", "note": "由《巫师3》昆特牌衍生，融合单人剧情与回合卡牌策略的独立作品。"},
+        {"title": "Cyberpunk 2077", "title_zh": "赛博朋克2077", "year": 2020, "genre": "开放世界角色扮演", "rating": 86, "rating_source": "Metacritic", "note": "基于桌上角色扮演的科幻开放世界巨作，PC版获好评但主机版因严重技术问题引发争议。"},
+        {"title": "GWENT: The Witcher Card Game", "title_zh": "昆特牌：巫师之昆特牌", "year": 2018, "genre": "卡牌对战", "note": "脱胎于《巫师3》内置小游戏的独立联机卡牌游戏，后登陆多平台。"},
+        {"title": "Cyberpunk 2077: Phantom Liberty", "title_zh": "赛博朋克2077：往日之影", "year": 2023, "genre": "开放世界角色扮演（资料片）", "rating": 89, "rating_source": "Metacritic", "note": "由Idris Elba参演的间谍惊悚式资料片，重制部分系统并被视为挽回口碑的转折点。"}
+      ]
+    }
+  ],
+  "goty_games": [
+    {
+      "award_year": 2021, "title": "It Takes Two", "title_zh": "双人成行", "genre": "合作冒险", "developer_id": "studio_hazelight", "developer": "Hazelight Studios", "publisher": "Electronic Arts（EA Originals）", "platforms": "PC; PlayStation 4; PlayStation 5; Xbox One; Xbox Series X/S; Nintendo Switch", "release_date": "2021-03-26", "player_rating": 88, "rating_source": "Metacritic",
+      "gameplay": "游戏为纯双人合作，支持同屏分屏与在线联机，且可通过好友通行证邀请未购游戏者免费同玩。每关都引入完全不同的玩法机制与角色技能，从平台跳跃到载具驾驶层出不穷。玩家分别操控因魔法变成玩偶的夫妇Cody与May，在隐喻化的童话世界中协作解谜闯关。",
+      "unique_features": "叙事与玩法高度融合，将婚姻关系的隐喻具象化为吸尘器暴走、爱情大师等荒诞关卡。每个章节的机制都独一无二，几乎等同于把多种类型游戏串联进同一段旅程。首创好友通行证模式，大幅降低了合作游戏的人际门槛。",
+      "drawbacks": "剧情台词略显说教，部分玩家觉得人物塑造与笑点偏西式幽默。对单人玩家完全不友好，必须找到同伴才能体验。",
+      "awards": "2021年游戏大奖年度游戏;2021年游戏大奖最佳家庭游戏;2021年游戏大奖最佳多人游戏;英国电影学院奖(BAFTA)最佳多人游戏",
+      "influence": "重新定义了现代双人合作游戏的设计范式，证明强叙事与玩法创新可以完美结合。其好友通行证模式被业界广泛借鉴，降低了合作游戏的社交成本。作为EA Originals扶持独立创意的成功案例，鼓励了更多中型工作室挑战传统品类。",
+      "description": "一款将婚姻关系隐喻化为奇幻冒险、机制每关焕然一新的纯双人合作神作。"
+    },
+    {
+      "award_year": 2014, "title": "Dragon Age: Inquisition", "title_zh": "龙腾世纪：审判", "genre": "角色扮演", "developer_id": "studio_bioware", "developer": "BioWare", "publisher": "Electronic Arts", "platforms": "PC; PlayStation 3; PlayStation 4; Xbox 360; Xbox One", "release_date": "2014-11-18", "player_rating": 89, "rating_source": "Metacritic",
+      "gameplay": "游戏为第三人称开放世界角色扮演，玩家扮演审判官组建势力、自定义队伍并探索广阔大陆。战斗融合实时动作与战术暂停指令，可随时调度队友技能。分支对话与阵营抉择深度影响剧情走向与世界状态。",
+      "unique_features": "庞大的开放区域与据点建设系统，玩家可派遣顾问处理事务、扩充影响力。多族裔同伴各有独立情愫与忠诚任务，叙事颗粒度极高。继承BioWare招牌的对话轮盘，选择后果贯穿整个战役。",
+      "drawbacks": "前期节奏偏慢、地图空旷，部分区域探索缺乏引导。主机版曾存在性能优化与读盘问题。",
+      "awards": "2014年游戏大奖年度游戏;2014年金摇杆奖年度游戏;IGN 2014年度最佳RPG;第18届DICE年度游戏",
+      "influence": "延续了BioWare在剧情驱动RPG领域的统治地位，巩固了'选择与后果'叙事范式的行业标准。其开放世界与据点经营结合的尝试影响了后续众多CRPG。为重振《龙腾世纪》IP并延续至《龙腾世纪：影障守护者》奠定了基础。",
+      "description": "BioWare打造的黑暗奇幻开放世界RPG巅峰，以宏大叙事与自由抉择赢得2014年度游戏。"
+    },
+    {
+      "award_year": 2015, "title": "The Witcher 3: Wild Hunt", "title_zh": "巫师3：狂猎", "genre": "开放世界角色扮演", "developer_id": "studio_cdpr", "developer": "CD Projekt Red", "publisher": "CD Projekt", "platforms": "PC; PlayStation 4; Xbox One; Nintendo Switch; PlayStation 5; Xbox Series X/S", "release_date": "2015-05-19", "player_rating": 93, "rating_source": "Metacritic",
+      "gameplay": "游戏为第三人称开放世界RPG，玩家扮演猎魔人杰洛特在广袤大陆上搜寻养女希里。战斗强调走位、法印与炼金道具的配合，并可随时切换轻重攻击与闪避。海量支线任务均具独立短篇质感，玩家抉择会深刻改变世界走向。",
+      "unique_features": "以波兰奇幻文学为底色的成熟叙事，支线任务水准普遍媲美主线。内置昆特牌小游戏自成体系并衍生独立作品。两大资料片《石之心》《血与酒》内容量惊人，被称为业内良心。",
+      "drawbacks": "首发版本存在帧率与bug等技术问题，部分任务引导与PC操作手感略显笨拙。个别女性角色刻画被批评为过度情色化。",
+      "awards": "2015年游戏大奖年度游戏;2015年金摇杆奖年度游戏;第19届DICE年度游戏;2016年游戏开发者选择奖年度游戏",
+      "influence": "被公认为史上最伟大游戏之一，树立了开放世界RPG在叙事密度与支线质量上的标杆。其成功带动波兰游戏产业崛起，并使CD Projekt成为欧洲市值最高的游戏公司。随Netflix剧集热播，进一步将《巫师》IP推向全球流行文化。",
+      "description": "CD Projekt Red打造的波兰魔幻史诗，以无与伦比的开放世界与分支叙事夺得2015年度游戏。"
+    }
+  ]
+}

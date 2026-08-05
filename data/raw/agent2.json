@@ -1,0 +1,95 @@
+{
+  "studios": [
+    {
+      "id": "studio_naughtydog",
+      "name": "Naughty Dog",
+      "name_zh": "顽皮狗",
+      "founded": 1984,
+      "country": "美国",
+      "hq": "圣莫尼卡（加利福尼亚州）",
+      "parent": "Sony Interactive Entertainment（索尼互动娱乐 / PlayStation Studios）",
+      "description": "顽皮狗是美国索尼第一方游戏工作室，由Andy Gavin与Jason Rubin于1984年以JAM Software之名创立，2001年被索尼收购。工作室以电影化叙事与鲜活角色塑造闻名，代表作涵盖《古惑狼》《杰克与达斯特》《神秘海域》《最后生还者》等系列，累计销量超过1.2亿份，长期被视为业界叙事与制作水准的标杆。",
+      "other_games": [
+        {"title": "Crash Bandicoot", "title_zh": "古惑狼", "year": 1996, "genre": "平台跳跃", "rating": 85, "rating_source": "Metacritic", "note": "工作室成名作，奠定了PS1平台动作游戏标杆，全球销量超680万份。"},
+        {"title": "Crash Bandicoot 2: Cortex Strikes Back", "title_zh": "古惑狼2：科尔特克斯的反击", "year": 1997, "genre": "平台跳跃", "rating": 85, "rating_source": "Metacritic", "note": "系列口碑与销量俱佳的续作，关卡设计更精进。"},
+        {"title": "Crash Team Racing", "title_zh": "古惑狼赛车", "year": 1999, "genre": "卡丁车竞速", "rating": 88, "rating_source": "Metacritic", "note": "索尼对标价《马里奥赛车》的竞速作品，被誉为最优秀的卡丁车游戏之一。"},
+        {"title": "Jak and Daxter: The Precursor Legacy", "title_zh": "杰克与达斯特：先祖遗产", "year": 2001, "genre": "平台动作", "rating": 90, "rating_source": "Metacritic", "note": "成为索尼第一方后打造的全新IP，采用自研GOAL语言开发。"},
+        {"title": "Uncharted: Drake's Fortune", "title_zh": "神秘海域：德雷克的宝藏", "year": 2007, "genre": "动作冒险", "rating": 88, "rating_source": "Metacritic", "note": "系列开山之作，确立电影化动作冒险风格。"},
+        {"title": "Uncharted 3: Drake's Deception", "title_zh": "神秘海域3：德雷克的诡计", "year": 2011, "genre": "动作冒险", "rating": 92, "rating_source": "Metacritic", "note": "系列第三部，沙漠城镇与飞机失事场景演出广受赞誉。"},
+        {"title": "The Last of Us", "title_zh": "最后生还者", "year": 2013, "genre": "动作冒险 / 生存恐怖", "rating": 95, "rating_source": "Metacritic", "note": "后启示录叙事神作，将顽皮狗推向叙事游戏顶峰，后改编为HBO剧集。"}
+      ]
+    },
+    {
+      "id": "studio_santamonica",
+      "name": "Santa Monica Studio",
+      "name_zh": "圣莫尼卡工作室",
+      "founded": 1999,
+      "country": "美国",
+      "hq": "洛杉矶（加利福尼亚州，原址圣莫尼卡）",
+      "parent": "Sony Interactive Entertainment（索尼互动娱乐 / PlayStation Studios）",
+      "description": "圣莫尼卡工作室成立于1999年，由索尼老员工Allan Becker创立，以《战神》系列闻名于世。除内部开发外，曾作为孵化部门扶持thatgamecompany等独立团队（参与《风之旅人》《花》等）。2018年《战神》与2022年《战神：诸神黄昏》均获评论与商业双重成功。",
+      "other_games": [
+        {"title": "Kinetica", "title_zh": "极速魔神", "year": 2001, "genre": "未来竞速", "rating": 75, "rating_source": "Metacritic", "note": "工作室首款作品，验证了按时按预算交付能力，并孵化了Kinetica引擎。"},
+        {"title": "God of War", "title_zh": "战神", "year": 2005, "genre": "动作冒险", "rating": 94, "rating_source": "Metacritic", "note": "希腊神话砍杀系列开山之作，塑造了斯巴达战士奎托斯。"},
+        {"title": "God of War II", "title_zh": "战神2", "year": 2007, "genre": "动作冒险", "rating": 93, "rating_source": "Metacritic", "note": "PS2平台续作，规模与爽快度进一步升级。"},
+        {"title": "God of War III", "title_zh": "战神3", "year": 2010, "genre": "动作冒险", "rating": 92, "rating_source": "Metacritic", "note": "希腊三部曲终章，以宏大神战场面收尾。"},
+        {"title": "God of War: Ascension", "title_zh": "战神：崛起", "year": 2013, "genre": "动作冒险", "rating": 80, "rating_source": "Metacritic", "note": "系列前传，评价较前期作品回落，促使工作室寻求新方向。"},
+        {"title": "God of War Ragnarök", "title_zh": "战神：诸神黄昏", "year": 2022, "genre": "动作冒险", "rating": 94, "rating_source": "Metacritic", "note": "北欧篇章续作，成为索尼与工作室最畅销作品，BAFTA提名数创纪录。"}
+      ]
+    },
+    {
+      "id": "studio_asobi",
+      "name": "Team Asobi",
+      "name_zh": "Asobi团队",
+      "founded": 2012,
+      "country": "日本",
+      "hq": "东京",
+      "parent": "Sony Interactive Entertainment（前属SIE Japan Studio，2021年独立为PlayStation Studios旗下工作室）",
+      "description": "Team Asobi源自SIE Japan Studio内部的Asobi!团队，由Nicolas Doucet于2012年组建，2021年日本工作室重组后独立为索尼第一方工作室。以机器人吉祥物Astro系列和展示PlayStation硬件特性的创意作品著称，2024年《宇宙机器人》一举夺得年度游戏。",
+      "other_games": [
+        {"title": "The PlayRoom", "title_zh": "游戏间", "year": 2013, "genre": "增强现实 / 硬件展示", "rating": 73, "rating_source": "Metacritic", "note": "PS4首发预装演示，展示DualShock 4与PlayStation Camera玩法，首次引入机器人角色A5081。"},
+        {"title": "The PlayRoom VR", "title_zh": "游戏间VR", "year": 2016, "genre": "虚拟现实 / 合家欢", "rating": 76, "rating_source": "Metacritic", "note": "随PS VR推出的合集式演示，展示虚拟现实体验。"},
+        {"title": "Astro Bot Rescue Mission", "title_zh": "宇宙机器人：搜救行动", "year": 2018, "genre": "VR平台跳跃", "rating": 90, "rating_source": "Metacritic", "note": "PS VR平台跳跃佳作，首次以Astro为主角的完整冒险，奠定系列基调。"},
+        {"title": "Astro's Playroom", "title_zh": "宇宙机器人：游戏间", "year": 2020, "genre": "平台跳跃", "rating": 83, "rating_source": "Metacritic", "note": "PS5免费预装 launch 作品，充分展示DualSense触觉反馈，因好评使团队免于日本工作室裁撤。"}
+      ]
+    }
+  ],
+  "goty_games": [
+    {
+      "award_year": 2009, "title": "Uncharted 2: Among Thieves", "title_zh": "神秘海域2：纵横四海", "genre": "动作冒险", "developer_id": "studio_naughtydog", "developer": "Naughty Dog", "publisher": "Sony Computer Entertainment", "platforms": "PlayStation 3; PlayStation 4", "release_date": "2009-10-13", "player_rating": 96, "rating_source": "Metacritic",
+      "gameplay": "第三人称动作冒险，融合跑酷攀爬、掩体射击与近身格斗。玩家扮演宝藏猎人内森·德雷克，在尼泊尔、西藏与雨林中寻找香巴拉。关卡包含火车车厢战、雪山大本营等大型场景演出，节奏张弛有度。",
+      "unique_features": "以「电影化叙事」著称，过场与游玩无缝衔接。首次在PS3上实现大规模动态载具关卡（如行驶中的火车）。角色对白与表演捕捉充满魅力，配角塑造尤为出彩。",
+      "drawbacks": "部分攀爬路线提示不足，易迷路。多人模式已于2019年停服。个别解谜节奏略显拖沓。",
+      "awards": "BAFTA最佳动作游戏; D.I.C.E.年度游戏; Game Developers Choice Awards年度游戏; Spike VGA年度游戏; IGN年度游戏",
+      "influence": "确立了「电影化游戏」的行业标准，深刻影响了《地平线》《战神2018》等作品。推动了表演捕捉在叙事游戏中的普及。被视为PS3时代最具代表性的独占大作之一，常被列为史上最佳游戏。",
+      "description": "顽皮狗出品的电影化动作冒险巅峰之作，以行云流水的叙事与关卡设计被誉为史上最佳续作之一。"
+    },
+    {
+      "award_year": 2020, "title": "The Last of Us Part II", "title_zh": "最后生还者 第二部", "genre": "动作冒险 / 生存恐怖", "developer_id": "studio_naughtydog", "developer": "Naughty Dog", "publisher": "Sony Interactive Entertainment", "platforms": "PlayStation 4; PlayStation 5", "release_date": "2020-06-19", "player_rating": 93, "rating_source": "Metacritic",
+      "gameplay": "第三人称生存动作游戏，强调潜行、资源管理与近战对抗。玩家交替操控艾莉与艾比两位主角推进双线叙事。玩法在前作基础上强化了战斗手感、可探索区域与敌人AI。",
+      "unique_features": "双向叙事结构让玩家体验对立双方视角，挑战传统英雄叙事。业界顶尖的表演捕捉与音频设计（含大量无障碍创新）。对暴力循环与复仇主题的严肃探讨。",
+      "drawbacks": "叙事结构与角色安排引发玩家两极分化与争议。流程偏长（约25-30小时），部分玩家认为后段节奏放缓。部分玩家对剧情走向表达强烈不满。",
+      "awards": "The Game Awards年度游戏; Golden Joystick年度游戏; D.I.C.E.年度游戏; BAFTA最佳叙事; 最佳表演(Laura Bailey)",
+      "influence": "将3A叙事游戏的情感表达与制作水准推向新高度。其无障碍设计（高对比度、听觉辅助等）成为行业标杆。引发关于游戏叙事伦理与玩家期待权的广泛讨论。",
+      "description": "顽皮狗以双线叙事探讨复仇与和解的生存动作神作，在技术与叙事上均树立了新的行业标杆。"
+    },
+    {
+      "award_year": 2018, "title": "God of War", "title_zh": "战神（2018）", "genre": "动作冒险", "developer_id": "studio_santamonica", "developer": "Santa Monica Studio", "publisher": "Sony Interactive Entertainment", "platforms": "PlayStation 4; PlayStation 5; Microsoft Windows", "release_date": "2018-04-20", "player_rating": 94, "rating_source": "Metacritic",
+      "gameplay": "第三人称越肩视角，融合砍杀、解谜与探索。玩家操控奎托斯与儿子阿特柔斯在北欧九界展开旅程。战斗以利维坦之斧为核心，强调时机、连招与投斧召回。",
+      "unique_features": "将系列从希腊神话转向北欧神话并「软重启」。采用一镜到底的伪长镜头叙事，营造沉浸感。父子关系的情感刻画取代单纯暴力爽快，叙事深度显著提升。",
+      "drawbacks": "支线探索相对线性，开放度有限。个别解谜重复度较高。前期节奏较慢，需一定时间进入高潮。",
+      "awards": "The Game Awards年度游戏; BAFTA最佳游戏; D.I.C.E.年度游戏; Game Developers Choice Awards年度游戏; IGN年度游戏",
+      "influence": "重新定义了经典动作系列，证明「软重启+叙事驱动」可获巨大成功。影响了后续索尼第一方作品对角色深度的重视。被视为PS4时代标杆独占，并被玩家票选为IGN史上最佳游戏。",
+      "description": "圣莫尼卡工作室将战神系列北欧化的软重启之作，以父子之情与一战斧重塑动作冒险标杆。"
+    },
+    {
+      "award_year": 2024, "title": "Astro Bot", "title_zh": "宇宙机器人", "genre": "3D平台跳跃", "developer_id": "studio_asobi", "developer": "Team Asobi", "publisher": "Sony Interactive Entertainment", "platforms": "PlayStation 5", "release_date": "2024-09-06", "player_rating": 94, "rating_source": "Metacritic",
+      "gameplay": "3D平台跳跃游戏，操控机器人Astro跳跃、悬停、拳击与旋转攻击。包含大量创意关卡、Boss战与隐藏收集。充分运用DualSense手柄的触觉反馈与自适应扳机。",
+      "unique_features": "被誉为「PlayStation三十周年活的博物馆」，收录大量经典索尼角色彩蛋。将DualSense特性发挥到极致，关卡设计充满巧思。手感与创意达到系列巅峰，是年度评分最高新作。",
+      "drawbacks": "体量相对传统3A较小，流程约12-15小时。部分隐藏收集较为硬核。无中文语音（但支持简繁中文界面与字幕）。",
+      "awards": "The Game Awards年度游戏; D.I.C.E.年度游戏; 金摇杆年度游戏; BAFTA最佳家庭游戏",
+      "influence": "成为史上获奖最多的平台游戏（累计超百项年度游戏提名与获奖）。重振了PlayStation第一方吉祥物IP。证明精致中型独占同样可夺得年度游戏，鼓舞了行业对平台游戏类型的信心。",
+      "description": "Team Asobi打造的3D平台跳跃神作，以极致手感与DualSense创意致敬PlayStation三十周年。"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "studios": [
+    {
+      "id": "studio_fromsoftware",
+      "name": "FromSoftware",
+      "name_zh": "FromSoftware（フロムソフトウェア）",
+      "founded": 1986,
+      "country": "日本",
+      "hq": "东京都涩谷区",
+      "parent": "角川集团（KADOKAWA；腾讯与索尼参股）",
+      "description": "FromSoftware 是一家总部位于日本东京的游戏开发与发行公司，成立于1986年，最初从事商业应用软件，1994年随 PlayStation 发售转型游戏领域。公司以高难度战斗、非线性叙事与箱庭地图设计著称，开创了“魂系（Soulslike）”这一影响深远的游戏类型，是《艾尔登法环》与《只狼》等年度最佳游戏的缔造者。",
+      "other_games": [
+        {"title": "Demon's Souls", "title_zh": "恶魔之魂", "year": 2009, "genre": "动作角色扮演", "rating": 89, "rating_source": "Metacritic", "note": "魂系游戏的鼻祖，以极具压迫感的高难度与精巧箱庭关卡奠定了系列基调。"},
+        {"title": "Dark Souls", "title_zh": "黑暗之魂", "year": 2011, "genre": "动作角色扮演", "rating": 89, "rating_source": "Metacritic", "note": "以互联世界设计与“传火”世界观确立魂系标杆，被广泛视为最具影响力的硬核动作RPG之一。"},
+        {"title": "Dark Souls II", "title_zh": "黑暗之魂II", "year": 2014, "genre": "动作角色扮演", "rating": 91, "rating_source": "Metacritic", "note": "引入即时快速旅行与更自由的职业构建，后续《原罪学者》版本进一步完善体验。"},
+        {"title": "Bloodborne", "title_zh": "血源诅咒", "year": 2015, "genre": "动作角色扮演", "rating": 92, "rating_source": "Metacritic", "note": "融合克苏鲁式哥特美学与更快更激进的战斗，是魂系外极具个性的衍生杰作。"},
+        {"title": "Dark Souls III", "title_zh": "黑暗之魂III", "year": 2016, "genre": "动作角色扮演", "rating": 89, "rating_source": "Metacritic", "note": "三部曲收官之作，节奏更快、boss战华丽，为黑暗之魂系列画下句点。"},
+        {"title": "Armored Core VI: Fires of Rubicon", "title_zh": "装甲核心VI 境界天火", "year": 2023, "genre": "机甲动作", "rating": 86, "rating_source": "Metacritic", "note": "时隔十年重启的机甲组装对战作品，将魂系的战斗手感融入拼装与策略。"}
+      ]
+    },
+    {
+      "id": "studio_nintendoepd",
+      "name": "Nintendo EPD",
+      "name_zh": "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
+      "founded": 2015,
+      "country": "日本",
+      "hq": "京都府京都市",
+      "parent": "任天堂（Nintendo）",
+      "description": "Nintendo EPD 是任天堂最大的第一方游戏开发部门，于2015年9月由原有的 EAD（娱乐分析与开发）与 SPD（软件企划与开发）合并而成。该本部负责《塞尔达传说》《超级马里奥》《动物森友会》等核心第一方 IP，是任天堂创新玩法与高品质制作的中坚力量。",
+      "other_games": [
+        {"title": "Super Mario Odyssey", "title_zh": "超级马里奥：奥德赛", "year": 2017, "genre": "3D平台", "rating": 97, "rating_source": "Metacritic", "note": "以“捕捉帽”凯皮为核心的沙盒式3D马里奥，自由度与创意获极高评价。"},
+        {"title": "Animal Crossing: New Horizons", "title_zh": "集合啦！动物森友会", "year": 2020, "genre": "生活模拟", "rating": 90, "rating_source": "Metacritic", "note": "无人岛经营与社交模拟，凭借治愈节奏成为现象级合家欢作品。"},
+        {"title": "Splatoon 2", "title_zh": "喷射战士2", "year": 2017, "genre": "第三人称射击", "note": "以“涂地”为目标的四人团队射击游戏，融合潮流美术与强社交性。"},
+        {"title": "The Legend of Zelda: Tears of the Kingdom", "title_zh": "塞尔达传说：王国之泪", "year": 2023, "genre": "开放世界动作冒险", "rating": 96, "rating_source": "Metacritic", "note": "《旷野之息》的续作，新增“究极手”“余料建造”等系统，将物理沙盒推向新高度。"},
+        {"title": "Super Mario Bros. Wonder", "title_zh": "超级马里奥兄弟：惊奇", "year": 2023, "genre": "横向卷轴平台", "rating": 92, "rating_source": "Metacritic", "note": "2D马里奥的革新之作，以“惊奇花”带来千变万化的关卡演出与手感。"},
+        {"title": "Metroid Dread", "title_zh": "密特罗德：生存恐惧", "year": 2021, "genre": "银河恶魔城/动作冒险", "rating": 88, "rating_source": "Metacritic", "note": "时隔多年的2D密特罗德正统续作，以 E.M.M.I. 追击营造紧张探索体验。"}
+      ]
+    },
+    {
+      "id": "studio_blizzard",
+      "name": "Blizzard Entertainment",
+      "name_zh": "暴雪娱乐",
+      "founded": 1991,
+      "country": "美国",
+      "hq": "加利福尼亚州尔湾（Irvine, California）",
+      "parent": "微软（Microsoft；经动视暴雪 Activision Blizzard）",
+      "description": "暴雪娱乐成立于1991年（原名 Silicon & Synapse），总部位于美国加州尔湾，是享誉全球的PC与主机游戏开发商与发行商。公司以《魔兽世界》《暗黑破坏神》《星际争霸》《守望先锋》等长寿IP著称，2023年随动视暴雪被微软收购，现属微软游戏部门。",
+      "other_games": [
+        {"title": "Diablo II", "title_zh": "暗黑破坏神II", "year": 2000, "genre": "动作角色扮演（ARPG）", "rating": 89, "rating_source": "Metacritic", "note": "暗黑系列里程碑，以随机掉落、职业构建与阴郁哥特氛围定义ARPG范式。"},
+        {"title": "StarCraft", "title_zh": "星际争霸", "year": 1998, "genre": "即时战略（RTS）", "rating": 88, "rating_source": "Metacritic", "note": "三大种族平衡的科幻RTS，曾长期主导电子竞技与韩国职业联赛。"},
+        {"title": "World of Warcraft", "title_zh": "魔兽世界", "year": 2004, "genre": "大型多人在线角色扮演（MMORPG）", "rating": 91, "rating_source": "Metacritic", "note": "史上最具影响力的MMORPG，以庞大世界观与持续运营塑造在线游戏标杆。"},
+        {"title": "Diablo III", "title_zh": "暗黑破坏神III", "year": 2012, "genre": "动作角色扮演（ARPG）", "rating": 88, "rating_source": "Metacritic", "note": "强化爽快连击与拍卖行系统，后续《死神之镰》资料片大幅改善体验。"},
+        {"title": "Hearthstone", "title_zh": "炉石传说", "year": 2014, "genre": "数字卡牌", "rating": 88, "rating_source": "Metacritic", "note": "基于魔兽IP的免费数字卡牌游戏，以低门槛与强策略性风靡全球。"},
+        {"title": "Diablo IV", "title_zh": "暗黑破坏神IV", "year": 2023, "genre": "动作角色扮演（ARPG）", "rating": 86, "rating_source": "Metacritic", "note": "回归暗黑黑暗写实基调，引入开放世界与赛季制持续运营内容。"},
+        {"title": "Overwatch 2", "title_zh": "守望先锋2", "year": 2022, "genre": "第一人称英雄射击", "rating": 79, "rating_source": "Metacritic", "note": "前作的免费续作，转向5v5与赛季更新，但因内容节奏引发争议。"}
+      ]
+    }
+  ],
+  "goty_games": [
+    {
+      "award_year": 2019, "title": "Sekiro: Shadows Die Twice", "title_zh": "只狼：影逝二度", "genre": "动作冒险", "developer_id": "studio_fromsoftware", "developer": "FromSoftware", "publisher": "Activision（动视；日本由 FromSoftware 发行）", "platforms": "PC; PlayStation 4; Xbox One", "release_date": "2019-03-22", "player_rating": 91, "rating_source": "Metacritic",
+      "gameplay": "游戏以日本战国末期为背景，玩家扮演独臂忍者“狼”，使用武士刀与义肢道具在近身战斗中周旋。核心机制为“架势（Posture）”与“忍杀”，需通过精准格挡与攻击瓦解敌人架势方可一击必杀。探索采用半开放关卡，潜行、钩绳移动与回复道具构成多样的攻略路线。",
+      "unique_features": "本作舍弃了系列传统的角色养成与装备数值，改为强调招式时机与防守反击的纯动作体验。义肢“忍具”提供吹火筒、铁伞、爆竹等多样化战术选择。死亡后可通过“龙咳”以牺牲NPC或自身回生，形成独特的死亡惩罚与叙事张力。",
+      "drawbacks": "极高的节奏要求与严苛的boss战令新手玩家容易受挫；部分敌人配置与检索式探索被批评为引导不足。",
+      "awards": "The Game Awards 2019 年度最佳游戏; 金摇杆奖 2019 年度最佳游戏; D.I.C.E. 年度冒险游戏; 日本游戏大奖 2019 年度作品",
+      "influence": "《只狼》以“精确剑戟”重新定义了硬核动作游戏，证明从RPG数值中抽离的纯技巧战斗同样能获得年度最佳。其架势系统与格挡手感深刻影响了后续动作游戏与类魂作品的设计思路。宫崎英高由此成为少数连续多部作品斩获GOTY的导演之一。",
+      "description": "FromSoftware 打造的战国忍者动作杰作，以精准格挡与忍杀机制树立硬核近战新标杆。"
+    },
+    {
+      "award_year": 2022, "title": "Elden Ring", "title_zh": "艾尔登法环", "genre": "开放世界动作角色扮演", "developer_id": "studio_fromsoftware", "developer": "FromSoftware", "publisher": "Bandai Namco Entertainment（万代南梦宫）", "platforms": "PC; PlayStation 4; PlayStation 5; Xbox One; Xbox Series X/S", "release_date": "2022-02-25", "player_rating": 96, "rating_source": "Metacritic",
+      "gameplay": "玩家扮为“褪色者”，在破碎的“交界地”中骑马（托雷特）探索广袤开放世界，自由挑战要塞、地下墓地与半神boss。战斗延续魂系的高风险近战与法术配比，并加入跳跃、闪避与坐骑机动，使立体战斗更富变化。通过升级、骨灰召唤与联机协作降低难度门槛，鼓励从失败中学习。",
+      "unique_features": "本作与《冰与火之歌》作者乔治·R·R·马丁共同构建宏大神话背景，再以宫崎英高的碎片化叙事呈现。无缝开放世界融合箱庭式地下城，几乎不留任务指引，强调玩家自发的探索与发现。动态天气、日夜与多样生物群落让交界地充满未知与惊喜。",
+      "drawbacks": "部分后期区域存在重复刷怪与数值膨胀问题；PC版首发优化与掉帧、闪退饱受批评。",
+      "awards": "The Game Awards 2022 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度游戏; BAFTA 最佳游戏; 金摇杆奖 年度最佳游戏",
+      "influence": "《艾尔登法环》将魂系难度与开放世界探索成功融合，成为2020年代最具代表性的游戏之一，全球销量超3000万份。它重新点燃业界对“开放世界+高难度”设计的热情，并推动大量类魂开放世界项目立项。其资料片《黄金树之影》更成为首款入围TGA年度最佳的DLC。",
+      "description": "FromSoftware 与乔治·R·R·马丁联袂打造的开放世界魂系史诗，被誉为定义世代的巨作。"
+    },
+    {
+      "award_year": 2017, "title": "The Legend of Zelda: Breath of the Wild", "title_zh": "塞尔达传说：旷野之息", "genre": "开放世界动作冒险", "developer_id": "studio_nintendoepd", "developer": "Nintendo EPD", "publisher": "Nintendo（任天堂）", "platforms": "Nintendo Switch; Wii U", "release_date": "2017-03-03", "player_rating": 97, "rating_source": "Metacritic",
+      "gameplay": "林克从百年沉睡中苏醒，可在海拉鲁大陆自由攀爬、滑翔、烹饪与战斗，几乎没有强制的任务顺序。物理与化学引擎让火、电、风、金属等材料互相作用，玩家以环境为工具解谜。武器耐久、耐力条与气候系统要求玩家持续管理资源与路线。",
+      "unique_features": "任天堂称其为“开放空气（open-air）”而非传统开放世界，刻意减少地图图标，强调以瞭望塔远眺后自行抉择路径。约900个克洛格种子与120座神庙以低密度奖励维持探索欲望。碎片化记忆叙事赋予开放探索以情感主线。",
+      "drawbacks": "武器耐久机制争议较大，部分玩家认为频繁换刀打断了战斗沉浸；画面在掌机模式下的分辨率与帧率有限。",
+      "awards": "The Game Awards 2017 年度最佳游戏; 金摇杆奖 2017 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度最佳游戏",
+      "influence": "《旷野之息》以“好奇心驱动的探索”重写了开放世界设计语言，直接影响了其后大量3A作品的爬墙、环境叙事与沙盒机制。它被视为Switch平台的奠基之作，全球销量逾3300万份。其续作《王国之泪》进一步将物理沙盒推向极致。",
+      "description": "任天堂重新定义开放世界范式的塞尔达神作，以自由探索与物理沙盒树立行业标杆。"
+    },
+    {
+      "award_year": 2016, "title": "Overwatch", "title_zh": "守望先锋", "genre": "第一人称英雄射击", "developer_id": "studio_blizzard", "developer": "Blizzard Entertainment", "publisher": "Blizzard Entertainment（暴雪娱乐）", "platforms": "PC; PlayStation 4; Xbox One; Nintendo Switch", "release_date": "2016-05-24", "player_rating": 91, "rating_source": "Metacritic",
+      "gameplay": "玩家在6v6团队对战中从数十名技能各异的英雄中选取，分为输出、坦克与支援三大定位，强调职业配合而非纯枪法。地图围绕“占领据点”“护送运载目标”等模式展开，技能与终极技的组合决定团战胜负。快节奏移动与多样化英雄让上手门槛相对亲民。",
+      "unique_features": "本作以鲜明卡通美术与多元文化英雄阵容塑造强烈辨识度，每名英雄都有独立背景故事与短视频动画。强调“正面沟通、友善社区”的官方理念，配合赛季与竞技排位形成长线运营。其“英雄射击”品类由此成为主流电竞项目。",
+      "drawbacks": "首发后内容更新节奏偏慢，平衡性调整与开箱随机道具曾引发争议；部分玩家批评后期缺乏足够的新地图与模式。",
+      "awards": "The Game Awards 2016 年度最佳游戏; 金摇杆奖 2016 年度最佳游戏; D.I.C.E. 年度游戏; 游戏开发者选择奖 年度游戏",
+      "influence": "《守望先锋》将“英雄射击”从小众推向全球电竞主流，并凭借多彩角色与叙事化运营重塑了射击游戏的表达方式。它奠定了暴雪在多人服务型游戏上的新方向，并催生续作《守望先锋2》。其社区与赛事文化对后续团队射击产品影响深远。",
+      "description": "暴雪打造的多元英雄团队射击游戏，以鲜明角色与团队配合开创英雄射击新时代。"
+    }
+  ]
+}

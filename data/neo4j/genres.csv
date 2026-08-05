@@ -1,0 +1,54 @@
+genre_id:ID(Genre),name:string
+genre_001,开放世界动作角色扮演
+genre_002,开放世界动作冒险
+genre_003,开放世界西部动作冒险
+genre_004,第一人称射击
+genre_005,动作冒险
+genre_006,动作冒险 / 生存恐怖
+genre_007,3D平台跳跃
+genre_008,合作冒险
+genre_009,角色扮演
+genre_010,开放世界角色扮演
+genre_011,角色扮演（CRPG）
+genre_012,冒险 / 互动电影
+genre_013,回合制角色扮演（含即时元素）
+genre_014,第一人称英雄射击
+genre_015,动作角色扮演
+genre_016,多人在线角色扮演
+genre_017,太空角色扮演
+genre_018,模拟经营
+genre_019,西部动作冒险
+genre_020,动作冒险/侦探
+genre_021,第三人称射击
+genre_022,第一人称射击RPG
+genre_023,战术射击
+genre_024,策略RPG
+genre_025,平台跳跃
+genre_026,卡丁车竞速
+genre_027,平台动作
+genre_028,未来竞速
+genre_029,增强现实 / 硬件展示
+genre_030,虚拟现实 / 合家欢
+genre_031,VR平台跳跃
+genre_032,解谜冒险
+genre_033,合作动作冒险
+genre_034,科幻角色扮演
+genre_035,在线动作角色扮演
+genre_036,卡牌角色扮演
+genre_037,卡牌对战
+genre_038,开放世界角色扮演（资料片）
+genre_039,策略/角色扮演
+genre_040,战术角色扮演
+genre_041,冒险
+genre_042,冒险/互动电影
+genre_043,冒险/喜剧
+genre_044,冒险/家庭
+genre_045,机甲动作
+genre_046,3D平台
+genre_047,生活模拟
+genre_048,横向卷轴平台
+genre_049,银河恶魔城/动作冒险
+genre_050,动作角色扮演（ARPG）
+genre_051,即时战略（RTS）
+genre_052,大型多人在线角色扮演（MMORPG）
+genre_053,数字卡牌

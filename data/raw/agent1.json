@@ -1,0 +1,116 @@
+{
+  "studios": [
+    {
+      "id": "studio_bethesda",
+      "name": "Bethesda Game Studios",
+      "name_zh": "贝塞斯达游戏工作室",
+      "founded": 2001,
+      "country": "美国",
+      "hq": "马里兰州罗克维尔（Rockville, Maryland）",
+      "parent": "Bethesda Softworks",
+      "description": "美国游戏开发商，2001 年从贝塞斯达软件的开发部门分拆成立，总部位于马里兰州罗克维尔。以《上古卷轴》《辐射》《星空》等大型开放世界单人 RPG 闻名，由托德·霍华德领衔；2021 年起随 ZeniMax Media 被微软收购。",
+      "other_games": [
+        {"title": "Fallout 3", "title_zh": "辐射3", "year": 2008, "genre": "动作角色扮演", "rating": 93, "rating_source": "Metacritic", "note": "贝塞斯达接手辐射系列的首部作品，将废土 RPG 带入 3D 开放世界。"},
+        {"title": "Fallout 4", "title_zh": "辐射4", "year": 2015, "genre": "动作角色扮演", "rating": 87, "rating_source": "Metacritic", "note": "加入据点建造、武器改造与同伴系统，争议与好评并存。"},
+        {"title": "Fallout 76", "title_zh": "辐射76", "year": 2018, "genre": "多人在线角色扮演", "rating": 52, "rating_source": "Metacritic", "note": "系列首款纯在线多人作品，首发口碑与运营问题较多。"},
+        {"title": "Starfield", "title_zh": "星空", "year": 2023, "genre": "太空角色扮演", "rating": 83, "rating_source": "Metacritic", "note": "贝塞斯达 25 年来首个全新 IP，以星际探索与飞船建造为题材。"},
+        {"title": "Fallout Shelter", "title_zh": "辐射：避难所", "year": 2015, "genre": "模拟经营", "note": "移动端避难所经营游戏，全球下载量破亿。"},
+        {"title": "The Elder Scrolls: Blades", "title_zh": "上古卷轴：刀锋", "year": 2019, "genre": "角色扮演", "note": "面向移动端的《上古卷轴》衍生作品，含城镇建造要素。"}
+      ]
+    },
+    {
+      "id": "studio_rockstar",
+      "name": "Rockstar Games",
+      "name_zh": "Rockstar 游戏",
+      "founded": 1998,
+      "country": "美国",
+      "hq": "纽约市（New York City）",
+      "parent": "Take-Two Interactive",
+      "description": "美国游戏发行与开发商，1998 年 12 月作为 Take-Two Interactive 的高端子品牌于纽约成立。以《侠盗猎车手》《荒野大镖客》等开放世界动作冒险游戏闻名；旗下设有多家内部工作室，包括 Rockstar North（爱丁堡）与 Rockstar San Diego 等。",
+      "other_games": [
+        {"title": "Grand Theft Auto III", "title_zh": "侠盗猎车手III", "year": 2001, "genre": "动作冒险", "rating": 97, "rating_source": "Metacritic", "note": "将系列带入全 3D 开放世界，被视为现代开放世界游戏的奠基之作。"},
+        {"title": "Grand Theft Auto: Vice City", "title_zh": "侠盗猎车手：罪恶都市", "year": 2002, "genre": "动作冒险", "rating": 95, "rating_source": "Metacritic", "note": "以 1980 年代迈阿密为蓝本，配乐与氛围广受赞誉。"},
+        {"title": "Grand Theft Auto: San Andreas", "title_zh": "侠盗猎车手：圣安地列斯", "year": 2004, "genre": "动作冒险", "rating": 95, "rating_source": "Metacritic", "note": "系列野心最大的 PS2 时代作品，含饮食、健身等大量 RPG 要素。"},
+        {"title": "Red Dead Revolver", "title_zh": "荒野大镖客：左轮", "year": 2004, "genre": "西部动作冒险", "rating": 73, "rating_source": "Metacritic", "note": "荒野大镖客系列首作，由 Capcom 转手 Rockstar San Diego 完成开发。"},
+        {"title": "Bully", "title_zh": "恶霸鲁尼", "year": 2006, "genre": "动作冒险", "rating": 87, "rating_source": "Metacritic", "note": "以寄宿学校为背景的校园题材开放世界游戏，争议与好评并存。"},
+        {"title": "L.A. Noire", "title_zh": "黑色洛城", "year": 2011, "genre": "动作冒险/侦探", "rating": 89, "rating_source": "Metacritic", "note": "以 1940 年代洛杉矶为舞台，引入面部表情审讯系统。"},
+        {"title": "Max Payne 3", "title_zh": "马克思·佩恩3", "year": 2012, "genre": "第三人称射击", "rating": 87, "rating_source": "Metacritic", "note": "由 Rockstar Studios 开发的硬派黑色风格射击游戏。"},
+        {"title": "Red Dead Redemption 2", "title_zh": "荒野大镖客：救赎2", "year": 2018, "genre": "动作冒险", "rating": 97, "rating_source": "Metacritic", "note": "《荒野大镖客：救赎》前传，以极致细节与叙事获广泛赞誉。"}
+      ]
+    },
+    {
+      "id": "studio_irrational",
+      "name": "Irrational Games",
+      "name_zh": "非理性游戏",
+      "founded": 1997,
+      "country": "美国",
+      "hq": "马萨诸塞州（Westwood / Quincy）",
+      "parent": "2K（Take-Two Interactive）",
+      "description": "美国游戏开发商，1997 年由肯·列文等三名前 Looking Glass Studios 员工创立。《生化奇兵》系列开发商，作品由 2K Games 发行；2014 年大幅重组，2017 年更名为 Ghost Story Games。",
+      "other_games": [
+        {"title": "System Shock 2", "title_zh": "网络奇兵2", "year": 1999, "genre": "第一人称射击RPG", "rating": 92, "rating_source": "Metacritic", "note": "与 Looking Glass 合作的科幻生存射击 RPG，影响深远。"},
+        {"title": "BioShock Infinite", "title_zh": "生化奇兵：无限", "year": 2013, "genre": "第一人称射击", "rating": 94, "rating_source": "Metacritic", "note": "以空中之城哥伦比亚为舞台，叙事与结局引发热烈讨论。"},
+        {"title": "SWAT 4", "title_zh": "霹雳小组4", "year": 2005, "genre": "战术射击", "rating": 85, "rating_source": "Metacritic", "note": "强调非致命制服与真实警察程序的战术 FPS。"},
+        {"title": "Freedom Force", "title_zh": "自由力量", "year": 2002, "genre": "策略RPG", "note": "超级英雄题材的回合制战术 RPG。"},
+        {"title": "Tribes: Vengeance", "title_zh": "部落：复仇", "year": 2004, "genre": "第一人称射击", "rating": 77, "rating_source": "Metacritic", "note": "为 Tribes 系列打造单人战役的科幻 FPS。"},
+        {"title": "Freedom Force vs. The Third Reich", "title_zh": "自由力量：对抗第三帝国", "year": 2005, "genre": "策略RPG", "note": "自由力量续作，加入二战题材与全新英雄。"}
+      ]
+    }
+  ],
+  "goty_games": [
+    {
+      "award_year": 2006, "title": "The Elder Scrolls IV: Oblivion", "title_zh": "上古卷轴IV：湮没", "genre": "开放世界动作角色扮演", "developer_id": "studio_bethesda", "developer": "Bethesda Game Studios", "publisher": "Bethesda Softworks / 2K Games", "platforms": "PC;Xbox 360;PS3", "release_date": "2006-03-20", "player_rating": 94, "rating_source": "Metacritic",
+      "gameplay": "玩家以第一或第三人称在泰姆瑞尔大陆的赛洛迪尔省自由探索，通过提升主要技能升级角色。游戏继承了上古卷轴系列无缝开放的玩法，并新增任务追踪与日志系统。Radiant AI 让 NPC 拥有自主作息与社交行为。",
+      "unique_features": "引入创新的 Radiant AI 系统，使 NPC 能自主决定作息、对话与行动。庞大的支线任务与可阅读书籍构建出深厚的世界观。资料片《战栗孤岛》进一步扩展内容。",
+      "drawbacks": "画面在当年已显疲态，部分任务引导不够清晰。敌人等级随玩家缩放的设计导致难度失衡。",
+      "awards": "2006 年多项年度游戏（斯派克奖、GameSpot 等）;Metacritic 94 分普遍好评;GDC 等多项技术/设计提名",
+      "influence": "确立了贝塞斯达以 Radiant AI 与无缝开放世界为核心的 RPG 设计范式。为后续《天际》奠定技术与叙事基础。是 21 世纪早期开放世界 RPG 的标杆之一。",
+      "description": "贝塞斯达打造的奇幻开放世界 RPG，以 Radiant AI 与庞大自由度为特色的系列第四代作品。"
+    },
+    {
+      "award_year": 2011, "title": "The Elder Scrolls V: Skyrim", "title_zh": "上古卷轴V：天际", "genre": "开放世界动作角色扮演", "developer_id": "studio_bethesda", "developer": "Bethesda Game Studios", "publisher": "Bethesda Softworks", "platforms": "PC;Xbox 360;PS3", "release_date": "2011-11-11", "player_rating": 94, "rating_source": "Metacritic",
+      "gameplay": "玩家扮演龙裔（Dragonborn），在诺德行省天际省自由探索、屠龙并提升技能。采用改进后的 Creation Engine，支持第一/第三人称切换与丰富的锻造、附魔系统。阵营任务与支线极大拓展了可玩性。",
+      "unique_features": "为几乎每个 NPC 赋予独立姓名与身份，强化沉浸感；世界状态具有高度物理持续性。巨龙战斗与声望技能系统成为系列标志。活跃的 Mod 社区极大延长了游戏寿命。",
+      "drawbacks": "早期版本 bugs 较多，部分任务触发条件不清晰。战斗手感与人物动画在当年评价两极。",
+      "awards": "2011 年度游戏（金摇杆奖、斯派克奖、IGN 等）;Metacritic 94 分;BAFTA 等多项大奖",
+      "influence": "成为开放世界 RPG 与沉浸式叙事的行业标杆，至今仍被频繁重制与移植。其 Mod 生态深刻影响了后续 Bethesda 作品与社区文化。推动了奇幻题材在主机市场的普及。",
+      "description": "贝塞斯达的奇幻开放世界 RPG 巅峰之作，玩家以龙裔身份在冰天雪地的天际省屠龙冒险。"
+    },
+    {
+      "award_year": 2008, "title": "Grand Theft Auto IV", "title_zh": "侠盗猎车手IV", "genre": "开放世界动作冒险", "developer_id": "studio_rockstar", "developer": "Rockstar Games（Rockstar North 开发）", "publisher": "Rockstar Games", "platforms": "PS3;Xbox 360;PC", "release_date": "2008-04-29", "player_rating": 98, "rating_source": "Metacritic",
+      "gameplay": "玩家操控东欧移民尼科·贝里克在虚构的自由城（影射纽约）中完成黑帮任务与自由探索。采用 RAGE 引擎与 Euphoria 程序化物理，驾驶与格斗更趋写实。包含最多 32 人的在线多人模式。",
+      "unique_features": "Metacritic 双 98 分，与《塞尔达：时之笛》并列历史最高分之一。Euphoria 物理引擎带来真实倒地碰撞反馈。资料片《失落与诅咒》《夜生活之曲》构成多线交叉叙事。",
+      "drawbacks": "PC 版首发优化糟糕，后期需手动配置画质。主线后半段任务重复感明显；2014 年后多人服务器关闭。",
+      "awards": "2008 年度游戏（斯派克奖、时代周刊、纽约时报等）;Metacritic 98 分;BAFTA 7 项提名",
+      "influence": "开启 GTA 系列的『HD 宇宙』，将叙事深度与写实物理推向新高度。对开放世界动作冒险的叙事与角色塑造影响深远。重定义了现代城市开放世界的沉浸标准。",
+      "description": "Rockstar North 开发的写实主义开放世界犯罪动作游戏，以自由城为舞台的系列革新之作。"
+    },
+    {
+      "award_year": 2013, "title": "Grand Theft Auto V", "title_zh": "侠盗猎车手V", "genre": "开放世界动作冒险", "developer_id": "studio_rockstar", "developer": "Rockstar Games（Rockstar North 开发）", "publisher": "Rockstar Games", "platforms": "PS3;Xbox 360;PC", "release_date": "2013-09-17", "player_rating": 97, "rating_source": "Metacritic",
+      "gameplay": "玩家可在三位主角迈克尔、富兰克林与崔佛间切换，于圣安地列斯州的洛圣都展开抢劫与犯罪。开放世界包含动态天气、海量支线与《GTA Online》多人模式。载具与射击系统较前作更顺滑。",
+      "unique_features": "首创三主角切换叙事机制，增强叙事层次。GTA Online 长期运营成为业界最成功的线上模式之一。Metacritic 97 分，首发三日销售额破 10 亿美元。",
+      "drawbacks": "后期重制版（如 PS5/XSX）评分下滑；叙事被部分评论认为弱于前作。线上模式微交易与工作室争议不断。",
+      "awards": "2013 年度游戏（金摇杆奖、BAFTA 英国游戏奖等）;Metacritic 97 分;多项技术/设计奖",
+      "influence": "成为史上销量第二高的电子游戏，树立了开放世界与线上服务的商业范本。三主角设计影响后续叙事游戏。其开发商 Rockstar 被视为开放世界黄金标准。",
+      "description": "Rockstar 的开放世界犯罪动作巨作，以三主角切换与洛圣都为舞台的系列新高峰。"
+    },
+    {
+      "award_year": 2010, "title": "Red Dead Redemption", "title_zh": "荒野大镖客：救赎", "genre": "开放世界西部动作冒险", "developer_id": "studio_rockstar", "developer": "Rockstar Games（Rockstar San Diego 开发）", "publisher": "Rockstar Games", "platforms": "PS3;Xbox 360", "release_date": "2010-05-18", "player_rating": 95, "rating_source": "Metacritic",
+      "gameplay": "玩家扮演前亡命徒约翰·马斯顿，在 1911 年美国西部与墨西哥边境自由探索、赏金追猎与决斗。采用第三人称视角，包含 Dead Eye 标记射击与丰富随机遭遇。多人模式支持合作与对抗。",
+      "unique_features": "以西部荒野的衰落为基调，营造出极具电影感的叙事与氛围。Metacritic 95 分，获 20 余家媒体满分。资料片《不死梦魇》以僵尸题材拓展世界。",
+      "drawbacks": "部分墨西哥章节任务节奏拖沓；后期移植版帧率与定价遭批评。相比续作，早期系统略显粗糙。",
+      "awards": "2010 年度游戏（斯派克奖、GDC 奖等）;Metacritic 95 分;BAFTA 等多项提名",
+      "influence": "将 Rockstar 的开放世界公式成功移植到西部题材，为《荒野大镖客2》铺路。其叙事深度与结局广受赞誉，提升了动作冒险游戏的艺术地位。",
+      "description": "Rockstar San Diego 开发的西部题材开放世界动作冒险游戏，讲述亡命徒寻求救赎的史诗。"
+    },
+    {
+      "award_year": 2007, "title": "BioShock", "title_zh": "生化奇兵", "genre": "第一人称射击", "developer_id": "studio_irrational", "developer": "Irrational Games（当时名 2K Boston）", "publisher": "2K Games", "platforms": "PC;Xbox 360;PS3", "release_date": "2007-08-21", "player_rating": 96, "rating_source": "Metacritic",
+      "gameplay": "玩家以第一人称在水下废城 Rapture 中探索，使用质粒（Plasmid）获得超能力与枪械战斗。通过散落的录音带（音频日记）逐步拼凑故事。道德选择影响结局走向。",
+      "unique_features": "将安·兰德式客观主义哲学融入反乌托邦叙事，主题深刻。环境叙事（音频日记、Big Daddy 与 Little Sister）密度极高。Metacritic 96 分，被誉为叙事驱动射击的里程碑。",
+      "drawbacks": "后期战斗与『救援 Little Sister』机制略显重复；部分解谜引导不足。主机版首发偶有技术问题。",
+      "awards": "2007 年度游戏（BAFTA 最佳游戏、斯派克奖、IGN 等）;Metacritic 96 分;AIAS 艺术指导/音效/剧本奖",
+      "influence": "重新定义了『叙事性射击游戏』，证明电子游戏可承载严肃哲学思辨。其环境叙事手法深刻影响了后续沉浸式模拟类游戏。被视为 21 世纪最具艺术野心的游戏之一。",
+      "description": "Irrational Games 开发的反乌托邦第一人称射击游戏，以海底城 Rapture 与哲学叙事著称。"
+    }
+  ]
+}

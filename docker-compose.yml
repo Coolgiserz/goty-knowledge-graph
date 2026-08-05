@@ -1,0 +1,62 @@
+# 一键启动：知识图谱网站 + 自动导入的 Neo4j 图谱库
+#   docker-compose up -d
+#   网站：     http://localhost:8080
+#   Neo4j：    http://localhost:7474  （用户名 neo4j / 密码 password123）
+# 停止：       docker-compose down
+# 清数据：     docker-compose down -v
+
+services:
+  web:
+    build: .
+    image: goty-knowledge-graph:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - neo4j
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5.23-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      # 本地演示用固定弱密码；生产环境请改为强密码或外部密钥管理
+      NEO4J_AUTH: "neo4j/password123"
+    volumes:
+      - ./data/csv:/import/csv:ro
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # Neo4j 健康检查通过后，自动执行 scripts/init.cypher 导入数据集
+  importer:
+    image: neo4j:5.23-community
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    volumes:
+      - ./data/csv:/import/csv:ro
+      - ./scripts/init.cypher:/init.cypher:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "importer: 等待 Neo4j Bolt 端口…"
+        for i in $(seq 1 60); do
+          if cypher-shell -a bolt://neo4j:7687 -u neo4j -p password123 "RETURN 1;" >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+        echo "importer: 执行 scripts/init.cypher …"
+        cypher-shell -a bolt://neo4j:7687 -u neo4j -p password123 -f /init.cypher
+        echo "importer: 导入完成 ✅"
+    restart: "no"
+
+volumes:
+  neo4j_data:
