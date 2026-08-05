@@ -25,9 +25,13 @@
     "description": "贝塞斯达打造的奇幻开放世界 RPG，以 Radiant AI 与庞大自由度为特色的系列第四代作品。",
     "body": "Spike VGA / VGX",
     "genres": [
-     "开放世界动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -57,9 +61,13 @@
     "description": "贝塞斯达的奇幻开放世界 RPG 巅峰之作，玩家以龙裔身份在冰天雪地的天际省屠龙冒险。",
     "body": "Spike VGA / VGX",
     "genres": [
-     "开放世界动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -89,10 +97,12 @@
     "description": "Rockstar North 开发的写实主义开放世界犯罪动作游戏，以自由城为舞台的系列革新之作。",
     "body": "Spike VGA / VGX",
     "genres": [
-     "开放世界动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -121,10 +131,12 @@
     "description": "Rockstar 的开放世界犯罪动作巨作，以三主角切换与洛圣都为舞台的系列新高峰。",
     "body": "Spike VGA / VGX",
     "genres": [
-     "开放世界动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -153,10 +165,13 @@
     "description": "Rockstar San Diego 开发的西部题材开放世界动作冒险游戏，讲述亡命徒寻求救赎的史诗。",
     "body": "Spike VGA / VGX",
     "genres": [
-     "西部动作冒险"
+     "西部动作冒险",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -347,10 +362,12 @@
     "description": "一款将婚姻关系隐喻化为奇幻冒险、机制每关焕然一新的纯双人合作神作。",
     "body": "The Game Awards",
     "genres": [
-     "合作冒险"
+     "合作冒险",
+     "多人合作"
     ],
     "tiers": [
-     "冒险"
+     "冒险",
+     "多人合作"
     ]
    }
   },
@@ -379,9 +396,11 @@
     "description": "BioWare打造的黑暗奇幻开放世界RPG巅峰，以宏大叙事与自由抉择赢得2014年度游戏。",
     "body": "The Game Awards",
     "genres": [
-     "角色扮演"
+     "角色扮演",
+     "开放世界"
     ],
     "tiers": [
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -411,9 +430,13 @@
     "description": "CD Projekt Red打造的波兰魔幻史诗，以无与伦比的开放世界与分支叙事夺得2015年度游戏。",
     "body": "The Game Awards",
     "genres": [
-     "开放世界角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -443,9 +466,11 @@
     "description": "一款基于龙与地下城规则的史诗级CRPG，以极致自由与叙事深度成为现代角色扮演游戏的里程碑。",
     "body": "The Game Awards",
     "genres": [
-     "CRPG"
+     "CRPG",
+     "多人合作"
     ],
     "tiers": [
+     "多人合作",
      "角色扮演"
     ]
    }
@@ -571,9 +596,13 @@
     "description": "FromSoftware 与乔治·R·R·马丁联袂打造的开放世界魂系史诗，被誉为定义世代的巨作。",
     "body": "The Game Awards",
     "genres": [
-     "开放世界动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -603,10 +632,12 @@
     "description": "任天堂重新定义开放世界范式的塞尔达神作，以自由探索与物理沙盒树立行业标杆。",
     "body": "The Game Awards",
     "genres": [
-     "开放世界动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -635,9 +666,13 @@
     "description": "暴雪打造的多元英雄团队射击游戏，以鲜明角色与团队配合开创英雄射击新时代。",
     "body": "The Game Awards",
     "genres": [
-     "英雄射击"
+     "英雄射击",
+     "在线",
+     "多人合作"
     ],
     "tiers": [
+     "在线",
+     "多人合作",
      "射击"
     ]
    }
@@ -667,9 +702,13 @@
     "description": "贝塞斯达接手辐射系列的首部作品，将废土 RPG 带入 3D 开放世界。",
     "body": "",
     "genres": [
-     "动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -699,9 +738,13 @@
     "description": "加入据点建造、武器改造与同伴系统，争议与好评并存。",
     "body": "",
     "genres": [
-     "动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -731,9 +774,13 @@
     "description": "系列首款纯在线多人作品，首发口碑与运营问题较多。",
     "body": "",
     "genres": [
-     "大型多人在线角色扮演"
+     "大型多人在线角色扮演",
+     "在线",
+     "开放世界"
     ],
     "tiers": [
+     "在线",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -763,9 +810,11 @@
     "description": "贝塞斯达 25 年来首个全新 IP，以星际探索与飞船建造为题材。",
     "body": "",
     "genres": [
-     "太空角色扮演"
+     "太空角色扮演",
+     "开放世界"
     ],
     "tiers": [
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -859,10 +908,12 @@
     "description": "将系列带入全 3D 开放世界，被视为现代开放世界游戏的奠基之作。",
     "body": "",
     "genres": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -891,10 +942,12 @@
     "description": "以 1980 年代迈阿密为蓝本，配乐与氛围广受赞誉。",
     "body": "",
     "genres": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -923,10 +976,12 @@
     "description": "系列野心最大的 PS2 时代作品，含饮食、健身等大量 RPG 要素。",
     "body": "",
     "genres": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -987,10 +1042,12 @@
     "description": "以寄宿学校为背景的校园题材开放世界游戏，争议与好评并存。",
     "body": "",
     "genres": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -1085,10 +1142,12 @@
     "description": "《荒野大镖客：救赎》前传，以极致细节与叙事获广泛赞誉。",
     "body": "",
     "genres": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -1117,10 +1176,12 @@
     "description": "与 Looking Glass 合作的科幻生存射击 RPG，影响深远。",
     "body": "",
     "genres": [
-     "第一人称射击RPG"
+     "第一人称射击",
+     "动作角色扮演"
     ],
     "tiers": [
-     "射击"
+     "射击",
+     "角色扮演"
     ]
    }
   },
@@ -1823,10 +1884,12 @@
     "description": "Josef Fares担任编剧与导演的成名作，以双角色单手柄协同操作讲述兄弟救父的温情旅程。",
     "body": "",
     "genres": [
-     "解谜冒险"
+     "解谜冒险",
+     "多人合作"
     ],
     "tiers": [
-     "冒险"
+     "冒险",
+     "多人合作"
     ]
    }
   },
@@ -1855,10 +1918,12 @@
     "description": "史上首款纯双人合作第三人称动作冒险游戏，讲述两名囚犯联手越狱逃亡的故事。",
     "body": "",
     "genres": [
-     "合作动作冒险"
+     "动作冒险",
+     "多人合作"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "多人合作"
     ]
    }
   },
@@ -1887,10 +1952,12 @@
     "description": "两位女作家被困于自己创作的故事中，在科幻与奇幻世界间穿梭合作，发售48小时即破百万销量并打破多项合作游戏纪录。",
     "body": "",
     "genres": [
-     "合作冒险"
+     "合作冒险",
+     "多人合作"
     ],
     "tiers": [
-     "冒险"
+     "冒险",
+     "多人合作"
     ]
    }
   },
@@ -2143,9 +2210,11 @@
     "description": "BioWare进军服务型多人游戏的尝试，因内容空洞与完成度不足遭遇商业与口碑双重失利。",
     "body": "",
     "genres": [
-     "在线动作角色扮演"
+     "动作角色扮演",
+     "在线"
     ],
     "tiers": [
+     "在线",
      "角色扮演"
     ]
    }
@@ -2239,10 +2308,12 @@
     "description": "由《巫师3》昆特牌衍生，融合单人剧情与回合卡牌策略的独立作品。",
     "body": "",
     "genres": [
-     "卡牌角色扮演"
+     "数字卡牌",
+     "角色扮演"
     ],
     "tiers": [
-     "卡牌"
+     "卡牌",
+     "角色扮演"
     ]
    }
   },
@@ -2271,9 +2342,13 @@
     "description": "基于桌上角色扮演的科幻开放世界巨作，PC版获好评但主机版因严重技术问题引发争议。",
     "body": "",
     "genres": [
-     "开放世界角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -2335,9 +2410,13 @@
     "description": "由Idris Elba参演的间谍惊悚式资料片，重制部分系统并被视为挽回口碑的转折点。",
     "body": "",
     "genres": [
-     "开放世界角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -2431,9 +2510,13 @@
     "description": "引入变身巨龙玩法的开放世界RPG。",
     "body": "",
     "genres": [
-     "动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -2527,9 +2610,11 @@
     "description": "口碑爆款，确立拉瑞安顶级RPG厂商地位并获BAFTA最佳多人游戏。",
     "body": "",
     "genres": [
-     "CRPG"
+     "CRPG",
+     "多人合作"
     ],
     "tiers": [
+     "多人合作",
      "角色扮演"
     ]
    }
@@ -3103,9 +3188,11 @@
     "description": "以“涂地”为目标的四人团队射击游戏，融合潮流美术与强社交性。",
     "body": "",
     "genres": [
-     "第三人称射击"
+     "第三人称射击",
+     "在线"
     ],
     "tiers": [
+     "在线",
      "射击"
     ]
    }
@@ -3135,10 +3222,12 @@
     "description": "《旷野之息》的续作，新增“究极手”“余料建造”等系统，将物理沙盒推向新高度。",
     "body": "",
     "genres": [
-     "开放世界动作冒险"
+     "动作冒险",
+     "开放世界"
     ],
     "tiers": [
-     "动作冒险"
+     "动作冒险",
+     "开放世界"
     ]
    }
   },
@@ -3295,9 +3384,11 @@
     "description": "史上最具影响力的MMORPG，以庞大世界观与持续运营塑造在线游戏标杆。",
     "body": "",
     "genres": [
-     "大型多人在线角色扮演"
+     "大型多人在线角色扮演",
+     "在线"
     ],
     "tiers": [
+     "在线",
      "角色扮演"
     ]
    }
@@ -3391,9 +3482,13 @@
     "description": "回归暗黑黑暗写实基调，引入开放世界与赛季制持续运营内容。",
     "body": "",
     "genres": [
-     "动作角色扮演"
+     "动作角色扮演",
+     "开放世界",
+     "动作冒险"
     ],
     "tiers": [
+     "动作冒险",
+     "开放世界",
      "角色扮演"
     ]
    }
@@ -3423,9 +3518,13 @@
     "description": "前作的免费续作，转向5v5与赛季更新，但因内容节奏引发争议。",
     "body": "",
     "genres": [
-     "英雄射击"
+     "英雄射击",
+     "在线",
+     "多人合作"
     ],
     "tiers": [
+     "在线",
+     "多人合作",
      "射击"
     ]
    }
@@ -4583,6 +4682,39 @@
   {
    "id": "genre_013",
    "group": "genre",
+   "label": "开放世界",
+   "tier1": true,
+   "raw": {
+    "name": "开放世界",
+    "parent": "",
+    "is_tier1": true
+   }
+  },
+  {
+   "id": "genre_014",
+   "group": "genre",
+   "label": "多人合作",
+   "tier1": true,
+   "raw": {
+    "name": "多人合作",
+    "parent": "",
+    "is_tier1": true
+   }
+  },
+  {
+   "id": "genre_015",
+   "group": "genre",
+   "label": "在线",
+   "tier1": true,
+   "raw": {
+    "name": "在线",
+    "parent": "",
+    "is_tier1": true
+   }
+  },
+  {
+   "id": "genre_016",
+   "group": "genre",
    "label": "动作角色扮演",
    "tier1": false,
    "raw": {
@@ -4592,29 +4724,7 @@
    }
   },
   {
-   "id": "genre_014",
-   "group": "genre",
-   "label": "在线动作角色扮演",
-   "tier1": false,
-   "raw": {
-    "name": "在线动作角色扮演",
-    "parent": "动作角色扮演",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_015",
-   "group": "genre",
-   "label": "开放世界动作角色扮演",
-   "tier1": false,
-   "raw": {
-    "name": "开放世界动作角色扮演",
-    "parent": "动作角色扮演",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_016",
+   "id": "genre_017",
    "group": "genre",
    "label": "回合制角色扮演",
    "tier1": false,
@@ -4625,7 +4735,7 @@
    }
   },
   {
-   "id": "genre_017",
+   "id": "genre_018",
    "group": "genre",
    "label": "大型多人在线角色扮演",
    "tier1": false,
@@ -4636,7 +4746,7 @@
    }
   },
   {
-   "id": "genre_018",
+   "id": "genre_019",
    "group": "genre",
    "label": "CRPG",
    "tier1": false,
@@ -4647,7 +4757,7 @@
    }
   },
   {
-   "id": "genre_019",
+   "id": "genre_020",
    "group": "genre",
    "label": "太空角色扮演",
    "tier1": false,
@@ -4658,7 +4768,7 @@
    }
   },
   {
-   "id": "genre_020",
+   "id": "genre_021",
    "group": "genre",
    "label": "科幻角色扮演",
    "tier1": false,
@@ -4669,29 +4779,7 @@
    }
   },
   {
-   "id": "genre_021",
-   "group": "genre",
-   "label": "开放世界角色扮演",
-   "tier1": false,
-   "raw": {
-    "name": "开放世界角色扮演",
-    "parent": "角色扮演",
-    "is_tier1": false
-   }
-  },
-  {
    "id": "genre_022",
-   "group": "genre",
-   "label": "卡牌角色扮演",
-   "tier1": false,
-   "raw": {
-    "name": "卡牌角色扮演",
-    "parent": "卡牌",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_023",
    "group": "genre",
    "label": "机甲动作",
    "tier1": false,
@@ -4702,7 +4790,7 @@
    }
   },
   {
-   "id": "genre_024",
+   "id": "genre_023",
    "group": "genre",
    "label": "第一人称射击",
    "tier1": false,
@@ -4713,7 +4801,7 @@
    }
   },
   {
-   "id": "genre_025",
+   "id": "genre_024",
    "group": "genre",
    "label": "第三人称射击",
    "tier1": false,
@@ -4724,7 +4812,7 @@
    }
   },
   {
-   "id": "genre_026",
+   "id": "genre_025",
    "group": "genre",
    "label": "英雄射击",
    "tier1": false,
@@ -4735,7 +4823,7 @@
    }
   },
   {
-   "id": "genre_027",
+   "id": "genre_026",
    "group": "genre",
    "label": "战术射击",
    "tier1": false,
@@ -4746,18 +4834,7 @@
    }
   },
   {
-   "id": "genre_028",
-   "group": "genre",
-   "label": "第一人称射击RPG",
-   "tier1": false,
-   "raw": {
-    "name": "第一人称射击RPG",
-    "parent": "射击",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_029",
+   "id": "genre_027",
    "group": "genre",
    "label": "互动电影冒险",
    "tier1": false,
@@ -4768,7 +4845,7 @@
    }
   },
   {
-   "id": "genre_030",
+   "id": "genre_028",
    "group": "genre",
    "label": "喜剧冒险",
    "tier1": false,
@@ -4779,7 +4856,7 @@
    }
   },
   {
-   "id": "genre_031",
+   "id": "genre_029",
    "group": "genre",
    "label": "合家欢冒险",
    "tier1": false,
@@ -4790,7 +4867,7 @@
    }
   },
   {
-   "id": "genre_032",
+   "id": "genre_030",
    "group": "genre",
    "label": "合作冒险",
    "tier1": false,
@@ -4801,7 +4878,7 @@
    }
   },
   {
-   "id": "genre_033",
+   "id": "genre_031",
    "group": "genre",
    "label": "解谜冒险",
    "tier1": false,
@@ -4812,7 +4889,7 @@
    }
   },
   {
-   "id": "genre_034",
+   "id": "genre_032",
    "group": "genre",
    "label": "侦探冒险",
    "tier1": false,
@@ -4823,7 +4900,7 @@
    }
   },
   {
-   "id": "genre_035",
+   "id": "genre_033",
    "group": "genre",
    "label": "生存恐怖",
    "tier1": false,
@@ -4834,18 +4911,7 @@
    }
   },
   {
-   "id": "genre_036",
-   "group": "genre",
-   "label": "开放世界动作冒险",
-   "tier1": false,
-   "raw": {
-    "name": "开放世界动作冒险",
-    "parent": "动作冒险",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_037",
+   "id": "genre_034",
    "group": "genre",
    "label": "西部动作冒险",
    "tier1": false,
@@ -4856,18 +4922,7 @@
    }
   },
   {
-   "id": "genre_038",
-   "group": "genre",
-   "label": "合作动作冒险",
-   "tier1": false,
-   "raw": {
-    "name": "合作动作冒险",
-    "parent": "动作冒险",
-    "is_tier1": false
-   }
-  },
-  {
-   "id": "genre_039",
+   "id": "genre_035",
    "group": "genre",
    "label": "银河恶魔城",
    "tier1": false,
@@ -4878,7 +4933,7 @@
    }
   },
   {
-   "id": "genre_040",
+   "id": "genre_036",
    "group": "genre",
    "label": "3D平台跳跃",
    "tier1": false,
@@ -4889,7 +4944,7 @@
    }
   },
   {
-   "id": "genre_041",
+   "id": "genre_037",
    "group": "genre",
    "label": "VR平台跳跃",
    "tier1": false,
@@ -4900,7 +4955,7 @@
    }
   },
   {
-   "id": "genre_042",
+   "id": "genre_038",
    "group": "genre",
    "label": "横向卷轴平台",
    "tier1": false,
@@ -4911,7 +4966,7 @@
    }
   },
   {
-   "id": "genre_043",
+   "id": "genre_039",
    "group": "genre",
    "label": "平台动作",
    "tier1": false,
@@ -4922,7 +4977,7 @@
    }
   },
   {
-   "id": "genre_044",
+   "id": "genre_040",
    "group": "genre",
    "label": "即时战略",
    "tier1": false,
@@ -4933,7 +4988,7 @@
    }
   },
   {
-   "id": "genre_045",
+   "id": "genre_041",
    "group": "genre",
    "label": "策略角色扮演",
    "tier1": false,
@@ -4944,7 +4999,7 @@
    }
   },
   {
-   "id": "genre_046",
+   "id": "genre_042",
    "group": "genre",
    "label": "模拟经营",
    "tier1": false,
@@ -4955,7 +5010,7 @@
    }
   },
   {
-   "id": "genre_047",
+   "id": "genre_043",
    "group": "genre",
    "label": "生活模拟",
    "tier1": false,
@@ -4966,7 +5021,7 @@
    }
   },
   {
-   "id": "genre_048",
+   "id": "genre_044",
    "group": "genre",
    "label": "卡丁车竞速",
    "tier1": false,
@@ -4977,7 +5032,7 @@
    }
   },
   {
-   "id": "genre_049",
+   "id": "genre_045",
    "group": "genre",
    "label": "未来竞速",
    "tier1": false,
@@ -4988,7 +5043,7 @@
    }
   },
   {
-   "id": "genre_050",
+   "id": "genre_046",
    "group": "genre",
    "label": "数字卡牌",
    "tier1": false,
@@ -4999,7 +5054,7 @@
    }
   },
   {
-   "id": "genre_051",
+   "id": "genre_047",
    "group": "genre",
    "label": "增强现实",
    "tier1": false,
@@ -5868,32 +5923,72 @@
   },
   {
    "from": "game_001",
-   "to": "genre_015",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_001",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_001",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_002",
-   "to": "genre_015",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_002",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_002",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_003",
-   "to": "genre_036",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_003",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_004",
-   "to": "genre_036",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_004",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_005",
-   "to": "genre_037",
+   "to": "genre_034",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_005",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_005",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_006",
-   "to": "genre_024",
+   "to": "genre_023",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5908,7 +6003,7 @@
   },
   {
    "from": "game_008",
-   "to": "genre_035",
+   "to": "genre_033",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5918,12 +6013,17 @@
   },
   {
    "from": "game_010",
-   "to": "genre_040",
+   "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_011",
-   "to": "genre_032",
+   "to": "genre_030",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_011",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5932,23 +6032,43 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_012",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_013",
-   "to": "genre_021",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_013",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_013",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_014",
-   "to": "genre_018",
+   "to": "genre_019",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_014",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_015",
-   "to": "genre_029",
+   "to": "genre_027",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_016",
-   "to": "genre_016",
+   "to": "genre_017",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5958,17 +6078,47 @@
   },
   {
    "from": "game_018",
-   "to": "genre_015",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_018",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_018",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_019",
-   "to": "genre_036",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_019",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_020",
-   "to": "genre_026",
+   "to": "genre_025",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_020",
+   "to": "genre_015",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_020",
+   "to": "genre_014",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_021",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -5977,23 +6127,53 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_021",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_022",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_022",
    "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_022",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_023",
-   "to": "genre_017",
+   "to": "genre_018",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_023",
+   "to": "genre_015",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_023",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_024",
-   "to": "genre_019",
+   "to": "genre_020",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_024",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_025",
-   "to": "genre_046",
+   "to": "genre_042",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6007,8 +6187,18 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_027",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_028",
    "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_028",
+   "to": "genre_013",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6017,8 +6207,13 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_029",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_030",
-   "to": "genre_037",
+   "to": "genre_034",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6027,18 +6222,23 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_031",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_032",
    "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_032",
-   "to": "genre_034",
+   "to": "genre_032",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_033",
-   "to": "genre_025",
+   "to": "genre_024",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6047,33 +6247,43 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_034",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_035",
-   "to": "genre_028",
+   "to": "genre_023",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_035",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_036",
-   "to": "genre_024",
+   "to": "genre_023",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_037",
-   "to": "genre_027",
+   "to": "genre_026",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_038",
-   "to": "genre_045",
+   "to": "genre_041",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_039",
-   "to": "genre_024",
+   "to": "genre_023",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_040",
-   "to": "genre_045",
+   "to": "genre_041",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6088,12 +6298,12 @@
   },
   {
    "from": "game_043",
-   "to": "genre_048",
+   "to": "genre_044",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_044",
-   "to": "genre_043",
+   "to": "genre_039",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6113,12 +6323,12 @@
   },
   {
    "from": "game_047",
-   "to": "genre_035",
+   "to": "genre_033",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_048",
-   "to": "genre_049",
+   "to": "genre_045",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6143,7 +6353,7 @@
   },
   {
    "from": "game_053",
-   "to": "genre_051",
+   "to": "genre_047",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6153,7 +6363,7 @@
   },
   {
    "from": "game_055",
-   "to": "genre_041",
+   "to": "genre_037",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6163,17 +6373,32 @@
   },
   {
    "from": "game_057",
-   "to": "genre_033",
+   "to": "genre_031",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_057",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_058",
-   "to": "genre_038",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_058",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_059",
-   "to": "genre_032",
+   "to": "genre_030",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_059",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6198,22 +6423,27 @@
   },
   {
    "from": "game_064",
-   "to": "genre_020",
+   "to": "genre_021",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_065",
-   "to": "genre_020",
+   "to": "genre_021",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_066",
-   "to": "genre_020",
+   "to": "genre_021",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_067",
-   "to": "genre_014",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_067",
+   "to": "genre_015",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6228,32 +6458,62 @@
   },
   {
    "from": "game_070",
-   "to": "genre_022",
+   "to": "genre_046",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_070",
+   "to": "genre_001",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_071",
-   "to": "genre_021",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_071",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_071",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_072",
-   "to": "genre_050",
+   "to": "genre_046",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_073",
-   "to": "genre_021",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_073",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_073",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_074",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_075",
-   "to": "genre_013",
+   "to": "genre_016",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_076",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6262,23 +6522,33 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_076",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_077",
-   "to": "genre_045",
+   "to": "genre_041",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_078",
-   "to": "genre_018",
+   "to": "genre_019",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_079",
-   "to": "genre_018",
+   "to": "genre_019",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_079",
+   "to": "genre_014",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_080",
-   "to": "genre_045",
+   "to": "genre_041",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6293,12 +6563,12 @@
   },
   {
    "from": "game_083",
-   "to": "genre_029",
+   "to": "genre_027",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_084",
-   "to": "genre_030",
+   "to": "genre_028",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6308,7 +6578,7 @@
   },
   {
    "from": "game_086",
-   "to": "genre_031",
+   "to": "genre_029",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6318,92 +6588,112 @@
   },
   {
    "from": "game_088",
-   "to": "genre_029",
+   "to": "genre_027",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_089",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_090",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_091",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_092",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_093",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_094",
-   "to": "genre_023",
+   "to": "genre_022",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_095",
-   "to": "genre_040",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_096",
-   "to": "genre_047",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_097",
-   "to": "genre_025",
-   "type": "BELONGS_TO_GENRE"
-  },
-  {
-   "from": "game_098",
    "to": "genre_036",
    "type": "BELONGS_TO_GENRE"
   },
   {
+   "from": "game_096",
+   "to": "genre_043",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_097",
+   "to": "genre_024",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_097",
+   "to": "genre_015",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_098",
+   "to": "genre_005",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_098",
+   "to": "genre_013",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
    "from": "game_099",
-   "to": "genre_042",
+   "to": "genre_038",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_100",
-   "to": "genre_039",
+   "to": "genre_035",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_101",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_102",
-   "to": "genre_044",
+   "to": "genre_040",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_103",
-   "to": "genre_017",
+   "to": "genre_018",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_103",
+   "to": "genre_015",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_104",
-   "to": "genre_013",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "game_105",
-   "to": "genre_050",
+   "to": "genre_046",
+   "type": "BELONGS_TO_GENRE"
+  },
+  {
+   "from": "game_106",
+   "to": "genre_016",
    "type": "BELONGS_TO_GENRE"
   },
   {
@@ -6412,24 +6702,24 @@
    "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "game_107",
-   "to": "genre_026",
+   "from": "game_106",
+   "to": "genre_005",
    "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "genre_013",
-   "to": "genre_001",
-   "type": "SUBCLASS_OF"
+   "from": "game_107",
+   "to": "genre_025",
+   "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "genre_014",
-   "to": "genre_013",
-   "type": "SUBCLASS_OF"
+   "from": "game_107",
+   "to": "genre_015",
+   "type": "BELONGS_TO_GENRE"
   },
   {
-   "from": "genre_015",
-   "to": "genre_013",
-   "type": "SUBCLASS_OF"
+   "from": "game_107",
+   "to": "genre_014",
+   "type": "BELONGS_TO_GENRE"
   },
   {
    "from": "genre_016",
@@ -6463,12 +6753,12 @@
   },
   {
    "from": "genre_022",
-   "to": "genre_010",
+   "to": "genre_002",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_023",
-   "to": "genre_002",
+   "to": "genre_003",
    "type": "SUBCLASS_OF"
   },
   {
@@ -6488,12 +6778,12 @@
   },
   {
    "from": "genre_027",
-   "to": "genre_003",
+   "to": "genre_004",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_028",
-   "to": "genre_003",
+   "to": "genre_004",
    "type": "SUBCLASS_OF"
   },
   {
@@ -6523,91 +6813,71 @@
   },
   {
    "from": "genre_034",
-   "to": "genre_004",
+   "to": "genre_005",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_035",
-   "to": "genre_004",
+   "to": "genre_005",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_036",
-   "to": "genre_005",
+   "to": "genre_006",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_037",
-   "to": "genre_005",
+   "to": "genre_006",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_038",
-   "to": "genre_005",
+   "to": "genre_006",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_039",
-   "to": "genre_005",
+   "to": "genre_006",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_040",
-   "to": "genre_006",
+   "to": "genre_007",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_041",
-   "to": "genre_006",
+   "to": "genre_007",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_042",
-   "to": "genre_006",
+   "to": "genre_008",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_043",
-   "to": "genre_006",
+   "to": "genre_008",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_044",
-   "to": "genre_007",
+   "to": "genre_009",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_045",
-   "to": "genre_007",
+   "to": "genre_009",
    "type": "SUBCLASS_OF"
   },
   {
    "from": "genre_046",
-   "to": "genre_008",
-   "type": "SUBCLASS_OF"
-  },
-  {
-   "from": "genre_047",
-   "to": "genre_008",
-   "type": "SUBCLASS_OF"
-  },
-  {
-   "from": "genre_048",
-   "to": "genre_009",
-   "type": "SUBCLASS_OF"
-  },
-  {
-   "from": "genre_049",
-   "to": "genre_009",
-   "type": "SUBCLASS_OF"
-  },
-  {
-   "from": "genre_050",
    "to": "genre_010",
    "type": "SUBCLASS_OF"
   },
   {
-   "from": "genre_051",
+   "from": "genre_047",
    "to": "genre_012",
    "type": "SUBCLASS_OF"
   }
@@ -6616,8 +6886,8 @@
   "goty": 20,
   "games": 107,
   "studios": 15,
-  "genres": 51,
-  "top_genres": 12,
+  "genres": 47,
+  "top_genres": 15,
   "awards": 20
  }
 }

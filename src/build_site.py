@@ -150,7 +150,8 @@ HTML = r"""<!DOCTYPE html>
     · <b style="color:var(--purple)">紫色菱形</b> = 游戏开发商<br>
     · <b style="color:var(--green)">绿色六边形</b> = 游戏类型（大=顶层原子类别，小=子类型）<br>
     · <b style="color:var(--red)">红色三角</b> = 年度大奖<br><br>
-    边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」；绿色点线「类型层级」（子类型→父类型）。点击节点会自动高亮其相邻节点。类型下拉按<b>顶层原子类别</b>筛选。</p>
+    边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」；绿色点线「类型层级」（子类型→父类型）。点击节点会自动高亮其相邻节点。<br><br>
+    <b>类型下拉</b>按顶层类别筛选；其中「开放世界 / 多人合作 / 在线」是<b>设计维度</b>（跨玩法的特征标签，可与玩法类别叠加），例如筛选「开放世界」即可看到艾尔登法环、旷野之息、天际、GTA、巫师3 等全部开放世界游戏。</p>
   </div>
 </div>
 
@@ -256,8 +257,10 @@ function renderDetail(id){
   const d = n.raw; const el = document.getElementById('detail');
   if(n.group==='game' || n.group==='goty'){
     const r=d;
+    const genreTags = (r.genres && r.genres.length ? r.genres : [r.genre]).filter(Boolean)
+      .map(g=>`<span class="tag">${esc(g)}</span>`).join('');
     const tags = [`<span class="tag ${r.is_goty?'goty':''}">${r.is_goty?'★ 年度最佳游戏':'其他作品'}</span>`,
-      r.genre?`<span class="tag">${esc(r.genre)}</span>`:'',
+      genreTags,
       r.year?`<span class="tag">${r.year}</span>`:'',
       (r.player_rating!==''&&r.player_rating!=null)?`<span class="tag">评分 ${r.player_rating}</span>`:''].join('');
     let html = `<h2>${esc(r.title_zh)}</h2><div style="color:var(--muted);font-size:12px">${esc(r.title)}</div><div style="margin:8px 0">${tags}</div>`;
@@ -389,7 +392,7 @@ function buildTable(){
     .map(n=>n.raw).sort((a,b)=>a.year-b.year);
   let h=`<table><thead><tr><th>年份</th><th>游戏（中）</th><th>游戏（英）</th><th>类型</th><th>开发商</th><th>评分</th><th>GOTY</th></tr></thead><tbody>`;
   rows.forEach(r=>{const id=Object.keys(byId).find(k=>byId[k].raw===r);
-    h+=`<tr onclick="selectNode('${id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc(r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});
+    h+=`<tr onclick="selectNode('${id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc((r.genres&&r.genres.length)?r.genres.join('、'):r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});
   h+=`</tbody></table>`;
   document.getElementById('tableView').innerHTML=h;
 }
