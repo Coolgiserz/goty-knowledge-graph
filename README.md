@@ -96,8 +96,9 @@ make neo4j
 │   ├── serve.sh            # 本地静态服务器
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
 ├── analysis/
-│   ├── run_ml.py           # 统计机器学习流水线入口
-│   ├── ml/                 # 高频因子 / 聚类 / 社区发现 / 热点 / 可视化模块
+│   ├── run_ml.py           # 统计机器学习流水线入口（瘦 CLI）
+│   ├── ml/                 # 可插拔数据挖掘包：config/features/clusterers/analyzers/visualizers/pipeline
+│   ├── requirements.txt    # 依赖（numpy/pandas/scikit-learn/networkx/matplotlib/scipy）
 │   └── output/             # 运行产物：CSV / JSON / PNG / ML_REPORT.md
 └── docs/
     ├── neo4j_tutorial.md   # Neo4j 导入教程
@@ -141,34 +142,41 @@ make build             # = build.py + build_site.py
 
 ## 🔬 统计机器学习（数据挖掘）
 
-`analysis/` 下是一套可直接复用的图数据挖掘流水线，输入为 `data/graph.json`：
+`analysis/` 下是一套**可插拔**的图数据挖掘流水线，输入为 `data/graph.json`，输出 `analysis/output/`。
 
 ```
-analysis/
-├── run_ml.py              # 一键运行全部
-└── ml/
-    ├── factors.py         # 高频因子（特征工程）
-    ├── cluster.py         # KMeans / 层次聚类
-    ├── community.py       # Louvain 社区发现
-    ├── hotspot.py         # 热点 / 时代演变统计
-    └── visualize.py       # 生成 7 张 PNG 可视化
+analysis/ml/
+├── config.py        # 所有超参数集中于此（改一处调全链路）
+├── context.py       # PipelineContext：阶段间内存传数据，去除磁盘耦合
+├── io_utils.py      # 图谱加载、共享计算（去重）
+├── features.py      # FeatureEngine + 可注册特征组（Strategy）
+├── clusterers.py    # 聚类算法策略注册表（kmeans/hierarchical/spectral/dbscan）
+├── analyzers.py     # Analyzer 基类 + 注册表（聚类 / 社区 / 热点）
+├── visualizers.py   # Visualizer 基类 + 注册表（7 张图）
+└── pipeline.py      # run_pipeline 统一编排：特征→分析→落盘→可视化→报告
 ```
+
+**设计模式**：Strategy（聚类算法 / 特征组可替换）、Registry（特征组 / 聚类器 / Analyzer / Visualizer 按注册表发现）、Pipeline（统一串联）、Context Object（内存传参）。**新增一种特征组 / 算法 / 分析 / 图表 = 写个子类并 `@register`，无需改动 pipeline。**
 
 运行：
 
 ```bash
-make analysis
-# 或等价
-/Users/tarnished/.workbuddy/binaries/python/envs/default/bin/python analysis/run_ml.py
+make analysis                       # 默认 KMeans + PCA 白化
+python analysis/run_ml.py --clusterer spectral --no-pca   # 换谱聚类、关 PCA
+python analysis/run_ml.py --exclude-reputation           # 关 studio_wins 防标签泄漏
+python analysis/run_ml.py --k 6                          # 固定 k，跳过选 k
 ```
 
+> 依赖见 `analysis/requirements.txt`，建议在隔离 venv 中运行（见 `make analysis`）。
+
 产物写入 `analysis/output/`：
-- `factors.csv`：107 款游戏 × 57 个因子（图拓扑 / 属性 / 声誉 / 类型 one-hot）
-- `clusters.csv`、`communities.csv`、`hotspot_era.csv`
+- `factors.csv`：107 款游戏 × 63 列因子（图拓扑 4 / 属性 6 / 声誉 3 / 类型 one-hot 44 / 标识 6）
+- `clusters.csv`、`communities.csv`、`hotspot_era.csv` 及各 `*_profile.json`
 - `ML_REPORT.md`：含聚类画像、社区画像、上升/下降类型、中心性排名等
-- 7 张 PNG：`factor_correlation.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png` / `k_silhouette.png`
+- 7 张 PNG：`factor_correlation.png` / `k_silhouette.png` / `cluster_pca.png` / `cluster_profile.png` / `community_graph.png` / `hotspot_trend.png` / `centrality_top.png`
 
 > “高频因子”在此指从图结构派生的细粒度截面因子矩阵；原数据没有日内 tick 级时序，年份是最细时间粒度。
+> 方法说明：聚类默认**先做 PCA 白化**再 KMeans，以缓解 44 维类型 one-hot 带来的维度灾难；`studio_wins` 由 `is_goty` 派生（标签泄漏），可用 `--exclude-reputation` 关闭；轮廓系数普遍偏低（<0.25），簇为探索性划分而非严谨边界。
 
 ---
 
