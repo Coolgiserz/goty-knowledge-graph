@@ -95,6 +95,8 @@
   <label><input type="checkbox" id="showGenre"/> 类型</label>
   <label><input type="checkbox" id="showAward" checked/> 奖项</label>
   <button class="btn" id="fit" title="适配视图">⤢ 适配</button>
+  <button class="btn" id="collapseAll" title="折叠所有开发商与类型分支">⊟ 折叠全部</button>
+  <button class="btn" id="expandAll" title="展开所有分支">⊞ 展开全部</button>
   <button class="btn" id="reset">重置</button>
   <button class="btn primary" id="toggleView">表格视图</button>
 </div>
@@ -112,6 +114,7 @@
     · <b style="color:var(--green)">绿色六边形</b> = 游戏类型（大=顶层原子类别，小=子类型）<br>
     · <b style="color:var(--red)">红色三角</b> = 年度大奖<br><br>
     边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」；绿色点线「类型层级」（子类型→父类型）。点击节点会自动高亮其相邻节点。<br><br>
+    🖱️ <b>双击任意节点</b>可<b>折叠 / 展开</b>其分支（带金色边框 = 已折叠）；工具栏「折叠全部 / 展开全部」可一键切换；也可点详情面板里的「折叠分支」按钮。<br><br>
     <b>类型下拉</b>按顶层类别筛选；其中「开放世界 / 多人合作 / 在线」是<b>设计维度</b>（跨玩法的特征标签，可与玩法类别叠加），例如筛选「开放世界」即可看到艾尔登法环、旷野之息、天际、GTA、巫师3 等全部开放世界游戏。</p>
   </div>
 </div>
@@ -165,10 +168,12 @@ const groupColors = {
   award:{color:'#e74c3c',border:'#ff7a6a'}
 };
 GRAPH.nodes.forEach(n=>{
+  let ob, obw, col;
   if(n.group==='genre'){
-    if(n.tier1){ n.size=16; n.borderWidth=3; n.color={background:'#2f9e54',border:'#86efac'}; }
-    else { n.size=9; n.color=groupColors.genre; }
-  } else { n.color=groupColors[n.group]; }
+    if(n.tier1){ n.size=16; n.borderWidth=3; col={background:'#2f9e54',border:'#86efac'}; ob='#86efac'; obw=3; }
+    else { n.size=9; col=groupColors.genre; ob=groupColors.genre.border; obw=2; }
+  } else { col=groupColors[n.group]; ob=groupColors[n.group].border; obw=2; }
+  n.color=col; n._origColor=JSON.parse(JSON.stringify(col)); n._origBorder=ob; n._origBorderW=obw;
 });
 const edgeColor = {DEVELOPED:'#4a5160', WON:'#f5b301', BELONGS_TO_GENRE:'#27ae60'};
 GRAPH.edges.forEach((e,i)=>{
@@ -238,7 +243,7 @@ function renderDetail(id){
     html += row('影响力', r.influence);
     html += row('简介', r.description);
     html += `</dl>`;
-    if(r.developer_id) html += `<div style="margin-top:12px"><span class="gamelink" onclick="selectNode('${r.developer_id}')">查看开发商：${esc(r.developer)} 的全部作品 →</span></div>`;
+    if(r.developer_id) html += `<div style="margin-top:12px"><span class="gamelink" onclick="selectNode('${r.developer_id}',{expand:true})">查看开发商：${esc(r.developer)} 的全部作品 →</span></div>`;
     el.innerHTML = html;
   } else if(n.group==='studio'){
     let html = `<h2>${esc(d.name_zh)}</h2><div style="color:var(--muted);font-size:12px">${esc(d.name)}</div>`;
@@ -272,20 +277,88 @@ function renderDetail(id){
     if(g) html+=`<div style="margin-top:10px"><span class="gamelink" onclick="selectNode('${g.id}')">🏆 ${esc(g.raw.title_zh)}</span></div>`;
     el.innerHTML=html;
   }
+  el.innerHTML += detailCollapseBtn(id);
 }
-function selectNode(id){
+function selectNode(id, opts){
+  if(!byId[id]) return;
   renderDetail(id);
   if(currentView==='table') toggleView();
   if(highlightActive) clearHighlight();
+  if(opts && opts.expand && collapsedSet.has(id)){ collapsedSet.delete(id); applyCollapsedVisual(id); applyVisibility(); }
   net.selectNodes([id]); net.focus(id,{scale:1.1,animation:true});
   highlightNeighbors(id);
+  selectedId=id;
 }
 net.on('click',p=>{
   if(p.nodes.length){selectNode(p.nodes[0]);}
-  else {clearHighlight();net.unselectAll();renderDetail(null);}
+  else {clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;}
 });
-document.getElementById('detailClose').onclick=()=>{clearHighlight();net.unselectAll();renderDetail(null);};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){clearHighlight();net.unselectAll();renderDetail(null);}});
+net.on('doubleClick',p=>{ if(p.nodes.length) toggleCollapse(p.nodes[0]); });
+document.getElementById('detailClose').onclick=()=>{clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;}});
+
+// ---------- expand / collapse ----------
+let collapsedSet = new Set();
+let filterVisibleSet = new Set();
+let selectedId = null;
+function isProtected(n){ return !n || n.group==='goty'||n.group==='studio'||n.group==='award'||(n.group==='genre'&&n.tier1); }
+function computeCollapsedHidden(){
+  const hidden=new Set(); let changed=true;
+  while(changed){
+    changed=false;
+    collapsedSet.forEach(cid=>{ GRAPH.edges.forEach(e=>{
+      const o = e.from===cid? e.to : (e.to===cid? e.from : null);
+      if(o && !hidden.has(o) && !isProtected(byId[o])){ hidden.add(o); changed=true; }
+    });});
+    hidden.forEach(hid=>{ GRAPH.edges.forEach(e=>{
+      const o = e.from===hid? e.to : (e.to===hid? e.from : null);
+      if(o && !hidden.has(o) && !isProtected(byId[o])){ hidden.add(o); changed=true; }
+    });});
+  }
+  return hidden;
+}
+function applyVisibility(){
+  const hc = computeCollapsedHidden();
+  nodesDS.update(GRAPH.nodes.map(n=>{
+    const fv = filterVisibleSet.has(n.id);
+    return {id:n.id, hidden: !fv || (hc.has(n.id) && !collapsedSet.has(n.id))};
+  }));
+  edgesDS.update(GRAPH.edges.map(e=>{
+    const fv = filterVisibleSet.has(e.from) && filterVisibleSet.has(e.to);
+    return {id:e.id, hidden: !fv || hc.has(e.from) || hc.has(e.to)};
+  }));
+}
+function applyCollapsedVisual(id){
+  const n=byId[id]; if(!n) return;
+  const c=collapsedSet.has(id);
+  nodesDS.update({id, borderWidth: c?4:n._origBorderW,
+    color: c? {background:n._origColor.background, border:'#f5b301'} : n._origColor,
+    title:(n.title||n.label)+(c?' · 已折叠，双击展开':'')});
+}
+function toggleCollapse(id){
+  if(!byId[id]) return;
+  if(collapsedSet.has(id)) collapsedSet.delete(id); else collapsedSet.add(id);
+  applyCollapsedVisual(id);
+  applyVisibility();
+  if(selectedId) highlightNeighbors(selectedId); else clearHighlight();
+}
+function expandAll(){
+  collapsedSet.forEach(id=>applyCollapsedVisual(id));
+  collapsedSet.clear(); applyVisibility();
+  if(selectedId) highlightNeighbors(selectedId); else clearHighlight();
+  net.fit({animation:true});
+}
+function collapseAll(){
+  GRAPH.nodes.forEach(n=>{ if(n.group==='studio'||n.group==='genre') collapsedSet.add(n.id); });
+  collapsedSet.forEach(id=>applyCollapsedVisual(id));
+  applyVisibility();
+  if(selectedId) highlightNeighbors(selectedId); else clearHighlight();
+  net.fit({animation:true});
+}
+function detailCollapseBtn(id){
+  const c=collapsedSet.has(id);
+  return `<div style="margin-top:12px"><button class="btn" onclick="toggleCollapse('${id}')">${c?'⊞ 展开分支':'⊟ 折叠分支'}</button></div>`;
+}
 
 // ---------- filters ----------
 function applyFilters(){
@@ -329,8 +402,8 @@ function applyFilters(){
   }
   if(showAward) visAwards.forEach(x=>visNodes.add(x));
 
-  nodesDS.update(GRAPH.nodes.map(n=>({id:n.id,hidden:!visNodes.has(n.id)})));
-  edgesDS.update(GRAPH.edges.map(e=>({id:e.id, hidden:!(visNodes.has(e.from)&&visNodes.has(e.to))})));
+  filterVisibleSet = visNodes;
+  applyVisibility();
 }
 ['q','yMin','yMax','studio','genre','onlyGoty','showStudio','showGenre','showAward']
   .forEach(id=>{const el=document.getElementById(id);
@@ -342,9 +415,11 @@ document.getElementById('reset').onclick=()=>{
   document.getElementById('genre').value='ALL';document.getElementById('onlyGoty').checked=false;
   document.getElementById('showStudio').checked=true;document.getElementById('showGenre').checked=false;
   document.getElementById('showAward').checked=true;
-  clearHighlight();net.unselectAll();renderDetail(null);
-  applyFilters();net.fit({animation:true});
+  clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;
+  applyFilters();expandAll();
 };
+document.getElementById('collapseAll').onclick=collapseAll;
+document.getElementById('expandAll').onclick=expandAll;
 
 // ---------- table view ----------
 let currentView='graph';
