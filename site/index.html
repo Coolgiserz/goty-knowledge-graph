@@ -408,6 +408,8 @@ function applyFilters(){
 
   filterVisibleSet = visNodes;
   applyVisibility();
+  // 表格视图与图谱共用同一筛选集合，筛选变化时同步刷新表格
+  if(currentView==='table') buildTable();
 }
 ['q','yMin','yMax','studio','genre','onlyGoty','showStudio','showGenre','showAward']
   .forEach(id=>{const el=document.getElementById(id);
@@ -428,11 +430,16 @@ document.getElementById('expandAll').onclick=expandAll;
 // ---------- table view ----------
 let currentView='graph';
 function buildTable(){
-  const rows=GRAPH.nodes.filter(n=>n.group==='game'||n.group==='goty')
-    .map(n=>n.raw).sort((a,b)=>a.year-b.year);
+  // 仅纳入当前筛选命中的游戏节点（与图谱共用 filterVisibleSet）
+  const rows=GRAPH.nodes.filter(n=>(n.group==='game'||n.group==='goty') && filterVisibleSet.has(n.id))
+    .sort((a,b)=>a.raw.year-b.raw.year);
   let h=`<table><thead><tr><th>年份</th><th>游戏（中）</th><th>游戏（英）</th><th>类型</th><th>开发商</th><th>评分</th><th>GOTY</th></tr></thead><tbody>`;
-  rows.forEach(r=>{const id=Object.keys(byId).find(k=>byId[k].raw===r);
-    h+=`<tr onclick="selectNode('${id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc((r.genres&&r.genres.length)?r.genres.join('、'):r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});
+  if(rows.length===0){
+    h+=`<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">无匹配结果，请调整左侧筛选条件</td></tr>`;
+  } else {
+    rows.forEach(n=>{const r=n.raw;
+      h+=`<tr onclick="selectNode('${n.id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc((r.genres&&r.genres.length)?r.genres.join('、'):r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});
+  }
   h+=`</tbody></table>`;
   document.getElementById('tableView').innerHTML=h;
 }
