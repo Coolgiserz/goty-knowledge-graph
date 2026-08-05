@@ -501,41 +501,84 @@ class StudioStyleAnalyzer(Analyzer):
         cfg = ctx.config
         studio_name = ctx.studio_names
 
-        cols = _style_cols(df)
-        X = df[cols].astype(float).values
-        Xs = StandardScaler().fit_transform(X)  # 标准化，避免量纲/one-hot 主导
+        # ---- 以「图谱距离」为底座定义工作室相似度（图/社团距离视角）----
+        # 不再用手工因子向量，而是直接测量两家工作室在「游戏-游戏相似投影图」上的距离：
+        # GG 中两款游戏若共享玩法类型则连边，边权=共享类型数（同工作室再加权）。
+        # 工作室距离 = 其游戏集合之间的图最短路径距离（平均最近邻）；越近=风格越接近。
+        # 这条距离天然蕴含社区结构（同「玩法家族」的游戏在图上更近），正是图/社团距离视角。
+        GG = ctx.GG
+        gd = nx.Graph()
+        for u, v, d in GG.edges(data=True):
+            w = float(d.get("weight", 0.0))
+            gd.add_edge(u, v, weight=1.0 / (1.0 + w))   # 共享类型越多 -> 边距离越小
+        Dmap = {src: dists for src, dists in nx.shortest_path_length(gd, weight="weight")}
 
-        # 每家工作室 = 其作品风格向量的均值（单作品工作室即该作向量）
-        by_studio = defaultdict(list)
-        for i, did in enumerate(df["developer_id"]):
-            by_studio[did].append(Xs[i])
-        studio_ids = sorted(by_studio.keys())
-        S = np.array([np.mean(by_studio[d], axis=0) for d in studio_ids])
+        def gdist(a, b):
+            return Dmap.get(a, {}).get(b, 2.0)            # 不连通兜底
 
-        # 余弦相似度（方向一致即风格接近，与长度无关）
-        sim = cosine_similarity(S)
-
-        # 工作室风格聚类（在标准化向量上做层次 Ward，簇数 ~ ceil(sqrt(n))）
+        games_of = defaultdict(list)
+        for gid, did in zip(df["game_id"], df["developer_id"]):
+            games_of[did].append(gid)
+        studio_ids = sorted(games_of.keys())
         n_stu = len(studio_ids)
-        k_stu = max(2, min(6, int(np.ceil(np.sqrt(n_stu)))))
-        Z = linkage(S, method="ward")
-        labels = fcluster(Z, k_stu, criterion="maxclust")
 
-        # 二维散点：用 MDS 嵌入「余弦距离矩阵」(Dcos = 1 - 余弦相似度)。
-        # 这与上面报告所用的余弦相似度是同一指标——若改用 PCA(Euclidean)，
-        # 在 53 维标准化空间 + 仅 15 家工作室时，2D 投影与余弦相似度几乎无关
-        # (实测 Spearman≈0.14)，散点会与相似度表对不上、违背直觉。
-        Dcos = 1.0 - sim
+        # 工作室间图距离 = 双向平均最近邻距离
+        D = np.zeros((n_stu, n_stu))
+        for i, A in enumerate(studio_ids):
+            ga = games_of[A]
+            for j, B in enumerate(studio_ids):
+                if i == j:
+                    continue
+                gb = games_of[B]
+                d1 = np.mean([min(gdist(x, y) for y in gb) for x in ga])
+                d2 = np.mean([min(gdist(y, x) for x in ga) for y in gb])
+                D[i, j] = 0.5 * (d1 + d2)
+        # 转为相似度（连续、有界）：sim = 1/(1+距离)
+        sim = 1.0 / (1.0 + D)
+        np.fill_diagonal(sim, 1.0)
+
+        # 主导社区（用于着色/分组）：取自第三节社区发现（同一套社区划分）
+        comm_map = ctx.get("community_map")
+        if not comm_map:  # 兜底
+            comms = nx.community.louvain_communities(GG, weight="weight", seed=cfg.random_state)
+            comm_map = {}
+            for cid, members in enumerate(sorted(comms, key=len, reverse=True)):
+                for m in members:
+                    comm_map[m] = cid
+        community_ids = sorted(set(comm_map.values()))
+        by_comm = defaultdict(list)
+        for gid, did in zip(df["game_id"], df["developer_id"]):
+            c = comm_map.get(gid)
+            if c is not None:
+                by_comm[did].append(c)
+
+        # 二维散点：MDS 嵌入「工作室距离矩阵」(Ddiss = 1 - 相似度 = D/(1+D))。
+        # 与报告的图距离相似度是同一指标——若用 PCA(Euclidean) 投影会扭曲排布，
+        # 散点会和相似度表对不上。MDS 忠实还原「点越近≈图距离越近≈风格越接近」。
+        Ddiss = 1.0 - sim
         coords = MDS(n_components=2, metric=True, dissimilarity="precomputed",
                      init="random", random_state=cfg.random_state, n_init=10
-                     ).fit_transform(Dcos)
+                     ).fit_transform(Ddiss)
+
+        # 主导社区 = 该厂牌最主要的玩法家族；社区标签取自社区发现章节的 top_genres
+        prof = (ctx.get("community_profile") or {}).get("profiles", [])
+        comm_label = {}
+        for c in prof:
+            comm_label[c["community"]] = "、".join(g for g, _ in c["top_genres"][:2]) or f"社区{c['community']}"
+        for c in community_ids:
+            comm_label.setdefault(c, f"社区{c}")
+        dom_comm = []
+        for sid in studio_ids:
+            cnt = Counter(by_comm.get(sid, []))
+            dom_comm.append(cnt.most_common(1)[0][0] if cnt else community_ids[0])
 
         style_df = pd.DataFrame({
             "studio_id": studio_ids,
             "studio": [studio_name.get(s, s) for s in studio_ids],
-            "n_games": [len(by_studio[s]) for s in studio_ids],
+            "n_games": [len(games_of[s]) for s in studio_ids],
+            "dominant_community": dom_comm,
+            "dominant_community_label": [comm_label[c] for c in dom_comm],
             "style_x": coords[:, 0], "style_y": coords[:, 1],
-            "style_cluster": labels,
         })
 
         # 最相似工作室对（去对角，取 Top8）
@@ -546,47 +589,50 @@ class StudioStyleAnalyzer(Analyzer):
         top_pairs.sort(key=lambda x: -x[2])
         top_pairs = top_pairs[:8]
 
-        # 工作室风格簇分组
-        clusters = defaultdict(list)
-        for sid, lab in zip(studio_ids, labels):
-            clusters[int(lab)].append(studio_name.get(sid, sid))
-        cluster_groups = [{"cluster": c, "studios": names}
-                          for c, names in sorted(clusters.items())]
+        # 按主导社区（玩法家族）归并工作室
+        groups = defaultdict(list)
+        for sid, c in zip(studio_ids, dom_comm):
+            groups[c].append(studio_name.get(sid, sid))
+        group_rows = [{"community": c, "label": comm_label[c],
+                       "studios": names, "size": len(names)}
+                      for c, names in sorted(groups.items(), key=lambda kv: -len(kv[1]))]
 
         res.add("studio_style", style_df)
         res.add("studio_sim_matrix", {"studio_ids": studio_ids,
                                       "studio_names": [studio_name.get(s, s) for s in studio_ids],
                                       "matrix": sim})
         res.add("studio_style_summary",
-                {"n_studios": n_stu, "k_style": k_stu,
+                {"n_studios": n_stu, "n_communities": len(community_ids),
                  "top_pairs": [[studio_name.get(a, a), studio_name.get(b, b), round(s, 3)]
                                for a, b, s in top_pairs],
-                 "clusters": cluster_groups})
+                 "groups": group_rows})
 
         res.write(
-            "\n## 五、开发商游戏风格相似性\n",
-            "把每家工作室映射为其作品风格向量的均值，在标准化因子空间（玩法拓扑+属性+类型 one-hot，"
-            "**不含声誉列**）上计算余弦相似度——衡量「两家厂牌做出的游戏是否一脉相承」。\n",
-            f"共 **{n_stu} 家**工作室，风格层次聚类得 **{k_stu} 组**：\n",
-            "| 风格簇 | 成员工作室 |",
-            "|---|---|",
-        )
-        for g in cluster_groups:
-            res.write(f"| 簇{g['cluster']} | {'、'.join(g['studios'])} |")
-        res.write(
-            "\n**最相似的工作室对（Top8）：**\n",
-            "| 工作室 A | 工作室 B | 风格余弦相似度 |",
+            "\n## 五、开发商游戏风格相似性（基于图谱距离）\n",
+            "本节不再用手工因子向量，而是**直接从「游戏-游戏相似投影图 GG」测量距离**——"
+            "两家工作室风格是否接近，看它们做的游戏在图上离得近不近。\n",
+            "**方法**：GG 中两款游戏若共享玩法类型则连边（边权 = 共享类型数），距离 = 1/(1+边权)；"
+            "工作室距离 = 其游戏集合之间的**图最短路径距离**（双向平均最近邻，越近=风格越接近）；"
+            "相似度 = 1/(1+距离)，连续有界。这条距离天然蕴含第三节的社区结构——同「玩法家族」的游戏在图上更近。\n",
+            f"共 **{n_stu} 家**工作室，按**主导玩法家族社区**归并为 **{len(group_rows)} 组**：\n",
+            "| 主导玩法家族（社区） | 规模 | 成员工作室 |",
             "|---|---|---|",
         )
-        for a, b, s in res.artifacts["studio_style_summary"]["top_pairs"]:
-            res.write(f"| {a} | {b} | {s:.3f} |")
+        for g in group_rows:
+            res.write(f"| {g['label']} | {g['size']} | {'、'.join(g['studios'])} |")
         res.write(
-            f"\n> 注：相似度高代表两家厂牌的游戏在玩法类型/设计维度上高度重合"
-            "（如都爱做开放世界动作），可作为「厂牌基因」的量化证据；单作品工作室的向量即其唯一作品。\n"
-            "> 散点图用 **MDS 嵌入余弦距离矩阵**（而非 PCA）：因为本报告以余弦相似度衡量风格接近度，"
-            "只有 MDS(余弦距离) 才能忠实还原「点越近≈相似度越高」的几何关系——此前用 PCA 会因欧氏/角度度量不一致而扭曲排布。\n",
-            f"![工作室风格相似度]({PNG['studio_sim']})\n",
-            f"![工作室风格散点]({PNG['studio_style_scatter']})\n",
+            "\n**图距离最近的工作室对（Top8，相似度=1/(1+图距离)）：**\n",
+            "| 工作室 A | 工作室 B | 相似度 | 图距离 |",
+            "|---|---|---|---|",
+        )
+        for a, b, s in res.artifacts["studio_style_summary"]["top_pairs"]:
+            res.write(f"| {a} | {b} | {s:.3f} | {1.0/s - 1.0:.2f} |")
+        res.write(
+            f"\n> 注：相似度来自「游戏-游戏图」的**最短路径距离**，而非手工特征——这与第二节的图谱、第三节的社区发现共用同一图结构。"
+            "散点用 **MDS 嵌入该图距离矩阵**，故「点越近≈图距离越近≈风格越接近」；颜色=主导玩法家族社区。"
+            "相似度取值 0~1（1=同一工作室的游戏几乎全连通、距离为 0）。\n",
+            f"![工作室风格相似度（图谱距离）]({PNG['studio_sim']})\n",
+            f"![工作室风格散点（图谱距离 MDS）]({PNG['studio_style_scatter']})\n",
         )
         return res
 

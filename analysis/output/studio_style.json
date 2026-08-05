@@ -1,83 +1,161 @@
 {
   "n_studios": 15,
-  "k_style": 4,
+  "n_communities": 14,
   "top_pairs": [
     [
       "贝塞斯达游戏工作室",
       "CD Projekt Red",
-      0.453
-    ],
-    [
-      "Rockstar 游戏",
-      "圣莫尼卡工作室",
-      0.266
-    ],
-    [
-      "贝塞斯达游戏工作室",
-      "Rockstar 游戏",
-      0.21
-    ],
-    [
-      "顽皮狗",
-      "圣莫尼卡工作室",
-      0.156
-    ],
-    [
-      "非理性游戏",
-      "拉瑞安工作室",
-      0.131
-    ],
-    [
-      "BioWare",
-      "CD Projekt Red",
-      0.125
-    ],
-    [
-      "Hazelight工作室",
-      "拉瑞安工作室",
-      0.097
+      0.699
     ],
     [
       "贝塞斯达游戏工作室",
       "FromSoftware（フロムソフトウェア）",
-      0.097
+      0.686
+    ],
+    [
+      "贝塞斯达游戏工作室",
+      "暴雪娱乐",
+      0.684
+    ],
+    [
+      "CD Projekt Red",
+      "FromSoftware（フロムソフトウェア）",
+      0.682
+    ],
+    [
+      "贝塞斯达游戏工作室",
+      "拉瑞安工作室",
+      0.682
+    ],
+    [
+      "暴雪娱乐",
+      "CD Projekt Red",
+      0.682
+    ],
+    [
+      "CD Projekt Red",
+      "拉瑞安工作室",
+      0.679
+    ],
+    [
+      "暴雪娱乐",
+      "FromSoftware（フロムソフトウェア）",
+      0.67
     ]
   ],
-  "clusters": [
+  "groups": [
     {
-      "cluster": 1,
+      "community": 0,
+      "label": "动作冒险、西部动作冒险",
       "studios": [
-        "贝塞斯达游戏工作室",
-        "BioWare",
-        "暴雪娱乐",
-        "CD Projekt Red",
-        "FromSoftware（フロムソフトウェア）",
-        "拉瑞安工作室",
-        "顽皮狗",
-        "任天堂企划制作本部（Nintendo Entertainment Planning & Development）",
         "Rockstar 游戏",
         "圣莫尼卡工作室"
-      ]
+      ],
+      "size": 2
     },
     {
-      "cluster": 2,
+      "community": 11,
+      "label": "3D平台跳跃、平台跳跃",
       "studios": [
-        "Asobi团队",
-        "非理性游戏",
-        "Telltale游戏"
-      ]
+        "Asobi团队"
+      ],
+      "size": 1
     },
     {
-      "cluster": 3,
+      "community": 4,
+      "label": "动作角色扮演、动作冒险",
+      "studios": [
+        "贝塞斯达游戏工作室"
+      ],
+      "size": 1
+    },
+    {
+      "community": 2,
+      "label": "角色扮演、科幻角色扮演",
+      "studios": [
+        "BioWare"
+      ],
+      "size": 1
+    },
+    {
+      "community": 5,
+      "label": "动作角色扮演、英雄射击",
+      "studios": [
+        "暴雪娱乐"
+      ],
+      "size": 1
+    },
+    {
+      "community": 9,
+      "label": "角色扮演、动作角色扮演",
+      "studios": [
+        "CD Projekt Red"
+      ],
+      "size": 1
+    },
+    {
+      "community": 7,
+      "label": "动作角色扮演、动作冒险",
+      "studios": [
+        "FromSoftware（フロムソフトウェア）"
+      ],
+      "size": 1
+    },
+    {
+      "community": 12,
+      "label": "合作冒险、动作冒险",
       "studios": [
         "Hazelight工作室"
-      ]
+      ],
+      "size": 1
     },
     {
-      "cluster": 4,
+      "community": 8,
+      "label": "第一人称射击、策略角色扮演",
+      "studios": [
+        "非理性游戏"
+      ],
+      "size": 1
+    },
+    {
+      "community": 6,
+      "label": "CRPG、动作角色扮演",
+      "studios": [
+        "拉瑞安工作室"
+      ],
+      "size": 1
+    },
+    {
+      "community": 1,
+      "label": "动作冒险、生存恐怖",
+      "studios": [
+        "顽皮狗"
+      ],
+      "size": 1
+    },
+    {
+      "community": 10,
+      "label": "动作冒险、第三人称射击",
+      "studios": [
+        "任天堂企划制作本部（Nintendo Entertainment Planning & Development）"
+      ],
+      "size": 1
+    },
+    {
+      "community": 13,
+      "label": "回合制角色扮演",
       "studios": [
         "沙落互动"
-      ]
+      ],
+      "size": 1
+    },
+    {
+      "community": 3,
+      "label": "冒险、互动电影冒险",
+      "studios": [
+        "Telltale游戏"
+      ],
+      "size": 1
     }
   ]
 }

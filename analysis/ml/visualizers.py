@@ -295,7 +295,7 @@ class StudioSimilarityViz(Visualizer):
         names = blob["studio_names"]
         M = np.array(blob["matrix"])
         fig, ax = plt.subplots(figsize=(10, 9))
-        im = ax.imshow(M, vmin=-1, vmax=1, cmap="RdBu_r")
+        im = ax.imshow(M, vmin=0, vmax=1, cmap="RdBu_r")
         ax.set_xticks(range(len(names))); ax.set_yticks(range(len(names)))
         ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
         ax.set_yticklabels(names, fontsize=8)
@@ -303,8 +303,8 @@ class StudioSimilarityViz(Visualizer):
             for j in range(len(names)):
                 v = M[i, j]
                 ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6,
-                        color="white" if abs(v) > 0.5 else "black")
-        ax.set_title("开发商游戏风格余弦相似度（排除声誉列）")
+                        color="white" if v > 0.55 else "black")
+        ax.set_title("开发商风格相似度（基于游戏-游戏图距离）")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         return _save(fig, self.filename, ctx.out_dir)
 
@@ -319,15 +319,18 @@ class StudioStyleScatterViz(Visualizer):
         if df is None:
             return None
         fig, ax = plt.subplots(figsize=(9, 8))
-        for c in sorted(df["style_cluster"].unique()):
-            sub = df[df["style_cluster"] == c]
-            ax.scatter(sub["style_x"], sub["style_y"], s=120, alpha=0.8,
-                       color=PALETTE[int(c) % len(PALETTE)], label=f"风格簇{c}")
+        comms = sorted(df["dominant_community"].unique())
+        cmap = {c: PALETTE[i % len(PALETTE)] for i, c in enumerate(comms)}
+        for c in comms:
+            sub = df[df["dominant_community"] == c]
+            lab = sub["dominant_community_label"].iloc[0]
+            ax.scatter(sub["style_x"], sub["style_y"], s=130, alpha=0.85,
+                       color=cmap[c], label=f"{lab}")
         for _, r in df.iterrows():
             ax.annotate(r["studio"], (r["style_x"], r["style_y"]), fontsize=7,
                         xytext=(4, 3), textcoords="offset points")
-        ax.set_xlabel("风格 MDS-1（基于余弦距离）"); ax.set_ylabel("风格 MDS-2（基于余弦距离）")
-        ax.set_title("开发商风格空间（点=工作室，色=风格簇；两点越近=余弦相似度越高）")
+        ax.set_xlabel("风格 MDS-1（基于图谱距离）"); ax.set_ylabel("风格 MDS-2（基于图谱距离）")
+        ax.set_title("开发商风格空间（点=工作室，色=主导玩法家族；两点越近=风格越接近）")
         ax.legend(fontsize=8, loc="best")
         ax.grid(alpha=0.3)
         return _save(fig, self.filename, ctx.out_dir)
