@@ -143,6 +143,43 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ---
 
+## ⚙️ 后台异步任务与探索开关（云端 demo）
+
+### 为什么需要异步任务
+社区发现 / 随机游走嵌入 / PageRank / 聚类等都是**耗时计算**。若同步在请求里跑，会阻塞用户、并容易把单进程服务器拖垮。因此探索改为**提交后台任务、前端轮询**：
+
+- `POST /api/jobs` 立即返回 `job_id`（状态 `pending`），计算在线程池后台跑；前端每 1s 轮询 `GET /api/jobs/{id}`，`pending→running→done/failed/canceled` 后渲染结果。**请求绝不阻塞用户流程。**
+- 内置**有界线程池**（默认并发 2）提供背压：超额任务排队为 `pending`，天然限制同时运行的重计算；并设**单用户待处理上限**（默认 5），超了直接 `429`，防止队列被刷爆。
+- 前端「后台任务」面板列出任务（状态徽章 / 查看结果 / 取消），满足**查看运行状态、运行结果**的后台任务管理需求。
+
+### 探索总开关（默认不开放，避免撑爆服务器）
+云端部署通过 `GOTY_ENABLE_EXPLORATION` 控制是否对用户开放数据挖掘/探索：
+
+| 取值 | 行为 |
+|------|------|
+| `false`（**默认**） | 只读快速模式：根路径 `/` 托管**原第一版** `site/index.html`（vis-network 图谱 + 表格双视图），用户只能浏览探索图谱/表格；`/api/jobs`、`/api/board` 返回 `403`。 |
+| `true` | 完整探索：根路径 `/` 托管探索 SPA（异步任务 + 参数调节 + 任务管理），`/graph/` 仍可看原 v1。 |
+
+> **本地快速模式**：本地直接 `make serve` 即为只读 v1（最快、等同第一版效果）。想在本地调试探索，设 `GOTY_ENABLE_EXPLORATION=true` 启动即可。
+
+### 轻量令牌门禁（轻量用户管理）
+开启探索后，可用 `GOTY_EXPLORE_TOKEN` 限定**谁能提交计算任务**（无需注册/密码/数据库）：
+
+- 未设令牌：开放提交，任务按访客 IP 归属（匿名身份）。
+- 设了令牌：提交/列出任务须带 `Authorization: Bearer <token>`（或 `X-Explore-Token` / `?token=`）。前端左侧「访问令牌」框粘贴后即生效（存于 localStorage）。不匹配返回 `401`。
+- 持令牌者访问 `GET /api/jobs?scope=all` 可查看**全部**任务，便于后台巡检。
+
+新增环境变量（叠加在安全节之上）：
+
+| 环境变量 | 含义 | 默认 |
+|----------|------|------|
+| `GOTY_ENABLE_EXPLORATION` | 是否开放数据挖掘/探索模式（默认关，只读浏览） | `false` |
+| `GOTY_EXPLORE_TOKEN` | 开启探索后提交任务所需的访问令牌（空=开放匿名） | 空 |
+| `GOTY_TASK_WORKERS` | 后台计算线程池并发数（背压） | `2` |
+| `GOTY_MAX_PENDING` | 单用户待处理任务上限（超出 429） | `5` |
+
+---
+
 ## 📁 目录结构
 
 ```
@@ -176,6 +213,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── models.py           # ParamSpec（参数 schema）+ 校验
 │   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
 │   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
+│   ├── tasks.py            # 后台异步任务管理器（有界线程池 + 待处理上限 + 归属）
 │   ├── ratelimit.py        # 限流 + 黑名单（含自动封禁）+ 客户端 IP 识别
 │   ├── logging_config.py   # 结构化请求 / 安全日志
 │   └── tools/              # 各探索板块（@register 自动发现）

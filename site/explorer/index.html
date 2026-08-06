@@ -22,6 +22,25 @@
   <div class="layout">
     <nav id="board-nav" class="sidebar" aria-label="探索板块"></nav>
 
+    <aside class="side-aux" aria-label="令牌与任务">
+      <details class="token-box" open>
+        <summary>访问令牌（可选）</summary>
+        <input id="explore-token" type="password" autocomplete="off"
+               placeholder="服务端若设了 GOTY_EXPLORE_TOKEN，在此粘贴" />
+        <p class="hint">本地无令牌时留空即可；云端带令牌才能提交任务。</p>
+      </details>
+
+      <section class="tasks-panel" aria-label="后台任务管理">
+        <div class="tasks-head">
+          <h3>后台任务</h3>
+          <button id="refresh-jobs" class="mini-btn" type="button">刷新</button>
+        </div>
+        <div id="tasks-list" class="tasks-list">
+          <p class="hint">提交计算后，任务在此显示状态与结果。</p>
+        </div>
+      </section>
+    </aside>
+
     <main class="main">
       <section id="board-header" class="board-header"></section>
 

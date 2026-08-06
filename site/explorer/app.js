@@ -1,9 +1,11 @@
 // GOTY 知识图谱 · 数据探索 SPA（原生 ES Module，无构建步骤）
-// 负责：板块导航 / 参数面板（依据 schema 自动生成）/ 调用 API /
-//       渲染可视化（network/heatmap/scatter/bar，纯 SVG）/ 双有效性解读框。
+// 负责：板块导航 / 参数面板（依据 schema 自动生成）/ 异步任务提交与轮询 /
+//       渲染可视化（network/heatmap/scatter/bar，纯 SVG）/ 双有效性解读框 /
+//       后台任务管理（状态 / 结果 / 取消）/ 访问令牌。
 
 const API_BASE = window.API_BASE || "";
 const API = `${API_BASE}/api`;
+const TOKEN_KEY = "goty_explore_token";
 
 const PALETTE = ["#f5b301", "#3b6ea5", "#27ae60", "#8e44ad", "#e74c3c",
   "#16a085", "#d35400", "#7f8c8d", "#2980b9", "#c0392b", "#2ecc71",
@@ -37,10 +39,9 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-async function fetchJSON(url, opts) {
+async function fetchJSON(url, opts = {}) {
   const r = await fetch(url, opts);
   if (!r.ok) {
-    // 服务端可能在 429/403 时返回 {error, message, retry_after}
     let detail = `${r.status} ${r.statusText}`;
     let retryAfter = null;
     try {
@@ -55,16 +56,17 @@ async function fetchJSON(url, opts) {
   }
   return r.json();
 }
-
-// 把 fetch 抛出的错误转成给用户的友好文案（限流 / 封禁 / 一般失败）
 function friendlyError(e) {
   if (e && e.status === 429) {
     const sec = e.retryAfter ? ` 约 ${e.retryAfter}s 后可重试` : "";
     return `请求过于频繁，已被限流。${sec}`;
   }
   if (e && e.status === 403) {
+    if (/exploration_disabled/.test(e.message || ""))
+      return "探索模式未开放：当前为只读浏览（仅图谱/表格）。";
     return `访问受限：您的地址已被加入黑名单，请联系管理员。`;
   }
+  if (e && e.status === 401) return "需要有效的访问令牌才能提交探索任务（在左侧粘贴令牌）。";
   return `请求失败：${e && e.message ? e.message : "未知错误"}`;
 }
 function showTip(html, ev) {
@@ -85,16 +87,45 @@ function hex2rgb(h) {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
+/* ---------------- 访问令牌 ---------------- */
+function getToken() {
+  const v = ($("#explore-token") && $("#explore-token").value) || "";
+  return v.trim();
+}
+function initToken() {
+  const box = $("#explore-token");
+  if (!box) return;
+  const saved = localStorage.getItem(TOKEN_KEY) || "";
+  box.value = saved;
+  box.addEventListener("input", () => {
+    localStorage.setItem(TOKEN_KEY, box.value.trim());
+  });
+}
+function authHeaders(extra = {}) {
+  const h = { "Content-Type": "application/json", ...extra };
+  const t = getToken();
+  if (t) h["Authorization"] = `Bearer ${t}`;
+  return h;
+}
+
 /* ---------------- 状态 ---------------- */
 let BOARDS = [];
 let CURRENT = null;
 let busy = false;
+let pollTimer = null;
+let currentJobId = null;
 
 /* ---------------- 初始化 ---------------- */
 async function init() {
+  initToken();
+  bindRefresh();
   try {
     const meta = await fetchJSON(`${API}/meta`);
     renderDataStatus(meta);
+    if (meta.exploration_enabled === false) {
+      showExplorationDisabled();
+      return;
+    }
     const data = await fetchJSON(`${API}/boards`);
     BOARDS = data.boards || [];
   } catch (e) {
@@ -103,6 +134,17 @@ async function init() {
   }
   renderNav();
   if (BOARDS.length) selectBoard(BOARDS[0].name);
+}
+
+function showExplorationDisabled() {
+  // 云端默认：只读浏览，隐藏探索控件，提示去看原图谱/表格
+  const aux = $(".side-aux");
+  if (aux) aux.style.display = "none";
+  const params = $("#params");
+  if (params) params.style.display = "none";
+  $("#result").innerHTML =
+    `<div class="info-msg">探索模式未开放（当前为只读浏览）。<br>` +
+    `请在右上角「原图谱浏览」查看交互式图谱与表格，或联系管理员开放数据挖掘模式。</div>`;
 }
 
 function renderDataStatus(meta) {
@@ -143,7 +185,7 @@ function selectBoard(name) {
     n.classList.toggle("active", n.getAttribute("data-name") === name));
   renderBoardHeader(CURRENT);
   renderParams(CURRENT);
-  runBoard();
+  submitJob(); // 选中板块即提交一次默认参数的后台任务
 }
 
 function renderBoardHeader(b) {
@@ -161,9 +203,8 @@ function defaultParams(b) {
 function renderParams(b) {
   const panel = $("#params");
   panel.innerHTML = "";
-  panel.appendChild(el("p", { class: "pp-title" }, "参数（调节后自动重算，并判定解读有效性）"));
+  panel.appendChild(el("p", { class: "pp-title" }, "参数（调节后点「应用参数」提交后台任务，并判定解读有效性）"));
 
-  // 按 group 分组（无 group 的归入「常规」）
   const groups = {};
   for (const p of b.params) {
     const g = p.group || "常规";
@@ -175,7 +216,7 @@ function renderParams(b) {
     for (const p of ps) g.appendChild(renderParamControl(p));
     panel.appendChild(g);
   }
-  const btn = el("button", { class: "apply-btn", onclick: runBoard }, "应用参数");
+  const btn = el("button", { class: "apply-btn", onclick: submitJob }, "应用参数");
   panel.appendChild(el("div", { style: "margin-top:14px" }, [btn]));
 }
 
@@ -185,7 +226,7 @@ function renderParamControl(p) {
   const ctl = el("div", { class: "ctl" });
 
   if (p.type === "select") {
-    const sel = el("select", { id: `p-${p.key}`, onchange: runBoard });
+    const sel = el("select", { id: `p-${p.key}` });
     for (const o of (p.options || [])) {
       const opt = el("option", { value: o }, o);
       if (o === p.default) opt.setAttribute("selected", "selected");
@@ -193,25 +234,21 @@ function renderParamControl(p) {
     }
     ctl.appendChild(sel);
   } else if (p.type === "bool") {
-    const cb = el("input", { id: `p-${p.key}`, type: "checkbox", onchange: runBoard });
+    const cb = el("input", { id: `p-${p.key}`, type: "checkbox" });
     if (p.default) cb.setAttribute("checked", "checked");
     ctl.appendChild(cb);
   } else { // int / float → 滑块
     const hasRange = typeof p.min === "number" && typeof p.max === "number";
     if (hasRange) {
+      const val = el("span", { class: "val" }, String(p.default));
       const range = el("input", {
         id: `p-${p.key}`, type: "range",
         min: p.min, max: p.max, step: p.step || 1, value: p.default,
         oninput: (e) => { val.textContent = e.target.value; },
-        onchange: runBoard,
       });
-      const val = el("span", { class: "val" }, String(p.default));
       ctl.appendChild(range); ctl.appendChild(val);
     } else {
-      const num = el("input", {
-        id: `p-${p.key}`, type: "number", value: p.default, onchange: runBoard,
-      });
-      ctl.appendChild(num);
+      ctl.appendChild(el("input", { id: `p-${p.key}`, type: "number", value: p.default }));
     }
   }
   row.appendChild(ctl);
@@ -232,20 +269,22 @@ function collectParams() {
   return out;
 }
 
-/* ---------------- 运行 + 渲染结果 ---------------- */
-async function runBoard() {
+/* ---------------- 异步任务提交 + 轮询 ---------------- */
+async function submitJob() {
   if (!CURRENT || busy) return;
   busy = true;
   const params = collectParams();
   const resultBox = $("#result");
-  resultBox.innerHTML = `<div class="loading-msg">计算中…</div>`;
+  resultBox.innerHTML = `<div class="loading-msg">已提交后台任务，计算中（不阻塞页面）…</div>`;
   try {
-    const res = await fetchJSON(`${API}/board/${CURRENT.name}`, {
+    const job = await fetchJSON(`${API}/jobs`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ params }),
+      headers: authHeaders(),
+      body: JSON.stringify({ board: CURRENT.name, params }),
     });
-    renderResult(res);
+    currentJobId = job.id;
+    loadJobs();
+    pollJob(job.id);
   } catch (e) {
     resultBox.innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
   } finally {
@@ -253,6 +292,108 @@ async function runBoard() {
   }
 }
 
+function pollJob(id) {
+  if (pollTimer) clearTimeout(pollTimer);
+  const tick = async () => {
+    try {
+      const job = await fetchJSON(`${API}/jobs/${id}`, { headers: authHeaders() });
+      const box = $("#result");
+      if (job.status === "pending") {
+        box.innerHTML = `<div class="loading-msg">排队中…（任务 ${id}）</div>`;
+        pollTimer = setTimeout(tick, 1000);
+      } else if (job.status === "running") {
+        box.innerHTML = `<div class="loading-msg">计算中…（任务 ${id}）</div>`;
+        pollTimer = setTimeout(tick, 1000);
+      } else if (job.status === "done") {
+        renderResult(job.result);
+        loadJobs();
+      } else if (job.status === "failed") {
+        box.innerHTML = `<div class="err-msg">任务失败：${esc(job.error || "未知错误")}</div>`;
+        loadJobs();
+      } else if (job.status === "canceled") {
+        box.innerHTML = `<div class="info-msg">任务已取消（${id}）。</div>`;
+        loadJobs();
+      }
+    } catch (e) {
+      $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+    }
+  };
+  tick();
+}
+
+/* ---------------- 后台任务管理 UI ---------------- */
+function bindRefresh() {
+  const btn = $("#refresh-jobs");
+  if (btn) btn.addEventListener("click", loadJobs);
+}
+async function loadJobs() {
+  const list = $("#tasks-list");
+  if (!list) return;
+  try {
+    const url = getToken() ? `${API}/jobs?scope=all` : `${API}/jobs`;
+    const data = await fetchJSON(url, { headers: authHeaders() });
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      list.innerHTML = `<p class="hint">暂无任务。调节参数后点「应用参数」提交。</p>`;
+      return;
+    }
+    list.innerHTML = "";
+    for (const j of jobs) list.appendChild(renderJobRow(j));
+  } catch (e) {
+    list.innerHTML = `<p class="err-msg">${esc(friendlyError(e))}</p>`;
+  }
+}
+function statusBadge(s) {
+  const map = {
+    pending: ["badge pending", "排队中"],
+    running: ["badge running", "计算中"],
+    done: ["badge done", "完成"],
+    failed: ["badge failed", "失败"],
+    canceled: ["badge canceled", "已取消"],
+  };
+  const [cls, label] = map[s] || ["badge", s];
+  return el("span", { class: cls }, label);
+}
+function renderJobRow(j) {
+  const row = el("div", { class: "job-row", "data-id": j.id });
+  row.appendChild(statusBadge(j.status));
+  row.appendChild(el("span", { class: "job-board" }, j.board));
+  row.appendChild(el("span", { class: "job-id" }, `#${j.id}`));
+  const actions = el("div", { class: "job-actions" });
+  if (j.status === "done") {
+    actions.appendChild(el("button", {
+      class: "mini-btn", type: "button",
+      onclick: () => showJobResult(j.id),
+    }, "结果"));
+  }
+  if (j.status === "pending" || j.status === "running") {
+    actions.appendChild(el("button", {
+      class: "mini-btn danger", type: "button",
+      onclick: () => cancelJob(j.id),
+    }, "取消"));
+  }
+  row.appendChild(actions);
+  return row;
+}
+async function showJobResult(id) {
+  try {
+    const job = await fetchJSON(`${API}/jobs/${id}`, { headers: authHeaders() });
+    if (job.status === "done") renderResult(job.result);
+    else $("#result").innerHTML = `<div class="info-msg">任务 ${id} 状态：${job.status}，暂无可渲染结果。</div>`;
+  } catch (e) {
+    $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+  }
+}
+async function cancelJob(id) {
+  try {
+    await fetchJSON(`${API}/jobs/${id}`, { method: "DELETE", headers: authHeaders() });
+    loadJobs();
+  } catch (e) {
+    $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+  }
+}
+
+/* ---------------- 渲染结果（原样复用） ---------------- */
 function renderValidityBanner(res) {
   const v = res.validity || {};
   if (v.data_matches_baseline === false) {
@@ -281,7 +422,6 @@ function renderResult(res) {
   const banner = renderValidityBanner(res);
   if (banner) box.appendChild(banner);
 
-  // 指标
   if (res.metrics && Object.keys(res.metrics).length) {
     const m = el("div", { class: "metrics" });
     for (const [k, v] of Object.entries(res.metrics)) {
@@ -297,17 +437,12 @@ function renderResult(res) {
 
   if (res.error) box.appendChild(el("div", { class: "err-msg" }, res.error));
 
-  // 面板（可视化）
   for (const panel of (res.panels || [])) {
     box.appendChild(renderPanel(panel));
   }
-
-  // 表格
   for (const t of (res.tables || [])) {
     box.appendChild(renderTable(t));
   }
-
-  // 解读
   if (res.interpretation) box.appendChild(renderInterpretation(res));
 }
 
@@ -336,7 +471,6 @@ function renderNetwork(data) {
   const sx = (x) => pad + ((x - minX) / (maxX - minX || 1)) * (W - 2 * pad);
   const sy = (y) => pad + ((y - minY) / (maxY - minY || 1)) * (H - 2 * pad);
 
-  // 社区配色
   const commIds = [...new Set(nodes.map((n) => n.community))].sort((a, b) => a - b);
   const commColor = {};
   commIds.forEach((c, i) => { commColor[c] = PALETTE[i % PALETTE.length]; });
@@ -360,13 +494,11 @@ function renderNetwork(data) {
     c.addEventListener("mouseleave", hideTip);
     s.appendChild(c);
   }
-  // GOTY 标签
   for (const n of nodes) {
     if (!n.goty) continue;
     s.appendChild(svg("text", { x: sx(n.x) + 9, y: sy(n.y) + 3,
       fill: "#e6e9ef", "font-size": 9, "pointer-events": "none" }, n.label));
   }
-  // 图例
   const legend = el("div", { class: "legend" });
   for (const c of commIds) {
     legend.appendChild(el("span", { class: "li" }, [
@@ -374,8 +506,7 @@ function renderNetwork(data) {
       `C${c}`,
     ]));
   }
-  const wrap = el("div", {}, [s, legend]);
-  return wrap;
+  return el("div", {}, [s, legend]);
 }
 
 /* ---------------- 热力图 ---------------- */
@@ -391,12 +522,10 @@ function renderHeatmap(data) {
   const s = svg("svg", { class: "chart-svg", viewBox: `0 0 ${W} ${H}`, role: "img" });
 
   for (let i = 0; i < N; i++) {
-    // 旋转列标签
     const colLabel = svg("text", { class: "heat-axis", x: labW + i * cell + cell / 2,
       y: labH - 8, "text-anchor": "start", transform: `rotate(-55 ${labW + i * cell + cell / 2} ${labH - 8})` });
     colLabel.textContent = labels[i];
     s.appendChild(colLabel);
-    // 行标签
     const rowLabel = svg("text", { class: "heat-axis", x: labW - 6, y: labH + i * cell + cell / 2 + 3,
       "text-anchor": "end" });
     rowLabel.textContent = labels[i];
@@ -431,7 +560,6 @@ function renderScatter(data) {
   const sy = (y) => H - pad - ((y - minY) / (maxY - minY || 1)) * (H - 2 * pad);
 
   const s = svg("svg", { class: "chart-svg", viewBox: `0 0 ${W} ${H}`, role: "img" });
-  // 轴线
   s.appendChild(svg("line", { x1: pad, y1: H - pad, x2: W - pad, y2: H - pad, stroke: "#3a4252", "stroke-width": 1 }));
   s.appendChild(svg("line", { x1: pad, y1: pad, x2: pad, y2: H - pad, stroke: "#3a4252", "stroke-width": 1 }));
   for (const sr of series) {
