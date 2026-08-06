@@ -10,8 +10,15 @@ FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/python:3.11-slim-linuxar
 WORKDIR /app
 
 # 先装依赖（利用层缓存）
+# 注：构建环境连 pypi.org 不稳定（SSL EOF），改用国内镜像并加重试/超时。
+# 如在海外构建，可把 PIP_INDEX 传回官方源：docker build --build-arg PIP_INDEX=https://pypi.org/simple .
+ARG PIP_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    --index-url ${PIP_INDEX} \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    --retries 5 --timeout 60 \
+    -r requirements.txt
 
 # 复制全部源码（api/ 复用 analysis/ml/ 计算模块）
 COPY . .
