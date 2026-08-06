@@ -278,21 +278,25 @@ def cancel_job(job_id: str, request: Request):
 
 
 # 静态资源：先注册 API 路由，最后按模式挂载静态目录。
-# 探索开启 → / 探索 SPA，/graph/ 原 v1；探索关闭（默认/快速模式）→ / 原 v1 只读浏览。
+# 无论是否开启探索，根路径 "/" 都默认承载「原始数据页 + 原始洞察页」(v1 只读浏览)；
+# 探索 SPA 仅在开启时挂到 "/explore"，需用户主动进入，绝不作为默认落地页。
 @app.get("/graph")
-def redirect_graph():
-    """原图谱页挂载在 /graph/，无尾斜杠时重定向，避免裸 /graph 404。"""
-    return RedirectResponse(url="/graph/", status_code=307)
+@app.get("/graph/")
+def redirect_graph_to_root():
+    """旧书签 /graph/ 直接跳回根（v1 原始页）。"""
+    return RedirectResponse(url="/", status_code=307)
 
 
 if EXPLORATION_ENABLED:
-    # 注意：必须先挂载更具体的 /graph，否则根挂载 "/" 作为 catch-all 会
-    # 先拦截 /graph/*（把剩余路径 graph/ 交给 explorer 的 StaticFiles 去找
-    # site/explorer/graph/index.html，找不到 → 404）。/graph 注册在后才轮不到。
-    if os.path.isdir(SITE_DIR):
-        app.mount("/graph", StaticFiles(directory=SITE_DIR, html=True), name="graph")
+    # 先挂具体的 /explore，再挂根 "/"（catch-all），否则根会吞掉 /explore/*。
+    @app.get("/explore")
+    def redirect_explore():
+        return RedirectResponse(url="/explore/", status_code=307)
+
     if os.path.isdir(EXPLORER_DIR):
-        app.mount("/", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")
+        app.mount("/explore", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")
+    if os.path.isdir(SITE_DIR):
+        app.mount("/", StaticFiles(directory=SITE_DIR, html=True), name="graph")
 else:
     if os.path.isdir(SITE_DIR):
         app.mount("/", StaticFiles(directory=SITE_DIR, html=True), name="graph")

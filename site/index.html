@@ -102,6 +102,7 @@
   <button class="btn" id="expandAll" title="展开所有分支">⊞ 展开全部</button>
   <button class="btn" id="reset">重置</button>
   <button class="btn primary" id="toggleView">表格视图</button>
+  <a class="btn primary" id="exploreEntry" href="/explore" style="display:none;text-decoration:none">开始数据探索 →</a>
 </div>
 
 <div class="main">
@@ -503,6 +504,20 @@ function toggleView(){
 document.getElementById('toggleView').onclick=toggleView;
 
 applyFilters();
+</script>
+<script>
+// 若服务端开启数据探索，在工具栏显示「开始数据探索」入口（不阻塞首屏渲染）
+(function () {
+  try {
+    fetch('/api/meta').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) {
+        if (m && m.exploration_enabled) {
+          var a = document.getElementById('exploreEntry');
+          if (a) a.style.display = '';
+        }
+      }).catch(function () {});
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
