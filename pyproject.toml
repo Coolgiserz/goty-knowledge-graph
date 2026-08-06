@@ -22,6 +22,10 @@ analysis = [
     "matplotlib>=3.8",
     "infomap>=2.0",
 ]
+# 可选图后端：选 neo4j 时再装（默认网络内存 networkx，无需此依赖）
+neo4j = [
+    "neo4j>=5.0",
+]
 
 [dependency-groups]
 dev = [

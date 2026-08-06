@@ -281,6 +281,52 @@ make ci          # 本地跑一遍 CI 等价步骤（lint + test + perf）
 
 ---
 
+## 🕸 可选图后端（Neo4j + 更丰富的查询/检索）
+
+后端把「图查询」抽象成 `api/graph_store.GraphStore`，默认用**内存 networkx**（零依赖、离线可用，也就是当前 API 的数据底座）。当你想要 Cypher 式的多跳遍历、路径查询、未来接 GraphRAG 时，可以把后端切换到 **Neo4j**——**默认仍是 networkx，零回退风险**。
+
+**新增的只读图查询接口（无论探索开关是否开启都可访问）：**
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/graph/search?q=&limit=` | 关键词检索节点（标签 / 标题 / 名称 / 开发商…） |
+| `GET /api/graph/node/{id}` | 取单个节点详情 |
+| `GET /api/graph/traverse?start=&hops=&types=` | 以某节点为中心做多跳邻居展开（子图，供可视化） |
+| `GET /api/graph/path?a=&b=` | 两节点间最短路径 |
+
+> 这些端点默认走 networkx 就已可用；切到 Neo4j 后只是把底层查询换成 Cypher，接口与响应结构不变。
+
+### 切换到 Neo4j（可选）
+
+1. 起一个开发用 Neo4j（**非默认端口**，避免抢占你本机已有实例）：
+
+   ```bash
+   make neo4j-dev     # HTTP 7475 / Bolt 7688，容器名 neo4j-goty-dev，自动执行 init.cypher 导入
+   # 停止： make neo4j-stop    重新导出 CSV： make neo4j-export
+   ```
+
+2. 装 driver 并打开开关（driver 为可选依赖，默认镜像不含）：
+
+   ```bash
+   uv pip install ".[neo4j]"                       # 或 pip install neo4j>=5.0
+   export GOTY_GRAPH_BACKEND=neo4j
+   export GOTY_NEO4J_URI=bolt://localhost:7688
+   export GOTY_NEO4J_USER=neo4j
+   export GOTY_NEO4J_PASSWORD=password123
+   make serve          # 重启后端，/api/meta 的 graph_backend 会显示 neo4j
+   ```
+
+**健壮性**：若显式选了 `neo4j` 但连不上（驱动缺失 / 实例没起），工厂会**自动回退**到 networkx 并打告警，API 永不因此整体崩溃；查询时则统一返回 `503 graph_backend_unavailable`。
+
+### 长期路线：GraphRAG 基础
+
+当前已具备「单一数据源 → CSV → Neo4j」的同步链路（`src/build.py` 导 CSV、`scripts/init.cypher` 导入）。把后端接到 Neo4j 后，后续可平滑演进：
+
+- **Phase 2（图分析）**：用 Neo4j GDS 的中心性 / 社区发现 / 节点相似，替代或增强现有 `analysis/ml` 自研管线。
+- **Phase 3（GraphRAG + Agent）**：在 Neo4j 内建向量索引 + LLM 生成节点 / 社区摘要，再用 Agent 做自然语言探索（涉及 API key / 成本 / 评测，另行决策）。
+
+---
+
 ## 🧠 数据模型
 
 **节点（标签）**：`Game`、`Studio`、`Genre`、`Award`

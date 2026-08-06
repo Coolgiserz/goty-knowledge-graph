@@ -25,6 +25,7 @@ class MetaResponse(BaseModel):
     sha256: str
     data_matches_baseline: bool | None
     exploration_enabled: bool
+    graph_backend: str
     boards: list[MetaBoardSummary]
 
 

@@ -8,6 +8,7 @@
 from fastapi import Depends, HTTPException, Request
 
 from .config import Settings
+from .graph_store import GraphStore
 from .security import SecurityContext
 from .tasks import TaskManager
 
@@ -27,6 +28,11 @@ def get_security(request: Request) -> SecurityContext:
 
 def get_tasks(request: Request) -> TaskManager:
     return request.app.state.tasks_mgr
+
+
+def get_graph_store_dep(request: Request) -> GraphStore:
+    """返回本应用实例的图存储后端（来自 ``app.state.graph_store``，工厂注入）。"""
+    return request.app.state.graph_store
 
 
 def require_exploration(settings: Settings = Depends(get_settings_dep)) -> None:

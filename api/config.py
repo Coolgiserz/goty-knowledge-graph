@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     blacklist_file: str = ""
     blacklist: str = ""  # 逗号分隔的永久封禁 IP 种子
 
+    # ---- 图后端：networkx（默认，内存）| neo4j（可选，Cypher 查询）----
+    # 选 neo4j 时需同时提供连接信息；连不上会自动回退到 networkx（见 api.graph_store）。
+    graph_backend: str = "networkx"
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = ""
+
     # ---- 日志 ----
     log_level: str = "INFO"
     log_file: str = ""

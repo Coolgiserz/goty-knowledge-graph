@@ -27,8 +27,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from . import tools  # 触发板块注册（导入即注册）  # noqa: F401
 from .config import Settings, get_settings
+from .graph_store import get_graph_store
 from .logging_config import setup_logging
-from .routers import boards, jobs, meta
+from .routers import boards, graph, jobs, meta
 from .security import SecurityContext
 from .tasks import TaskManager
 
@@ -139,6 +140,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     security = SecurityContext(settings)
     tasks_mgr = TaskManager(settings.task_workers, settings.max_pending)
+    graph_store = get_graph_store(settings)
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
@@ -148,6 +150,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.security = security
     app.state.tasks_mgr = tasks_mgr
+    app.state.graph_store = graph_store
 
     app.add_middleware(
         CORSMiddleware,
@@ -160,6 +163,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(meta.router)
     app.include_router(boards.router)
     app.include_router(jobs.router)
+    app.include_router(graph.router)
 
     @app.get("/graph")
     @app.get("/graph/")

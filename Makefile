@@ -5,6 +5,10 @@
 #   make serve-static 仅静态网站（无需后端）
 #   make build        重新生成数据集与网站
 #   make run          Docker 运行（默认只读洞察；EXPLORATION=true 可开探索）
+# Neo4j（可选图后端）：
+#   make neo4j-dev    起开发用 Neo4j（非默认端口）+ 自动导入，供后端可选查询层试跑
+#   make neo4j-stop   停止开发用 Neo4j 容器
+#   make neo4j-export 重新从 graph.json 导出 CSV
 # 工程化：
 #   make install      安装依赖（uv sync）+ 安装 pre-commit 钩子
 #   make lint         ruff lint + format 检查
@@ -18,8 +22,8 @@ PORT ?= 8080
 IMG ?= goty-knowledge-graph
 EXPLORATION ?= false   # 洞察模式=false（默认，只读）/ 探索模式=true
 
-.PHONY: all build site insight serve serve-static docker run up down neo4j analysis \
-        install lint test test-perf ci clean help
+.PHONY: all build site insight serve serve-static docker run up down neo4j neo4j-dev \
+        neo4j-stop neo4j-export analysis install lint test test-perf ci clean help
 
 all: build
 
@@ -58,9 +62,22 @@ up:
 down:
 	docker-compose down
 
-## neo4j：单独起一个 Neo4j 并自动导入数据集
+## neo4j：单独起一个 Neo4j 并自动导入数据集（默认端口 7474/7687）
 neo4j:
 	bash scripts/neo4j_import.sh
+
+## neo4j-dev：起一个【开发用】Neo4j（非默认端口 7475/7688，容器名 neo4j-goty-dev）并导入
+##   用于本地试跑后端可选查询层（GOTY_GRAPH_BACKEND=neo4j），不抢占你本机已有实例。
+neo4j-dev:
+	bash scripts/neo4j_dev.sh
+
+## neo4j-stop：停止并移除开发用 Neo4j 容器（保留数据卷加 -v 可删）
+neo4j-stop:
+	docker rm -f neo4j-goty-dev
+
+## neo4j-export：确保 CSV 已从 graph.json 重新导出（经 src/build.py）
+neo4j-export:
+	$(PY) src/build.py
 
 ## analysis：运行数据挖掘/统计机器学习流水线（生成报告与 PNG）
 analysis:
