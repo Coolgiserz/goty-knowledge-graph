@@ -4,12 +4,14 @@
 本身的类型构成随时间的变化（每年 1 款、两半段各 10 款，样本固定、无分母偏差）。
 参数：前后半段分界年 split_year。
 """
+
 from collections import Counter
 
-from ..registry import ExplorationTool, register
-from ..models import ParamSpec
-from ..graph_loader import GAMES, STUDIO_NAME, data_matches_baseline
 from analysis.ml.config import MLConfig
+
+from ..graph_loader import GAMES, STUDIO_NAME
+from ..models import ParamSpec
+from ..registry import ExplorationTool, register
 
 
 @register
@@ -19,9 +21,16 @@ class HotspotTool(ExplorationTool):
     description = "GOTY 获奖作的类型构成随时间的上升 / 下降趋势。"
 
     params = [
-        ParamSpec("split_year", "前后半段分界年", "int", 2015,
-                  min=2010, max=2020, step=1,
-                  help="此前为前半段、此后为后半段，用于比较上升/下降"),
+        ParamSpec(
+            "split_year",
+            "前后半段分界年",
+            "int",
+            2015,
+            min=2010,
+            max=2020,
+            step=1,
+            help="此前为前半段、此后为后半段，用于比较上升/下降",
+        ),
     ]
     interpretation_defaults = {"split_year": 2015}
     interpretation = (
@@ -37,10 +46,13 @@ class HotspotTool(ExplorationTool):
         dd = MLConfig().design_dims
         YEAR_LO, YEAR_HI = 2006, 2025
         years = list(range(YEAR_LO, YEAR_HI + 1))
-        goty = [n for n in GAMES
-                if n["raw"].get("is_goty")
-                and isinstance(n["raw"].get("year"), int)
-                and YEAR_LO <= n["raw"]["year"] <= YEAR_HI]
+        goty = [
+            n
+            for n in GAMES
+            if n["raw"].get("is_goty")
+            and isinstance(n["raw"].get("year"), int)
+            and YEAR_LO <= n["raw"]["year"] <= YEAR_HI
+        ]
         goty_sorted = sorted(goty, key=lambda n: n["raw"]["year"])
 
         year_tag = {y: Counter() for y in years}
@@ -71,13 +83,17 @@ class HotspotTool(ExplorationTool):
         trend = []
         for t in key_set:
             a, b = t1.get(t, 0), t2.get(t, 0)
-            trend.append({
-                "tag": t, "first": a, "second": b,
-                "first_pp": round(100.0 * a / n1, 1) if n1 else 0.0,
-                "second_pp": round(100.0 * b / n2, 1) if n2 else 0.0,
-                "delta_pp": round(100.0 * (b - a) / n1, 1) if n1 else 0.0,
-                "is_design": t in dd,
-            })
+            trend.append(
+                {
+                    "tag": t,
+                    "first": a,
+                    "second": b,
+                    "first_pp": round(100.0 * a / n1, 1) if n1 else 0.0,
+                    "second_pp": round(100.0 * b / n2, 1) if n2 else 0.0,
+                    "delta_pp": round(100.0 * (b - a) / n1, 1) if n1 else 0.0,
+                    "is_design": t in dd,
+                }
+            )
         rising = sorted([x for x in trend if x["delta_pp"] > 0], key=lambda x: -x["delta_pp"])
         falling = sorted([x for x in trend if x["delta_pp"] < 0], key=lambda x: x["delta_pp"])
 
@@ -93,10 +109,16 @@ class HotspotTool(ExplorationTool):
             "data": {
                 "categories": [t["tag"] for t in trend],
                 "series": [
-                    {"name": f"≤{split}", "color": "#3b6ea5",
-                     "values": [t["first_pp"] for t in trend]},
-                    {"name": f">{split}", "color": "#f5b301",
-                     "values": [t["second_pp"] for t in trend]},
+                    {
+                        "name": f"≤{split}",
+                        "color": "#3b6ea5",
+                        "values": [t["first_pp"] for t in trend],
+                    },
+                    {
+                        "name": f">{split}",
+                        "color": "#f5b301",
+                        "values": [t["second_pp"] for t in trend],
+                    },
                 ],
                 "horizontal": True,
             },
@@ -104,16 +126,27 @@ class HotspotTool(ExplorationTool):
         table = {
             "title": "类型趋势（上升 / 下降）",
             "columns": ["类型", "前pp", "后pp", "Δpp", "设计维度"],
-            "rows": [[t["tag"], t["first_pp"], t["second_pp"], t["delta_pp"],
-                      "是" if t["is_design"] else ""]
-                     for t in (rising + falling)],
+            "rows": [
+                [
+                    t["tag"],
+                    t["first_pp"],
+                    t["second_pp"],
+                    t["delta_pp"],
+                    "是" if t["is_design"] else "",
+                ]
+                for t in (rising + falling)
+            ],
         }
         table2 = {
             "title": "GOTY 主导工作室（夺冠次数）",
             "columns": ["工作室", "GOTY次数"],
             "rows": [[s["studio"], s["wins"]] for s in studio_tally[:8]],
         }
-        metrics = {"n_first_half": n1, "n_second_half": n2, "split_year": split,
-                   "rising": [t["tag"] for t in rising[:5]],
-                   "falling": [t["tag"] for t in falling[:5]]}
+        metrics = {
+            "n_first_half": n1,
+            "n_second_half": n2,
+            "split_year": split,
+            "rising": [t["tag"] for t in rising[:5]],
+            "falling": [t["tag"] for t in falling[:5]],
+        }
         return {"panels": [bar], "tables": [table, table2], "metrics": metrics}

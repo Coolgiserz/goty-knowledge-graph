@@ -10,6 +10,7 @@
   - interpretation_valid：当前参数是否仍在解读默认值范围内
     （用户调节了会改变结论的参数 → 预写解读失效，前端置灰）
 """
+
 from .models import coerce_params
 
 _REGISTRY = {}
@@ -19,9 +20,9 @@ class ExplorationTool:
     name = ""
     label = ""
     description = ""
-    params = []                    # [ParamSpec]
-    interpretation = ""           # 默认参数下的解读（markdown）
-    interpretation_defaults = {}   # {key: value} 解读所假设的默认参数
+    params = []  # [ParamSpec]
+    interpretation = ""  # 默认参数下的解读（markdown）
+    interpretation_defaults = {}  # {key: value} 解读所假设的默认参数
 
     def run(self, params):
         """传入已校验的参数 dict，返回

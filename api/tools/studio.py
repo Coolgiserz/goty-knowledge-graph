@@ -4,17 +4,18 @@
 rw_game_embeddings（随机游走嵌入，二阶/多跳邻近性）。
 参数：视角(sp/rw/both) + 随机游走超参；解读默认 = both + 随机游走默认超参。
 """
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from scipy.stats import spearmanr
 
-from ..registry import ExplorationTool, register
-from ..models import ParamSpec
-from ..graph_loader import GG, G_FULL, GAMES, STUDIO_NAME, data_matches_baseline
-from analysis.ml.similarity import sp_studio_similarity
-from analysis.ml.embeddings import rw_game_embeddings
-from analysis.ml.config import RandomWalkConfig
+import numpy as np
 from analysis.ml.analyzers import _mds_coords
+from analysis.ml.config import RandomWalkConfig
+from analysis.ml.embeddings import rw_game_embeddings
+from analysis.ml.similarity import sp_studio_similarity
+from scipy.stats import spearmanr
+from sklearn.metrics.pairwise import cosine_similarity
+
+from ..graph_loader import G_FULL, GAMES, GG, STUDIO_NAME
+from ..models import ParamSpec
+from ..registry import ExplorationTool, register
 
 
 @register
@@ -24,24 +25,66 @@ class StudioTool(ExplorationTool):
     description = "最短路径（一阶）与随机游走嵌入（多跳）两种视角并存，度量工作室风格接近度。"
 
     params = [
-        ParamSpec("lens", "视角", "select", "both",
-                  options=["both", "sp", "rw"],
-                  help="最短路径(sp) / 随机游走嵌入(rw) / 两者(both)"),
-        ParamSpec("num_walks", "随机游走次数", "int", 25,
-                  min=5, max=60, step=5, group="随机游走",
-                  help="每个游戏节点起始的游走次数"),
-        ParamSpec("walk_len", "游走步数", "int", 40,
-                  min=10, max=80, step=10, group="随机游走",
-                  help="每次游走步数"),
-        ParamSpec("window", "共现窗口", "int", 5,
-                  min=2, max=15, step=1, group="随机游走",
-                  help="共现上下文窗口"),
-        ParamSpec("embed_dim", "嵌入维度", "int", 24,
-                  min=4, max=48, step=4, group="随机游走",
-                  help="SVD 嵌入维度"),
+        ParamSpec(
+            "lens",
+            "视角",
+            "select",
+            "both",
+            options=["both", "sp", "rw"],
+            help="最短路径(sp) / 随机游走嵌入(rw) / 两者(both)",
+        ),
+        ParamSpec(
+            "num_walks",
+            "随机游走次数",
+            "int",
+            25,
+            min=5,
+            max=60,
+            step=5,
+            group="随机游走",
+            help="每个游戏节点起始的游走次数",
+        ),
+        ParamSpec(
+            "walk_len",
+            "游走步数",
+            "int",
+            40,
+            min=10,
+            max=80,
+            step=10,
+            group="随机游走",
+            help="每次游走步数",
+        ),
+        ParamSpec(
+            "window",
+            "共现窗口",
+            "int",
+            5,
+            min=2,
+            max=15,
+            step=1,
+            group="随机游走",
+            help="共现上下文窗口",
+        ),
+        ParamSpec(
+            "embed_dim",
+            "嵌入维度",
+            "int",
+            24,
+            min=4,
+            max=48,
+            step=4,
+            group="随机游走",
+            help="SVD 嵌入维度",
+        ),
     ]
-    interpretation_defaults = {"lens": "both", "num_walks": 25,
-                              "walk_len": 40, "window": 5, "embed_dim": 24}
+    interpretation_defaults = {
+        "lens": "both",
+        "num_walks": 25,
+        "walk_len": 40,
+        "window": 5,
+        "embed_dim": 24,
+    }
     interpretation = (
         "**默认参数下（双视角 + 随机游走默认超参）的结论**：两种视角下，RPG / 动作 RPG 厂"
         "（贝塞斯达、CD Projekt Red、FromSoftware 等）都明显相近；两视角**距离排序的 Spearman"
@@ -57,10 +100,15 @@ class StudioTool(ExplorationTool):
         sim_sp, studio_ids = sp_studio_similarity(GG, GAMES)
 
         rw_cfg = RandomWalkConfig(
-            num_walks=params["num_walks"], walk_len=params["walk_len"],
-            window=params["window"], embed_dim=params["embed_dim"], seed=42)
+            num_walks=params["num_walks"],
+            walk_len=params["walk_len"],
+            window=params["window"],
+            embed_dim=params["embed_dim"],
+            seed=42,
+        )
         emb, gi = rw_game_embeddings(G_FULL, GAMES, rw_cfg)
         from collections import defaultdict
+
         by_studio = defaultdict(list)
         for n in GAMES:
             gid = n["id"]
@@ -79,21 +127,28 @@ class StudioTool(ExplorationTool):
                 "title": f"工作室风格相似度（{suffix}）",
                 "data": {
                     "labels": names,
-                    "matrix": [[round(float(sim[i, j]), 3) for j in range(len(names))]
-                              for i in range(len(names))],
-                    "lowColor": "#1f232c", "highColor": "#f5b301",
+                    "matrix": [
+                        [round(float(sim[i, j]), 3) for j in range(len(names))]
+                        for i in range(len(names))
+                    ],
+                    "lowColor": "#1f232c",
+                    "highColor": "#f5b301",
                 },
             }
 
         def _scatter(sim, suffix):
             coords = _mds_coords(sim, random_state=42)
-            points = [[round(float(coords[i, 0]), 3), round(float(coords[i, 1]), 3), names[i]]
-                      for i in range(len(names))]
+            points = [
+                [round(float(coords[i, 0]), 3), round(float(coords[i, 1]), 3), names[i]]
+                for i in range(len(names))
+            ]
             return {
                 "type": "scatter",
                 "title": f"工作室风格空间（{suffix}，MDS）",
-                "data": {"series": [{"name": suffix, "color": "#3b6ea5", "points": points}],
-                         "caption": "点越近 ≈ 风格越接近"},
+                "data": {
+                    "series": [{"name": suffix, "color": "#3b6ea5", "points": points}],
+                    "caption": "点越近 ≈ 风格越接近",
+                },
             }
 
         def _top_pairs(sim):
@@ -108,25 +163,31 @@ class StudioTool(ExplorationTool):
         if lens in ("both", "sp"):
             panels.append(_heat(sim_sp, "最短路径"))
             panels.append(_scatter(sim_sp, "最短路径"))
-            tables.append({
-                "title": "最相似工作室对（最短路径，Top8）",
-                "columns": ["工作室 A", "工作室 B", "相似度"],
-                "rows": [[a, b, s] for a, b, s in _top_pairs(sim_sp)],
-            })
+            tables.append(
+                {
+                    "title": "最相似工作室对（最短路径，Top8）",
+                    "columns": ["工作室 A", "工作室 B", "相似度"],
+                    "rows": [[a, b, s] for a, b, s in _top_pairs(sim_sp)],
+                }
+            )
         if lens in ("both", "rw"):
             panels.append(_heat(sim_rw, "随机游走"))
             panels.append(_scatter(sim_rw, "随机游走"))
-            tables.append({
-                "title": "最相似工作室对（随机游走，Top8）",
-                "columns": ["工作室 A", "工作室 B", "余弦相似度"],
-                "rows": [[a, b, s] for a, b, s in _top_pairs(sim_rw)],
-            })
+            tables.append(
+                {
+                    "title": "最相似工作室对（随机游走，Top8）",
+                    "columns": ["工作室 A", "工作室 B", "余弦相似度"],
+                    "rows": [[a, b, s] for a, b, s in _top_pairs(sim_rw)],
+                }
+            )
 
-        tables.append({
-            "title": "工作室列表",
-            "columns": ["工作室", "作品数"],
-            "rows": [[names[i], len(by_studio[studio_ids[i]])] for i in range(len(studio_ids))],
-        })
+        tables.append(
+            {
+                "title": "工作室列表",
+                "columns": ["工作室", "作品数"],
+                "rows": [[names[i], len(by_studio[studio_ids[i]])] for i in range(len(studio_ids))],
+            }
+        )
 
         metrics = {"n_studios": len(studio_ids)}
         if lens == "both":

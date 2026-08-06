@@ -1,0 +1,26 @@
+# 提交前自动静态检查：ruff lint + format。
+# 由 Makefile 的 `make install` 安装钩子（pre-commit install）。
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        # lint（含 --fix 自动修复可修复项）
+        args: [--fix]
+      - id: ruff-format
+        # 代码格式化（与 pyproject.toml [tool.ruff.format] 配置一致）
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(data/|site/|uv.lock|requirements.lock.txt)
+      - id: end-of-file-fixer
+        exclude: ^(data/|site/|uv.lock|requirements.lock.txt)
+      - id: check-yaml
+        exclude: ^(.github/workflows/)
+      - id: check-added-large-files
+        args: [--maxkb=2000]

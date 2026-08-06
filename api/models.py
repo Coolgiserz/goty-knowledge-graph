@@ -9,14 +9,25 @@
 class ParamSpec:
     """单个可调参数的声明（前端据此渲染控件，后端据此校验/转换）。"""
 
-    def __init__(self, key, label, type, default, *,
-                 options=None, min=None, max=None, step=None,
-                 help="", group=""):
+    def __init__(
+        self,
+        key,
+        label,
+        type,
+        default,
+        *,
+        options=None,
+        min=None,
+        max=None,
+        step=None,
+        help="",
+        group="",
+    ):
         self.key = key
         self.label = label
-        self.type = type            # select | int | float | bool
+        self.type = type  # select | int | float | bool
         self.default = default
-        self.options = options      # select 类型的可选项
+        self.options = options  # select 类型的可选项
         self.min = min
         self.max = max
         self.step = step
@@ -25,10 +36,16 @@ class ParamSpec:
 
     def to_dict(self):
         return {
-            "key": self.key, "label": self.label, "type": self.type,
-            "default": self.default, "options": self.options,
-            "min": self.min, "max": self.max, "step": self.step,
-            "help": self.help, "group": self.group,
+            "key": self.key,
+            "label": self.label,
+            "type": self.type,
+            "default": self.default,
+            "options": self.options,
+            "min": self.min,
+            "max": self.max,
+            "step": self.step,
+            "help": self.help,
+            "group": self.group,
         }
 
     def coerce(self, v):

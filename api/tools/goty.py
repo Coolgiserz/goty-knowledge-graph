@@ -4,10 +4,12 @@
 注意：该分数与工作室在图中的体量 / GOTY 种子数高度相关，应作为
 「工作室声望代理」来解读，而非纯粹的玩法相似度（见批判性反思文档）。
 """
-from ..registry import ExplorationTool, register
-from ..models import ParamSpec
-from ..graph_loader import G_FULL, GAMES, STUDIO_NAME, data_matches_baseline
+
 from analysis.ml.affinity import goty_pagerank
+
+from ..graph_loader import G_FULL, GAMES, STUDIO_NAME
+from ..models import ParamSpec
+from ..registry import ExplorationTool, register
 
 
 @register
@@ -17,12 +19,19 @@ class GotyTool(ExplorationTool):
     description = "从全部年度最佳(GOTY)出发做个性化 PageRank，得到「喜欢 GOTY 的人还会喜欢谁」。"
 
     params = [
-        ParamSpec("alpha", "PageRank 阻尼 α", "float", 0.85,
-                  min=0.1, max=0.99, step=0.05,
-                  help="越大越贴近 GOTY 种子（局部），越小越扩散到全场"),
-        ParamSpec("top_n", "推荐条数", "int", 10,
-                  min=3, max=20, step=1,
-                  help="推荐 / 榜单展示条数"),
+        ParamSpec(
+            "alpha",
+            "PageRank 阻尼 α",
+            "float",
+            0.85,
+            min=0.1,
+            max=0.99,
+            step=0.05,
+            help="越大越贴近 GOTY 种子（局部），越小越扩散到全场",
+        ),
+        ParamSpec(
+            "top_n", "推荐条数", "int", 10, min=3, max=20, step=1, help="推荐 / 榜单展示条数"
+        ),
     ]
     interpretation_defaults = {"alpha": 0.85, "top_n": 10}
     interpretation = (
@@ -37,11 +46,16 @@ class GotyTool(ExplorationTool):
     )
 
     def run(self, params):
-        summary = goty_pagerank(G_FULL, GAMES, STUDIO_NAME,
-                                alpha=params["alpha"], top_n=params["top_n"])
+        summary = goty_pagerank(
+            G_FULL, GAMES, STUDIO_NAME, alpha=params["alpha"], top_n=params["top_n"]
+        )
         if summary["n_seeds"] == 0:
-            return {"panels": [], "tables": [], "metrics": {"n_seeds": 0},
-                    "error": "未找到 GOTY 种子"}
+            return {
+                "panels": [],
+                "tables": [],
+                "metrics": {"n_seeds": 0},
+                "error": "未找到 GOTY 种子",
+            }
 
         tg = summary["top_games"]
         panel_games = {
@@ -49,8 +63,9 @@ class GotyTool(ExplorationTool):
             "title": f"非 GOTY 推荐（亲和力 Top{params['top_n']}）",
             "data": {
                 "categories": [g["title_zh"] for g in tg],
-                "series": [{"name": "亲和力", "color": "#f5b301",
-                            "values": [g["affinity"] for g in tg]}],
+                "series": [
+                    {"name": "亲和力", "color": "#f5b301", "values": [g["affinity"] for g in tg]}
+                ],
                 "horizontal": True,
             },
         }
@@ -60,8 +75,9 @@ class GotyTool(ExplorationTool):
             "title": "工作室亲和力（其全部作品得分之和）",
             "data": {
                 "categories": [s["studio"] for s in ts],
-                "series": [{"name": "亲和力", "color": "#8e44ad",
-                            "values": [s["affinity"] for s in ts]}],
+                "series": [
+                    {"name": "亲和力", "color": "#8e44ad", "values": [s["affinity"] for s in ts]}
+                ],
                 "horizontal": True,
             },
         }
@@ -69,17 +85,17 @@ class GotyTool(ExplorationTool):
         table_games = {
             "title": "非 GOTY 推荐明细",
             "columns": ["排名", "游戏", "工作室", "亲和力"],
-            "rows": [[i + 1, g["title_zh"], g["studio"], g["affinity"]]
-                     for i, g in enumerate(tg)],
+            "rows": [[i + 1, g["title_zh"], g["studio"], g["affinity"]] for i, g in enumerate(tg)],
         }
         table_studios = {
             "title": "工作室亲和力明细",
             "columns": ["排名", "工作室", "亲和力"],
-            "rows": [[i + 1, s["studio"], s["affinity"]]
-                     for i, s in enumerate(ts)],
+            "rows": [[i + 1, s["studio"], s["affinity"]] for i, s in enumerate(ts)],
         }
 
         metrics = {"n_seeds": summary["n_seeds"], "alpha": params["alpha"]}
-        return {"panels": [panel_games, panel_studios],
-                "tables": [table_games, table_studios],
-                "metrics": metrics}
+        return {
+            "panels": [panel_games, panel_studios],
+            "tables": [table_games, table_studios],
+            "metrics": metrics,
+        }

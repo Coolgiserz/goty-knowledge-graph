@@ -8,10 +8,10 @@
 - 归属与隔离：每个任务记 owner；普通用户只能看自己的任务，持令牌者可用 ``?scope=all`` 看全部。
 - 轻量：纯标准库 + 进程内内存存储，无数据库、无额外依赖；重启即清空（demo 足够）。
 """
-import os
+
+import threading
 import time
 import uuid
-import threading
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -30,7 +30,7 @@ class Task:
         self.result = None
         self.error = None
 
-    def to_dict(self, include_result: bool = False, position: int = None) -> dict:
+    def to_dict(self, include_result: bool = False, position: int | None = None) -> dict:
         d = {
             "id": self.id,
             "board": self.board,
@@ -60,7 +60,8 @@ class TaskManager:
     def create(self, board: str, params: dict, owner: str) -> Task:
         with self._lock:
             pending = sum(
-                1 for t in self._tasks.values()
+                1
+                for t in self._tasks.values()
                 if t.owner == owner and t.status in ("pending", "running")
             )
             if pending >= self.max_pending_per_owner:
@@ -73,8 +74,9 @@ class TaskManager:
 
     def _run(self, t: Task):
         # 延迟导入，避免与 app 的循环依赖
-        from .registry import run_board
         from .graph_loader import data_matches_baseline
+        from .registry import run_board
+
         try:
             t.status = "running"
             t.started_at = time.time()
@@ -99,7 +101,7 @@ class TaskManager:
         with self._lock:
             return self._tasks.get(tid)
 
-    def list(self, owner: str = None, all_scope: bool = False):
+    def list(self, owner: str | None = None, all_scope: bool = False):
         with self._lock:
             items = list(self._tasks.values())
         if not all_scope:
@@ -119,9 +121,9 @@ class TaskManager:
             if not t or t.status != "pending":
                 return None
             earlier = [
-                o for o in self._tasks.values()
-                if o.created_at < t.created_at
-                and o.status in ("pending", "running")
+                o
+                for o in self._tasks.values()
+                if o.created_at < t.created_at and o.status in ("pending", "running")
             ]
             return len(earlier) + 1
 

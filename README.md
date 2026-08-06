@@ -201,10 +201,15 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 .
 ├── README.md
 ├── LICENSE                 # MIT
-├── Makefile                # 快捷命令（insight/serve/serve-static/build/docker/run/up/neo4j/analysis）
-├── Dockerfile              # 数据探索镜像（python + uvicorn，含 API 与原静态站点）
+├── Makefile                # 快捷命令（insight/serve/serve-static/build/docker/run/up/neo4j/analysis/install/lint/test/test-perf/ci）
+├── pyproject.toml          # 依赖唯一来源（uv）+ ruff/pytest 配置
+├── uv.lock                 # 锁定依赖（CI/Docker 精确安装）
+├── requirements.lock.txt   # 运行时依赖锁定清单（供 Docker `uv pip install`）
+├── .pre-commit-config.yaml # 提交前钩子（ruff lint + format）
+├── .github/workflows/ci.yml# CI：lint + test + 性能门禁（push/PR 触发）
+├── Dockerfile              # 数据探索镜像（uv 锁文件安装 + uvicorn，含 API 与原静态站点）
 ├── docker-compose.yml      # web(API+探索 SPA) + neo4j + 自动导入
-├── requirements.txt        # 运行时依赖（FastAPI + analysis/ml 计算所需）
+├── requirements.txt        # （旧）传统 pip 依赖清单，已被 pyproject/uv 取代
 ├── .dockerignore
 ├── src/
 │   ├── build.py            # 合并原始数据 → 数据集（CSV + graph.json）
@@ -223,8 +228,13 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── serve.sh            # 本地静态服务器（仅原站点）
 │   ├── serve_api.sh        # 本地启动 API + 探索 SPA + 原静态站点
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
-├── api/                    # 探索后端（FastAPI）
-│   ├── app.py              # 路由 + 同源托管 SPA / 原静态站点 + 安全中间件
+├── api/                    # 探索后端（FastAPI，应用工厂 + 路由拆分 + 依赖注入）
+│   ├── app.py              # create_app() 工厂 + lifespan + 同源托管 SPA / 原静态站点 + 安全中间件
+│   ├── config.py           # pydantic-settings 集中 GOTY_* 配置
+│   ├── schemas.py          # 类型化响应模型（response_model）
+│   ├── deps.py             # 依赖注入（settings/security/task_manager/owner/require_exploration）
+│   ├── security.py         # 安全上下文（限流/黑名单/令牌）
+│   ├── routers/            # APIRouter 拆分：meta / boards / jobs
 │   ├── models.py           # ParamSpec（参数 schema）+ 校验
 │   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
 │   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
@@ -243,6 +253,31 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
     └── DEVELOPMENT.md      # 如何重新生成 / 扩展数据
 ```
 （运行后会生成 `analysis/output/ML_REPORT.md` 与 11 张可视化 PNG。）
+
+---
+
+## 🧪 开发与工程化（uv + ruff + pre-commit + CI）
+
+后端已按 FastAPI 最佳实践重构：**应用工厂 `create_app()` + `lifespan`**、**`APIRouter` 按域拆分**（`api/routers/{meta,boards,jobs}`）、**依赖注入 `Depends`**（`api/deps.py`）、**`pydantic-settings` 集中配置**（`api/config.py`）、**类型化 `response_model`**（`api/schemas.py`）。对外接口行为不变，但结构清晰、可测试、易扩展。
+
+**依赖管理（uv）**：`pyproject.toml` 为唯一来源，`uv.lock` 锁定，`uv sync` 一键装好运行时 + 开发依赖（pytest/httpx/ruff/pre-commit/locust）。Docker 与 CI 均按锁文件精确安装。
+
+```bash
+make install     # uv sync --extra analysis + 安装 pre-commit 钩子
+make lint        # ruff check + ruff format --check
+make test        # pytest（正确性 + 安全）
+make test-perf   # pytest -m perf（进程内并发压测：p95 / 吞吐门禁）
+make ci          # 本地跑一遍 CI 等价步骤（lint + test + perf）
+```
+
+**提交前检查**：`.pre-commit-config.yaml` 在 `git commit` 时自动跑 `ruff`（lint + format），未通过则拦截提交。
+
+**接口与性能测试**（`tests/`）：
+- `test_meta.py / test_boards.py / test_jobs.py`：元数据、同步板块、异步任务（创建/列表/轮询/取消/排队位次）。
+- `test_security.py`：限流、黑名单自动封禁、探索令牌门禁。
+- `tests/perf/test_perf.py`：用 `httpx` + `ASGITransport` 在进程内并发打接口，断言 **p95 延迟**与**吞吐量**；`tests/perf/locustfile.py` 供手动大流量压测（`uv run locust -f tests/perf/locustfile.py`）。
+
+**CI/CD**：`.github/workflows/ci.yml` 在 `push`/`PR` 触发，使用 `astral-sh/setup-uv` + Python 3.12，`uv sync --frozen` 后依次执行 ruff 检查、pytest、`-m perf` 性能门禁。推到 GitHub 后即自动生效。
 
 ---
 

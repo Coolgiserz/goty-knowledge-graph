@@ -3,19 +3,25 @@
 同时计算 graph.json 的 sha256，并与 analysis/_data_baseline.json 对照，
 作为「数据有效性」的判定依据：数据漂移 → 文档快照(MD/INSIGHTS)中的预写解读失效。
 """
+
+import hashlib
+import json
 import os
 import sys
-import json
-import hashlib
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from analysis.ml.io_utils import (  # noqa: E402
-    load_graph, game_nodes, studio_names, build_game_graph, build_full_nx)
 from analysis.ml.config import MLConfig  # noqa: E402
+from analysis.ml.io_utils import (  # noqa: E402
+    build_full_nx,
+    build_game_graph,
+    game_nodes,
+    load_graph,
+    studio_names,
+)
 
 GRAPH_PATH = os.path.join(ROOT, "data", "graph.json")
 BASELINE_PATH = os.path.join(ROOT, "analysis", "_data_baseline.json")
@@ -57,7 +63,8 @@ def node_counts():
 def data_matches_baseline():
     """数据是否与文档快照基线一致：True 一致 / False 漂移 / None 基线缺失。"""
     try:
-        b = json.load(open(BASELINE_PATH, encoding="utf-8"))
+        with open(BASELINE_PATH, encoding="utf-8") as f:
+            b = json.load(f)
         return b.get("sha256") == SHA
     except Exception:
         return None

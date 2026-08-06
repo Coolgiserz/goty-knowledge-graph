@@ -10,13 +10,13 @@
 - GOTY_LOG_LEVEL  日志级别（默认 INFO）
 - GOTY_LOG_FILE   日志文件路径（为空则仅控制台）
 """
+
 import logging
 import os
 
 
 def setup_logging() -> logging.Logger:
-    level = getattr(logging, os.environ.get("GOTY_LOG_LEVEL", "INFO").upper(),
-                    logging.INFO)
+    level = getattr(logging, os.environ.get("GOTY_LOG_LEVEL", "INFO").upper(), logging.INFO)
     log_file = os.environ.get("GOTY_LOG_FILE", "")
 
     logger = logging.getLogger("goty.api")
@@ -38,10 +38,9 @@ def setup_logging() -> logging.Logger:
     if log_file:
         try:
             from logging.handlers import RotatingFileHandler
+
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            fh = RotatingFileHandler(
-                log_file, maxBytes=5_000_000, backupCount=5, encoding="utf-8"
-            )
+            fh = RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=5, encoding="utf-8")
             fh.setFormatter(fmt)
             logger.addHandler(fh)
         except Exception:

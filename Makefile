@@ -5,14 +5,21 @@
 #   make serve-static 仅静态网站（无需后端）
 #   make build        重新生成数据集与网站
 #   make run          Docker 运行（默认只读洞察；EXPLORATION=true 可开探索）
+# 工程化：
+#   make install      安装依赖（uv sync）+ 安装 pre-commit 钩子
+#   make lint         ruff lint + format 检查
+#   make test         pytest（正确性 + 安全）
+#   make test-perf    性能门禁（pytest -m perf）
+#   make ci           本地跑一遍 CI 等价步骤
 
 PY ?= python3
-VENV ?= /Users/tarnished/.workbuddy/binaries/python/envs/default/bin/python
+UV ?= uv
 PORT ?= 8080
 IMG ?= goty-knowledge-graph
 EXPLORATION ?= false   # 洞察模式=false（默认，只读）/ 探索模式=true
 
-.PHONY: all build site insight serve serve-static docker run up down neo4j analysis clean help
+.PHONY: all build site insight serve serve-static docker run up down neo4j analysis \
+        install lint test test-perf ci clean help
 
 all: build
 
@@ -57,7 +64,28 @@ neo4j:
 
 ## analysis：运行数据挖掘/统计机器学习流水线（生成报告与 PNG）
 analysis:
-	$(VENV) analysis/run_ml.py
+	$(UV) run --extra analysis python analysis/run_ml.py
+
+## install：安装依赖（uv sync）+ 安装 pre-commit 钩子
+install:
+	$(UV) sync --extra analysis
+	$(UV) run pre-commit install
+
+## lint：ruff lint + format 检查
+lint:
+	$(UV) run ruff check api tests
+	$(UV) run ruff format --check api tests
+
+## test：pytest（正确性 + 安全测试）
+test:
+	$(UV) run pytest -q
+
+## test-perf：性能门禁（进程内并发压测，含 p95/吞吐断言）
+test-perf:
+	$(UV) run pytest -q -m perf
+
+## ci：本地等价执行 CI 流水线（lint + test + perf）
+ci: lint test test-perf
 
 ## clean：清理生成的站点与打包产物（不删数据）
 clean:

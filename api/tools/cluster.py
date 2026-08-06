@@ -4,26 +4,34 @@
 ClusterAnalyzer._profile（簇画像）。参数：算法 / 固定 k / PCA / 标准化 / 是否含工作室夺冠数。
 解读默认 = kmeans + PCA + 含 studio_wins + 自动选 k。
 """
+
 from collections import Counter
 
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from analysis.ml.analyzers import ClusterAnalyzer
+from analysis.ml.clusterers import Clusterer
+from analysis.ml.config import MLConfig
+from analysis.ml.context import PipelineContext
+from analysis.ml.features import FeatureEngine
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
 
-from ..registry import ExplorationTool, register
 from ..models import ParamSpec
-from ..graph_loader import data_matches_baseline
-from analysis.ml.context import PipelineContext
-from analysis.ml.config import MLConfig
-from analysis.ml.features import FeatureEngine
-from analysis.ml.clusterers import Clusterer
-from analysis.ml.analyzers import ClusterAnalyzer
+from ..registry import ExplorationTool, register
 
 _IDENT = {"game_id", "title", "title_zh", "developer_id", "developer", "is_goty"}
-_PALETTE = ["#f5b301", "#3b6ea5", "#27ae60", "#8e44ad", "#e74c3c",
-            "#16a085", "#d35400", "#7f8c8d", "#2980b9", "#c0392b"]
+_PALETTE = [
+    "#f5b301",
+    "#3b6ea5",
+    "#27ae60",
+    "#8e44ad",
+    "#e74c3c",
+    "#16a085",
+    "#d35400",
+    "#7f8c8d",
+    "#2980b9",
+    "#c0392b",
+]
 
 
 @register
@@ -33,21 +41,48 @@ class ClusterTool(ExplorationTool):
     description = "在标准化因子矩阵上聚类，看游戏如何按数值特征（评分/年份/类型/声誉）分群。"
 
     params = [
-        ParamSpec("method", "聚类算法", "select", "kmeans",
-                  options=["kmeans", "hierarchical", "spectral", "dbscan"],
-                  help="kmeans / 层次 / 谱 / DBSCAN"),
-        ParamSpec("k", "固定 k（0=自动选）", "int", 0,
-                  min=0, max=12, step=1,
-                  help="0 时按轮廓系数在 2..9 选优；非 0 直接定 k"),
-        ParamSpec("use_pca", "PCA 预处理", "bool", True,
-                  help="PCA 白化后再聚类，缓解高维 one-hot 维度灾难"),
-        ParamSpec("scale", "标准化", "bool", True,
-                  help="StandardScaler 标准化（关掉可看原始尺度）"),
-        ParamSpec("include_studio_wins", "含工作室夺冠数", "bool", True,
-                  help="关闭可消除 is_goty 标签泄漏（结果更纯玩法）"),
+        ParamSpec(
+            "method",
+            "聚类算法",
+            "select",
+            "kmeans",
+            options=["kmeans", "hierarchical", "spectral", "dbscan"],
+            help="kmeans / 层次 / 谱 / DBSCAN",
+        ),
+        ParamSpec(
+            "k",
+            "固定 k（0=自动选）",
+            "int",
+            0,
+            min=0,
+            max=12,
+            step=1,
+            help="0 时按轮廓系数在 2..9 选优；非 0 直接定 k",
+        ),
+        ParamSpec(
+            "use_pca",
+            "PCA 预处理",
+            "bool",
+            True,
+            help="PCA 白化后再聚类，缓解高维 one-hot 维度灾难",
+        ),
+        ParamSpec(
+            "scale", "标准化", "bool", True, help="StandardScaler 标准化（关掉可看原始尺度）"
+        ),
+        ParamSpec(
+            "include_studio_wins",
+            "含工作室夺冠数",
+            "bool",
+            True,
+            help="关闭可消除 is_goty 标签泄漏（结果更纯玩法）",
+        ),
     ]
-    interpretation_defaults = {"method": "kmeans", "use_pca": True,
-                              "include_studio_wins": True, "k": 0}
+    interpretation_defaults = {
+        "method": "kmeans",
+        "use_pca": True,
+        "include_studio_wins": True,
+        "k": 0,
+    }
     interpretation = (
         "**默认参数（kmeans + PCA + 含 studio_wins + 自动选 k）下的结论**：游戏在因子空间里聚成若干簇，"
         "每簇有主导玩法类型与评分特征。但聚类轮廓系数通常偏低（<0.25），说明游戏在因子空间呈连续谱，"
@@ -72,12 +107,20 @@ class ClusterTool(ExplorationTool):
         X = df[cols].copy()
         if X["player_rating"].isna().any():
             X["player_rating"] = X["player_rating"].fillna(X["player_rating"].median())
-        Xs = StandardScaler().fit_transform(X.values) if cfg.cluster.scale else X.values.astype(float)
+        Xs = (
+            StandardScaler().fit_transform(X.values)
+            if cfg.cluster.scale
+            else X.values.astype(float)
+        )
 
         coords2d = PCA(n_components=2, random_state=cfg.random_state).fit_transform(Xs)
-        cluster_X = (PCA(n_components=cfg.cluster.pca_variance,
-                         random_state=cfg.random_state).fit_transform(Xs)
-                     if cfg.cluster.use_pca else Xs)
+        cluster_X = (
+            PCA(n_components=cfg.cluster.pca_variance, random_state=cfg.random_state).fit_transform(
+                Xs
+            )
+            if cfg.cluster.use_pca
+            else Xs
+        )
 
         method = Clusterer.get(cfg.cluster.method)(cfg)
         scores, best_k = {}, None
@@ -103,9 +146,15 @@ class ClusterTool(ExplorationTool):
         out["cluster"] = labels
         profiles = ClusterAnalyzer._profile(out, labels, ctx.genre_names)
 
-        points = [[round(float(coords2d[i, 0]), 3), round(float(coords2d[i, 1]), 3),
-                   str(df.iloc[i]["title_zh"]), int(labels[i])]
-                  for i in range(len(df))]
+        points = [
+            [
+                round(float(coords2d[i, 0]), 3),
+                round(float(coords2d[i, 1]), 3),
+                str(df.iloc[i]["title_zh"]),
+                int(labels[i]),
+            ]
+            for i in range(len(df))
+        ]
         series = []
         for c in sorted(set(labels)):
             cp = [[p[0], p[1], p[2]] for p in points if p[3] == c]
@@ -114,30 +163,48 @@ class ClusterTool(ExplorationTool):
         scatter = {
             "type": "scatter",
             "title": f"聚类散点（{params['method']}"
-                     f"{'+PCA' if cfg.cluster.use_pca else ''}，k={best_k}）",
+            f"{'+PCA' if cfg.cluster.use_pca else ''}，k={best_k}）",
             "data": {"series": series, "caption": "颜色=簇；点=游戏（PCA 2D）"},
         }
 
-        sizes = Counter(int(l) for l in labels)
+        sizes = Counter(int(lab) for lab in labels)
         bar = {
             "type": "bar",
             "title": "各簇规模",
-            "data": {"categories": [f"簇{c}" for c in sorted(sizes)],
-                     "series": [{"name": "规模", "color": "#f5b301",
-                                 "values": [int(sizes[c]) for c in sorted(sizes)]}],
-                     "horizontal": False},
+            "data": {
+                "categories": [f"簇{c}" for c in sorted(sizes)],
+                "series": [
+                    {
+                        "name": "规模",
+                        "color": "#f5b301",
+                        "values": [int(sizes[c]) for c in sorted(sizes)],
+                    }
+                ],
+                "horizontal": False,
+            },
         }
 
         table = {
             "title": "簇画像（按规模）",
             "columns": ["簇", "规模", "年度最佳", "GOTY率", "均分", "代表游戏", "主导类型"],
-            "rows": [[p["cluster"], p["size"], p["goty"], p["goty_rate"], p["avg_rating"],
-                      "、".join(p["top_games"][:5]),
-                      "、".join(f"{g}({v})" for g, v in p["top_genres"][:4])]
-                     for p in profiles],
+            "rows": [
+                [
+                    p["cluster"],
+                    p["size"],
+                    p["goty"],
+                    p["goty_rate"],
+                    p["avg_rating"],
+                    "、".join(p["top_games"][:5]),
+                    "、".join(f"{g}({v})" for g, v in p["top_genres"][:4]),
+                ]
+                for p in profiles
+            ],
         }
 
-        metrics = {"method": params["method"], "best_k": int(best_k),
-                   "use_pca": cfg.cluster.use_pca,
-                   "silhouette": {int(k): round(v, 3) for k, v in scores.items()}}
+        metrics = {
+            "method": params["method"],
+            "best_k": int(best_k),
+            "use_pca": cfg.cluster.use_pca,
+            "silhouette": {int(k): round(v, 3) for k, v in scores.items()},
+        }
         return {"panels": [scatter, bar], "tables": [table], "metrics": metrics}
