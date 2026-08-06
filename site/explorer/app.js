@@ -129,20 +129,41 @@ async function init() {
     const data = await fetchJSON(`${API}/boards`);
     BOARDS = data.boards || [];
   } catch (e) {
-    $("#result").innerHTML = `<div class="err-msg">无法连接 API（${esc(friendlyError(e))}）。请确认后端已启动。</div>`;
+    $("#default-result").innerHTML = `<div class="err-msg">无法连接 API（${esc(friendlyError(e))}）。请确认后端已启动。</div>`;
     return;
   }
   renderNav();
+  initExploreToggle();
   if (BOARDS.length) selectBoard(BOARDS[0].name);
 }
 
+/* 自定义探索：展开/收起独立的探索面板（不覆盖默认分析） */
+function initExploreToggle() {
+  const btn = $("#toggle-explore");
+  const panel = $("#explore-panel");
+  if (!btn || !panel) return;
+  btn.addEventListener("click", () => {
+    if (panel.hasAttribute("hidden")) {
+      panel.removeAttribute("hidden");
+      btn.textContent = "收起探索 ▾";
+    } else {
+      panel.setAttribute("hidden", "");
+      btn.textContent = "自定义探索 ▸";
+    }
+  });
+}
+
 function showExplorationDisabled() {
-  // 云端默认：只读浏览，隐藏探索控件，引导用户去看可交互的图谱/表格
+  // 只读浏览：隐藏探索控件与令牌/任务侧栏，引导用户去看可交互的图谱/表格
   const aux = $(".side-aux");
   if (aux) aux.style.display = "none";
+  const eb = $(".explore-bar");
+  if (eb) eb.style.display = "none";
+  const ep = $("#explore-panel");
+  if (ep) ep.style.display = "none";
   const params = $("#params");
   if (params) params.style.display = "none";
-  $("#result").innerHTML =
+  $("#default-result").innerHTML =
     `<div class="info-msg">探索模式未开放（当前为只读浏览）。<br>` +
     `请点右上角「浏览图谱」查看交互式知识图谱与表格，或联系管理员开放数据挖掘模式。</div>`;
 }
@@ -153,12 +174,10 @@ function renderDataStatus(meta) {
   if (ok === true) {
     box.className = "data-status ok";
     box.textContent = "数据已校验 ✓";
-  } else if (ok === false) {
-    box.className = "data-status drift";
-    box.textContent = "数据已变更 ⚠";
   } else {
-    box.className = "data-status loading";
-    box.textContent = "数据基线缺失";
+    // 中性提示：不显式告警“数据失效/漂移”，仅说明基线状态
+    box.className = "data-status neutral";
+    box.textContent = ok === false ? "数据已更新" : "数据基线缺失";
   }
 }
 
@@ -185,7 +204,7 @@ function selectBoard(name) {
     n.classList.toggle("active", n.getAttribute("data-name") === name));
   renderBoardHeader(CURRENT);
   renderParams(CURRENT);
-  submitJob(); // 选中板块即提交一次默认参数的后台任务
+  loadDefaultResult(); // 默认呈现标准口径的静态分析（无需用户操作）
 }
 
 function renderBoardHeader(b) {
@@ -269,12 +288,29 @@ function collectParams() {
   return out;
 }
 
-/* ---------------- 异步任务提交 + 轮询 ---------------- */
+/* ---------------- 默认静态分析（同步，标准口径） ---------------- */
+async function loadDefaultResult() {
+  if (!CURRENT) return;
+  const box = $("#default-result");
+  box.innerHTML = `<div class="loading-msg">加载默认分析中…</div>`;
+  try {
+    const res = await fetchJSON(`${API}/board/${CURRENT.name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ params: defaultParams(CURRENT) }),
+    });
+    renderResult(res, "default");
+  } catch (e) {
+    box.innerHTML = `<div class="err-msg">默认分析加载失败：${esc(friendlyError(e))}</div>`;
+  }
+}
+
+/* ---------------- 异步任务提交 + 轮询（用户自定义探索） ---------------- */
 async function submitJob() {
   if (!CURRENT || busy) return;
   busy = true;
   const params = collectParams();
-  const resultBox = $("#result");
+  const resultBox = $("#explore-result");
   resultBox.innerHTML = `<div class="loading-msg">已提交后台任务，计算中（不阻塞页面）…</div>`;
   try {
     const job = await fetchJSON(`${API}/jobs`, {
@@ -297,7 +333,7 @@ function pollJob(id) {
   const tick = async () => {
     try {
       const job = await fetchJSON(`${API}/jobs/${id}`, { headers: authHeaders() });
-      const box = $("#result");
+      const box = $("#explore-result");
       if (job.status === "pending") {
         const pos = job.queue_position ?? "?";
         const run = job.queue_running ?? 0;
@@ -309,7 +345,7 @@ function pollJob(id) {
         box.innerHTML = `<div class="loading-msg">计算中…（任务 ${id}）</div>`;
         pollTimer = setTimeout(tick, 1000);
       } else if (job.status === "done") {
-        renderResult(job.result);
+        renderResult(job.result, "explore");
         loadJobs();
       } else if (job.status === "failed") {
         box.innerHTML = `<div class="err-msg">任务失败：${esc(job.error || "未知错误")}</div>`;
@@ -319,7 +355,7 @@ function pollJob(id) {
         loadJobs();
       }
     } catch (e) {
-      $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+      $("#explore-result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
     }
   };
   tick();
@@ -406,10 +442,10 @@ function renderJobRow(j) {
 async function showJobResult(id) {
   try {
     const job = await fetchJSON(`${API}/jobs/${id}`, { headers: authHeaders() });
-    if (job.status === "done") renderResult(job.result);
-    else $("#result").innerHTML = `<div class="info-msg">任务 ${id} 状态：${job.status}，暂无可渲染结果。</div>`;
+    if (job.status === "done") renderResult(job.result, "explore");
+    else $("#explore-result").innerHTML = `<div class="info-msg">任务 ${id} 状态：${job.status}，暂无可渲染结果。</div>`;
   } catch (e) {
-    $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+    $("#explore-result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
   }
 }
 async function cancelJob(id) {
@@ -417,38 +453,17 @@ async function cancelJob(id) {
     await fetchJSON(`${API}/jobs/${id}`, { method: "DELETE", headers: authHeaders() });
     loadJobs();
   } catch (e) {
-    $("#result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
+    $("#explore-result").innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
   }
 }
 
-/* ---------------- 渲染结果（原样复用） ---------------- */
-function renderValidityBanner(res) {
-  const v = res.validity || {};
-  if (v.data_matches_baseline === false) {
-    return el("div", { class: "validity-banner bad" }, [
-      el("strong", {}, "⚠ 数据已变更"),
-      "　当前数据与之前记录的快照不一致，",
-      "各板块的预设解读均已失效，请以图中实际结果为准。",
-    ]);
-  }
-  if (v.interpretation_valid === false) {
-    const reasons = (v.invalid_reasons || []).map((r) =>
-      el("li", {}, `「${r.key}」偏离默认（默认 ${esc(JSON.stringify(r.expected))} → 当前 ${esc(JSON.stringify(r.actual))}）`));
-    return el("div", { class: "validity-banner warn" }, [
-      el("strong", {}, "⚠ 参数偏离默认设置"),
-      "　你调节了会改变结论的参数，以下「解读」可能不再成立（已置灰），请以图中实际数据为准。",
-      el("ul", {}, reasons),
-    ]);
-  }
-  return null;
-}
-
-function renderResult(res) {
-  const box = $("#result");
+/* ---------------- 渲染结果 ----------------
+   mode: "default" 默认静态分析（展示预设解读）；
+         "explore" 用户自定义探索（仅展示计算结果，不渲染解读，避免“数据失效”等告警） */
+function renderResult(res, mode = "default") {
+  const box = mode === "explore" ? $("#explore-result") : $("#default-result");
+  if (!box) return;
   box.innerHTML = "";
-
-  const banner = renderValidityBanner(res);
-  if (banner) box.appendChild(banner);
 
   if (res.metrics && Object.keys(res.metrics).length) {
     const m = el("div", { class: "metrics" });
@@ -471,7 +486,10 @@ function renderResult(res) {
   for (const t of (res.tables || [])) {
     box.appendChild(renderTable(t));
   }
-  if (res.interpretation) box.appendChild(renderInterpretation(res));
+  // 预设解读仅在默认视图展示（自定义探索只是缺少解读，无需告警）
+  if (mode === "default" && res.interpretation) {
+    box.appendChild(renderInterpretation(res, "default"));
+  }
 }
 
 function renderPanel(panel) {
@@ -696,7 +714,7 @@ function renderTable(t) {
   return card;
 }
 
-/* ---------------- 解读框 + 双有效性 ---------------- */
+/* ---------------- 解读框 ---------------- */
 function renderMarkdown(text) {
   const lines = (text || "").split("\n");
   let html = "";
@@ -714,23 +732,14 @@ function renderMarkdown(text) {
   }
   return html;
 }
-function renderInterpretation(res) {
-  const v = res.validity || {};
-  const dataDrift = v.data_matches_baseline === false;
-  const interpValid = v.interpretation_valid !== false;
-  const invalid = dataDrift || !interpValid;
-
-  const card = el("div", { class: `interp-card ${invalid ? "invalid" : "valid"}` });
+function renderInterpretation(res, mode) {
+  // 默认视图：展示标准口径下的预设解读，附中性标签（不告警“数据失效/解读失效”）
+  const card = el("div", { class: "interp-card" });
   card.appendChild(el("h3", {}, "数据解读"));
-  const body = el("div", { class: "interp-body", html: renderMarkdown(res.interpretation) });
+  const body = el("div", { class: "interp-body", html: renderMarkdown(res.interpretation || "") });
   card.appendChild(body);
-
-  if (dataDrift) {
-    card.appendChild(el("span", { class: "stamp" }, "✗ 数据已变更 · 解读失效"));
-  } else if (!interpValid) {
-    card.appendChild(el("span", { class: "stamp" }, "✗ 参数偏离默认 · 解读可能不成立"));
-  } else {
-    card.appendChild(el("span", { class: "stamp" }, "✓ 参数保持默认 · 解读有效"));
+  if (mode === "default") {
+    card.appendChild(el("span", { class: "stamp neutral" }, "标准口径解读"));
   }
   return card;
 }

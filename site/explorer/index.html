@@ -45,9 +45,23 @@
     <main class="main">
       <section id="board-header" class="board-header"></section>
 
-      <section id="params" class="params-panel" aria-label="参数面板"></section>
+      <section id="default-analysis" class="analysis-block">
+        <div class="block-head">
+          <h3>默认分析</h3>
+          <span class="block-note">标准口径下的分析结果（无需操作即可查看）</span>
+        </div>
+        <div id="default-result" class="result" aria-live="polite"></div>
+      </section>
 
-      <div id="result" class="result" aria-live="polite"></div>
+      <div class="explore-bar">
+        <button id="toggle-explore" class="toggle-btn" type="button">自定义探索 ▸</button>
+        <span class="explore-hint">调整参数自行探索，结果单独展示，不覆盖上方默认分析</span>
+      </div>
+
+      <section id="explore-panel" class="explore-panel" hidden>
+        <div id="params" class="params-panel" aria-label="参数面板"></div>
+        <div id="explore-result" class="result" aria-live="polite"></div>
+      </section>
     </main>
   </div>
 
