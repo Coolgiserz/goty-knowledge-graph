@@ -1,0 +1,11 @@
+# 运行时依赖：数据探索 API（FastAPI）+ 其复用的 analysis/ml 计算模块。
+# 仅包含 API 实际需要的包；可视化的 matplotlib 不在其内（API 不渲染 PNG）。
+# 数据挖掘流水线 analysis/ 的额外依赖见 analysis/requirements.txt。
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.0
+numpy>=1.24
+pandas>=2.0
+networkx>=3.0
+scikit-learn>=1.3
+scipy>=1.10

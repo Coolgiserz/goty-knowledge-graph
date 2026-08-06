@@ -9,10 +9,11 @@
 ## ✨ 特性
 
 - **交互式知识图谱网站**：力导向图，点击节点看详情；支持按**年份 / 工作室 / 类型**筛选、关键词搜索、图谱↔表格双视图。
+- **🌐 交互式数据探索（新增）**：内置 **FastAPI 探索 API + 原生 ES Module 探索 SPA**。用户可在网页上**调节算法 / 统计口径参数**（社区发现方法、随机游走超参、PageRank 阻尼、聚类算法、时代分界年…），实时得到不同的可视化（网络 / 热力图 / 散点 / 柱状），并带**「数据有效性 × 解读有效性」双判定**：数据漂移或参数偏离默认口径时，预写的定性解读会自动置灰失效。
 - **完整属性**：每款年度最佳游戏都挖掘了类别 / 玩法 / 独特之处 / 缺点·争议 / 评分 / 主要奖项 / 影响力。
 - **重点：开发商其他作品**：不仅收录 GOTY，还展开其开发商的**其他代表作**（如 Rockstar 的 GTA 前作与 RDR、FromSoftware 的魂系列、Naughty Dog 的神秘海域等），形成「工作室 → 作品」关系网。
 - **可导入 Neo4j**：提供标准 CSV 数据集 + 两种导入方式（离线 `neo4j-admin import` / 在线 `LOAD CSV`）+ 自动导入脚本。
-- **开箱即部署**：纯静态站点（无后端），支持本地双击打开、`python` 静态服务器、以及 **Docker / docker-compose 一键部署**。
+- **开箱即部署**：探索 SPA 由 FastAPI 同源托管（含原静态图谱页），支持本地 `make serve`、Docker / docker-compose 一键部署；原静态站点也可**双击 `site/index.html`** 离线打开。
 
 ## 📊 数据规模
 
@@ -29,34 +30,42 @@
 
 ## 🚀 快速开始
 
-### 方式一：仅浏览网站（本地，零依赖）
+### 方式一：数据探索 + 原图谱（推荐，需后端）
 
 ```bash
-make serve            # 默认 http://localhost:8080
+make serve            # 启动 FastAPI（API + 探索 SPA + 原静态图谱），默认 http://localhost:8080
+# 探索 SPA：  http://localhost:8080/        （调参数做数据挖掘）
+# 原图谱页：  http://localhost:8080/graph/  （vis-network 力导向图）
+```
+
+### 方式二：仅浏览原静态图谱（零后端依赖）
+
+```bash
+make serve-static     # 仅静态托管 site/，默认 http://localhost:8080
 # 或：
 cd site && python3 -m http.server 8080
 ```
 
-也可以**直接双击 `site/index.html`** 离线打开（数据已内联，无需联网）。
+也可以**直接双击 `site/index.html`** 离线打开（数据已内联，无需联网；但此方式不含探索 API）。
 
-### 方式二：Docker 托管网站
+### 方式三：Docker 托管（API + 探索 SPA + 原静态图谱）
 
 ```bash
-make docker           # 构建镜像 goty-knowledge-graph
+make docker           # 构建镜像 goty-knowledge-graph（python + uvicorn）
 make run              # 运行容器，访问 http://localhost:8080
 ```
 
-### 方式三：全栈（网站 + 自动导入的 Neo4j）
+### 方式四：全栈（网站 + 自动导入的 Neo4j）
 
 ```bash
 make up
-# 网站：       http://localhost:8080
+# 探索 SPA：  http://localhost:8080/       原图谱： http://localhost:8080/graph/
 # Neo4j Browser： http://localhost:7474  （用户名 neo4j / 密码 password123）
 ```
 
 `docker-compose` 会在 Neo4j 健康检查通过后，由 `importer` 服务自动执行 `scripts/init.cypher` 把数据集导入图库。
 
-### 方式四：导入到你自己的 Neo4j 实例
+### 方式五：导入到你自己的 Neo4j 实例
 
 如果你已有 Neo4j（非云 Aura），把 `data/csv/` 放到其 `import` 目录后执行：
 
@@ -70,16 +79,56 @@ make neo4j
 
 ---
 
+## 🌐 交互式数据探索（数据探索 API + 探索 SPA）
+
+在原有静态图谱之外，新增一层**可交互的数据挖掘**界面：用户在网页上调节**算法 / 统计口径参数**，后端实时计算并返回不同的可视化。后端复用 `analysis/ml/` 的计算模块（社区发现 / 随机游走嵌入 / 个性化 PageRank / 特征工程 / 聚类），保证「批量报告」与「交互探索」结论一致、无重复实现。
+
+**四个探索板块（均可调参）：**
+
+| 板块 | 可调参数 | 默认口径下的可视化 |
+|------|----------|--------------------|
+| **社区发现（玩法家族）** | 方法（louvain / infomap / walktrap）、Louvain 分辨率、Infomap 重复、Walktrap 步数 | 社区网络图 + 规模柱状 + 画像表 |
+| **开发商风格相似（双视角）** | 视角（both / sp / rw）、随机游走次数 / 步数 / 窗口 / 嵌入维度 | 相似度热力图 + MDS 风格散点 + Top 对表 |
+| **GOTY 品味网络（PPR）** | PageRank 阻尼 α、推荐条数 | 非-GOTY 推荐榜 + 工作室亲和力榜 |
+| **聚类（因子画像）** | 算法（kmeans / 层次 / 谱 / DBSCAN）、固定 k、PCA、标准化、含工作室夺冠数 | PCA 散点 + 簇规模柱状 + 簇画像表 |
+| **时代热点（奖项品味演变）** | 前后半段分界年 | 类型占比对比柱状 + 上升/下降趋势表 |
+
+**双有效性判定（核心）**：当用户调参后，原报告中「默认参数下写好的定性解读」大概率不再成立。系统据此区分两类有效性，并在前端明确呈现：
+
+1. **数据有效性（data_valid）**：`data/graph.json` 的 sha256 与文档快照基线 `analysis/_data_baseline.json` 比对。若数据被重新生成 / 修改（漂移），**所有**板块的预写解读一律失效（前端红色告警）。
+2. **解读有效性（interp_valid）**：每个板块声明一组「解读默认值」（如社区发现 = louvain + 分辨率 1.0）。用户只要把**会改变结论的参数**调离默认值（切换方法 / 改分辨率 / 改 α / 换算法 / 移动分界年…），该板块的预写解读即被**置灰 + 删除线**（前端橙色告警），并列出具体偏离项，提示「以图中实际数据为准」。
+
+> 这样做到：**默认参数 → 解读有效（正常展示）；调参 → 解读自动失效（不会误导）**，且数据漂移能整体熔断。
+
+**架构与扩展：**
+
+```
+api/                         # 探索后端（FastAPI）
+├── app.py                   # 路由：/api/meta / /api/boards / /api/board/{name}；同源托管 SPA 与静态站点
+├── models.py                # ParamSpec（前端据此自动渲染参数控件）+ 校验
+├── registry.py              # ExplorationTool 基类 + 注册表 + 双有效性判定
+├── graph_loader.py          # 进程级单例：加载 graph.json、构建 G/GG/G_full、sha 守卫
+└── tools/                   # 各探索板块（@register 自动发现）
+    ├── community.py / studio.py / goty.py / cluster.py / hotspot.py
+site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤）
+├── index.html / styles.css / app.js
+```
+
+- **新增一个探索板块** = 在 `api/tools/` 写一个 `ExplorationTool` 子类（声明参数 schema、解读默认值、并复用 `analysis/ml` 计算），加 `@register`。前端会**自动**生成参数控件、调用、渲染（network/heatmap/scatter/bar 四种纯 SVG 渲染器已内置）。无需改动前端或注册表。
+- 后端与前端解耦：面板数据约定为 `{type, title, data}`（`network`/`heatmap`/`scatter`/`bar`）+ `tables` + `metrics` + `validity`，前后端各渲染一次，互不耦合。
+
+---
+
 ## 📁 目录结构
 
 ```
 .
 ├── README.md
 ├── LICENSE                 # MIT
-├── Makefile                # 快捷命令（build/serve/docker/up/neo4j）
-├── Dockerfile              # 网站静态托管镜像（nginx）
-├── docker-compose.yml      # web + neo4j + 自动导入
-├── docker/nginx.conf       # nginx 站点配置
+├── Makefile                # 快捷命令（build/serve/serve-static/docker/up/neo4j/analysis）
+├── Dockerfile              # 数据探索镜像（python + uvicorn，含 API 与原静态站点）
+├── docker-compose.yml      # web(API+探索 SPA) + neo4j + 自动导入
+├── requirements.txt        # 运行时依赖（FastAPI + analysis/ml 计算所需）
 ├── .dockerignore
 ├── src/
 │   ├── build.py            # 合并原始数据 → 数据集（CSV + graph.json）
@@ -89,12 +138,21 @@ make neo4j
 │   ├── csv/                # 普通表头 CSV（供 Cypher LOAD CSV）
 │   ├── neo4j/              # 冒号表头 CSV（供 neo4j-admin import）
 │   └── graph.json          # 合并后的图谱（供网站 / 检查）
-├── site/                   # 生成的可部署静态站点（index.html + assets/）
+├── site/
+│   ├── index.html          # 原静态图谱站点（vis-network 力导向图）
+│   └── explorer/           # 探索 SPA（原生 ES Module，无构建步骤）
 ├── vendor/                 # 第三方库（vis-network.min.js）
 ├── scripts/
 │   ├── init.cypher         # Neo4j 自动导入脚本
-│   ├── serve.sh            # 本地静态服务器
+│   ├── serve.sh            # 本地静态服务器（仅原站点）
+│   ├── serve_api.sh        # 本地启动 API + 探索 SPA + 原静态站点
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
+├── api/                    # 探索后端（FastAPI）
+│   ├── app.py              # 路由 + 同源托管 SPA / 原静态站点
+│   ├── models.py           # ParamSpec（参数 schema）+ 校验
+│   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
+│   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
+│   └── tools/              # 各探索板块（@register 自动发现）
 ├── analysis/
 │   ├── run_ml.py           # 统计机器学习流水线入口（瘦 CLI）
 │   ├── ml/                 # 可插拔数据挖掘包：config/features/clusterers/analyzers/visualizers/pipeline
@@ -200,7 +258,8 @@ python analysis/run_ml.py --community walktrap           # 或换成 Walktrap（
 
 ## 🛠 技术栈
 
-- 前端：原生 HTML/CSS/JS + [vis-network](https://github.com/visjs/vis-network)（力导向图，已本地化）
+- 前端：原静态站点用 [vis-network](https://github.com/visjs/vis-network)（力导向图，已本地化）；**探索 SPA 为原生 ES Module（无构建步骤），图表用纯 SVG 手绘渲染（network / heatmap / scatter / bar）**
+- 后端：**FastAPI + uvicorn** 探索 API；复用 `analysis/ml/` 计算模块（Strategy + Registry 可插拔架构）
 - 数据：Python 3 合并脚本，输出 CSV（Neo4j 友好）+ JSON
-- 部署：nginx 静态托管 / Docker / docker-compose
+- 部署：FastAPI 同源托管 / Docker（python + uvicorn）/ docker-compose
 - 图数据库：Neo4j 5.x

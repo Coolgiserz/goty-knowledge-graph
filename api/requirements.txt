@@ -1,0 +1,5 @@
+# 数据探索 API 运行依赖
+# 基础分析依赖（已在 analysis/requirements.txt）：numpy pandas scikit-learn networkx scipy matplotlib infomap
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.0

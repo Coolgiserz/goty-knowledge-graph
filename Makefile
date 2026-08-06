@@ -1,12 +1,12 @@
 # 年度最佳游戏知识图谱 · 快捷命令
-# 常用： make build  /  make serve  /  make up  /  make neo4j
+# 常用： make build  /  make serve  /  make serve-static  /  make up  /  make analysis
 
 PY ?= python3
 VENV ?= /Users/tarnished/.workbuddy/binaries/python/envs/default/bin/python
 PORT ?= 8080
 IMG ?= goty-knowledge-graph
 
-.PHONY: all build site serve docker run up down neo4j analysis clean help
+.PHONY: all build site serve serve-static docker run up down neo4j analysis clean help
 
 all: build
 
@@ -17,17 +17,21 @@ site:
 	$(PY) src/build.py
 	$(PY) src/build_site.py
 
-## serve：本地启动静态网站（http://localhost:8080）
+## serve：本地启动数据探索 API + 探索 SPA（http://localhost:8080，含 /graph/ 原图谱）
 serve:
+	bash scripts/serve_api.sh $(PORT)
+
+## serve-static：仅启动原静态图谱网站（无需后端，http://localhost:8080）
+serve-static:
 	bash scripts/serve.sh $(PORT)
 
-## docker：仅构建网站镜像
+## docker：构建数据探索镜像（python + uvicorn，含 API 与原静态站点）
 docker:
 	docker build -t $(IMG) .
 
-## run：运行网站镜像
+## run：运行数据探索镜像（访问 http://localhost:8080）
 run: docker
-	docker run -d -p $(PORT):80 --name goty-graph $(IMG)
+	docker run -d -p $(PORT):8080 --name goty-graph $(IMG)
 
 ## up：docker-compose 全栈（网站 + Neo4j 自动导入）
 up:
@@ -41,7 +45,7 @@ down:
 neo4j:
 	bash scripts/neo4j_import.sh
 
-## analysis：运行数据挖掘/统计机器学习流水线（生成报告与 7 张 PNG）
+## analysis：运行数据挖掘/统计机器学习流水线（生成报告与 PNG）
 analysis:
 	$(VENV) analysis/run_ml.py
 

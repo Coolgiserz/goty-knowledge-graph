@@ -1,6 +1,6 @@
-# 一键启动：知识图谱网站 + 自动导入的 Neo4j 图谱库
+# 一键启动：数据探索（API + 探索 SPA + 原静态图谱）+ 自动导入的 Neo4j 图谱库
 #   docker-compose up -d
-#   网站：     http://localhost:8080
+#   探索 SPA： http://localhost:8080/       原图谱： http://localhost:8080/graph/
 #   Neo4j：    http://localhost:7474  （用户名 neo4j / 密码 password123）
 # 停止：       docker-compose down
 # 清数据：     docker-compose down -v
@@ -10,7 +10,7 @@ services:
     build: .
     image: goty-knowledge-graph:latest
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       - neo4j
     restart: unless-stopped

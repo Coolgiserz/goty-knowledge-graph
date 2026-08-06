@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOTY 知识图谱 · 数据探索</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◈</span>
+      <div>
+        <h1>年度最佳游戏 · 知识图谱</h1>
+        <p class="sub">交互式数据探索 · 算法 / 统计口径可调 · 数据与解读双有效性判定</p>
+      </div>
+    </div>
+    <a class="ghost-link" href="/graph/" title="查看原图谱浏览页">原图谱浏览 →</a>
+    <div id="data-status" class="data-status loading">数据状态：加载中…</div>
+  </header>
+
+  <div class="layout">
+    <nav id="board-nav" class="sidebar" aria-label="探索板块"></nav>
+
+    <main class="main">
+      <section id="board-header" class="board-header"></section>
+
+      <section id="params" class="params-panel" aria-label="参数面板"></section>
+
+      <div id="result" class="result" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -197,3 +197,38 @@ class WalktrapDetector(CommunityDetector):
         node2comm = self._relabel(node2comm)
         return node2comm, {"modularity": round(float(q), 4),
                            "n_communities": len(set(node2comm.values()))}
+
+
+def community_profiles(graph_nodes, node2comm, design_dims):
+    """由 node2comm 计算每个社区的画像（供 analyzer 与 API 共用）。
+
+    返回列表（按规模降序）：社区号 / 规模 / GOTY 成员 / 平均评分 / Top 类型 / 代表游戏。
+    design_dims 中的类型不计入「玩法类型」统计（它们是跨玩法的特征标签）。
+    """
+    byid = {n["id"]: n for n in graph_nodes}
+    groups = defaultdict(list)
+    for nid, c in node2comm.items():
+        groups[c].append(nid)
+    out = []
+    for c, members in groups.items():
+        sub = [byid[m] for m in members]
+        genres = [gn for n in sub for gn in n["raw"].get("genres", []) if gn not in design_dims]
+        cnt = defaultdict(int)
+        for gn in genres:
+            cnt[gn] += 1
+        top = sorted(cnt.items(), key=lambda x: -x[1])[:8]
+        goty = [n["raw"]["title_zh"] for n in sub if n["raw"].get("is_goty")]
+        ratings = [n["raw"].get("player_rating") for n in sub
+                   if n["raw"].get("player_rating") not in (None, "")]
+        out.append({
+            "community": int(c), "size": len(members),
+            "goty_members": goty,
+            "avg_rating": round(float(np.mean(ratings)), 1) if ratings else 0.0,
+            "top_genres": [[k, v] for k, v in top],
+            "representative": sorted(sub,
+                                     key=lambda n: -(n["raw"].get("player_rating") or 0)
+                                     )[0]["raw"]["title_zh"],
+        })
+    out.sort(key=lambda x: -x["size"])
+    return out
+

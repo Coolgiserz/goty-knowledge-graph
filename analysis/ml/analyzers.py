@@ -25,7 +25,10 @@ from scipy.stats import spearmanr
 
 from .context import PipelineContext
 from .clusterers import Clusterer
-from .community import CommunityDetector
+from .community import CommunityDetector, community_profiles
+from .embeddings import rw_game_embeddings
+from .similarity import sp_studio_similarity
+from .affinity import goty_pagerank
 from .constants import PNG
 
 
@@ -45,11 +48,22 @@ def _style_cols(df: pd.DataFrame) -> list:
 
 
 def _mds_coords(sim: np.ndarray, random_state: int, n_init: int = 10) -> np.ndarray:
-    """由相似度矩阵得到 2D MDS 坐标（不相似度 = 1 - 相似度）。"""
+    """由相似度矩阵得到 2D MDS 坐标（不相似度 = 1 - 相似度）。
+
+    sklearn 1.9 起 MDS 重构：metric 重命名为 metric_mds、dissimilarity 标记弃用。
+    这里用 warnings 抑制 + 参数回退，保证跨版本行为一致且不刷 warning。
+    """
+    import warnings
     Ddiss = 1.0 - sim
-    return MDS(n_components=2, metric=True, dissimilarity="precomputed",
-               init="random", random_state=random_state, n_init=n_init
-               ).fit_transform(Ddiss)
+    try:  # 新版 sklearn（>=1.9）：metric_mds 取代 metric
+        mds = MDS(n_components=2, metric_mds=True, dissimilarity="precomputed",
+                  init="random", random_state=random_state, n_init=n_init)
+    except TypeError:  # 旧版 sklearn：仅接受 metric / dissimilarity
+        mds = MDS(n_components=2, metric=True, dissimilarity="precomputed",
+                  init="random", random_state=random_state, n_init=n_init)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        return mds.fit_transform(Ddiss)
 
 
 class AnalyzerResult:
@@ -371,30 +385,7 @@ class CommunityAnalyzer(Analyzer):
 
     @staticmethod
     def _profile(ctx, node2comm):
-        byid = {n["id"]: n for n in ctx.graph["nodes"]}
-        dd = ctx.config.design_dims
-        groups = defaultdict(list)
-        for nid, c in node2comm.items():
-            groups[c].append(nid)
-        out = []
-        for c, members in groups.items():
-            sub = [byid[m] for m in members]
-            genres = [gn for n in sub for gn in n["raw"].get("genres", []) if gn not in dd]
-            cnt = defaultdict(int)
-            for gn in genres:
-                cnt[gn] += 1
-            top = sorted(cnt.items(), key=lambda x: -x[1])[:8]
-            goty = [n["raw"]["title_zh"] for n in sub if n["raw"].get("is_goty")]
-            ratings = [n["raw"].get("player_rating") for n in sub
-                       if n["raw"].get("player_rating") not in (None, "")]
-            out.append({
-                "community": int(c), "size": len(members),
-                "goty_members": goty,
-                "avg_rating": round(float(np.mean(ratings)), 1) if ratings else 0.0,
-                "top_genres": [[k, v] for k, v in top],
-                "representative": sorted(sub, key=lambda n: -(n["raw"].get("player_rating") or 0))[0]["raw"]["title_zh"],
-            })
-        return out
+        return community_profiles(ctx.graph["nodes"], node2comm, ctx.config.design_dims)
 
 
 # ==========================================================================
@@ -554,9 +545,9 @@ class StudioStyleAnalyzer(Analyzer):
 
         # ===== 两种互补视角，并存而非替换 =====
         # A. 图谱距离（最短路径）：一阶邻近性（只数直接跳数）
-        sim_sp, studio_ids = self._sp_studio_similarity(ctx)
+        sim_sp, studio_ids = sp_studio_similarity(ctx.GG, ctx.games)
         # B. 随机游走嵌入：二阶 / 多跳邻近性（多跳共现经 SVD 平滑）
-        emb, gi = self._rw_game_embeddings(ctx)
+        emb, gi = rw_game_embeddings(ctx.G_full, ctx.games, ctx.config.random_walk)
         by_studio_rw = defaultdict(list)
         for n in ctx.games:
             gid = n["id"]
@@ -711,92 +702,6 @@ class StudioStyleAnalyzer(Analyzer):
         )
         return res
 
-    @staticmethod
-    def _sp_studio_similarity(ctx: PipelineContext):
-        """基于游戏-游戏投影图 GG 的最短路径距离，定义工作室间相似度（一阶邻近性）。
-
-        边距离 = 1/(1+边权)；工作室距离 = 双向平均最近邻图距离；相似度 = 1/(1+距离)，连续有界。
-        返回 (sim 矩阵, studio_ids)。与随机游走嵌入并存、互为对照。
-        """
-        GG = ctx.GG
-        DG = nx.Graph()
-        for u, v, d in GG.edges(data=True):
-            DG.add_edge(u, v, weight=1.0 / (1.0 + d["weight"]))
-        try:
-            apsp = dict(nx.all_pairs_shortest_path_length(DG))
-        except Exception:
-            apsp = {n: {n: 0.0} for n in DG.nodes()}
-        INF = 10.0
-        by_studio = defaultdict(list)
-        for n in ctx.games:
-            by_studio[n["raw"]["developer_id"]].append(n["id"])
-        studio_ids = sorted(by_studio.keys())
-        n = len(studio_ids)
-        D = np.zeros((n, n))
-
-        def _mindist(a, gj):
-            da = apsp.get(a, {})
-            return min((da.get(b, INF) for b in gj), default=INF)
-
-        for i, si in enumerate(studio_ids):
-            gi = by_studio[si]
-            for j, sj in enumerate(studio_ids):
-                if i == j:
-                    continue
-                gj = by_studio[sj]
-                d_ij = np.mean([_mindist(a, gj) for a in gi])
-                d_ji = np.mean([_mindist(b, gi) for b in gj])
-                D[i, j] = 0.5 * (d_ij + d_ji)
-        np.fill_diagonal(D, 0.0)
-        sim = 1.0 / (1.0 + D)
-        np.fill_diagonal(sim, 1.0)
-        return sim, studio_ids
-
-    @staticmethod
-    def _rw_game_embeddings(ctx: PipelineContext):
-        """在完整异构图 G_full 上做截断随机游走，得到游戏节点的低维嵌入。
-
-        返回 (emb, gi)：emb 是 N×dim 矩阵（按共现中出现顺序），gi 是 game_id->行号。
-        只在「游戏」节点上累积共现（类型/工作室/奖项节点作为桥接）。
-        """
-        Gfull = ctx.G_full
-        games = ctx.games
-        gids = [n["id"] for n in games]
-        gset = set(gids)
-        gindex = {gid: i for i, gid in enumerate(gids)}
-        rw = ctx.config.random_walk
-        rng = np.random.default_rng(rw.seed)
-        neighbors = {n: list(Gfull.neighbors(n)) for n in Gfull.nodes()}
-        co = defaultdict(lambda: defaultdict(int))
-        for start in gids:
-            for _ in range(rw.num_walks):
-                cur = start
-                walk = [cur]
-                for _ in range(rw.walk_len):
-                    nbrs = neighbors[cur]
-                    if not nbrs:
-                        break
-                    cur = nbrs[rng.integers(len(nbrs))]
-                    walk.append(cur)
-                WIN = rw.window
-                for a in range(len(walk)):
-                    if walk[a] not in gindex:
-                        continue
-                    for b in range(max(0, a - WIN), min(len(walk), a + WIN + 1)):
-                        if b == a or walk[b] not in gindex:
-                            continue
-                        co[walk[a]][walk[b]] += 1
-        game_ids = list(co.keys())
-        gi = {gid: i for i, gid in enumerate(game_ids)}
-        M = np.zeros((len(game_ids), len(game_ids)))
-        for a, d in co.items():
-            for b, c in d.items():
-                M[gi[a], gi[b]] = c
-        M = M + M.T
-        emb = TruncatedSVD(n_components=rw.embed_dim, random_state=rw.seed
-                           ).fit_transform(np.log1p(M))
-        return emb, gi
-
 
 # ==========================================================================
 # 年度最佳游戏（GOTY）特征分析
@@ -913,54 +818,14 @@ class GotyAffinityAnalyzer(Analyzer):
         Gfull = ctx.G_full
         studio_name = ctx.studio_names
         games = ctx.games
-        byid = {n["id"]: n for n in games}
 
         # 种子 = 全部 GOTY 获奖作；在完整异构图做个性化 PageRank
-        goty_ids = [n["id"] for n in games if n["raw"].get("is_goty")]
-        seeds = set(goty_ids)
-        pers = {gid: 1.0 / len(goty_ids) for gid in goty_ids}
-        try:
-            pr = nx.pagerank(Gfull, personalization=pers, alpha=cfg.alpha, max_iter=300)
-        except Exception as e:
-            res.write(f"\n> 注：GOTY 品味网络计算失败（{e}），已跳过。\n")
+        summary = goty_pagerank(Gfull, games, studio_name, alpha=cfg.alpha, top_n=cfg.top_n)
+        if summary["n_seeds"] == 0:
+            res.write("\n> 注：未找到 GOTY 种子，GOTY 品味网络跳过。\n")
             return res
-
-        # 非 GOTY 作品按亲和力排序 -> “喜欢 GOTY 的人还会喜欢…” 推荐
-        rec = []
-        for n in games:
-            if n["id"] in seeds:
-                continue
-            rec.append({
-                "game_id": n["id"],
-                "title_zh": n["raw"].get("title_zh") or n["raw"].get("title"),
-                "studio": studio_name.get(n["raw"].get("developer_id"), n["raw"].get("developer")),
-                "is_goty": False,
-                "affinity": round(float(pr.get(n["id"], 0.0)), 5),
-            })
-        rec.sort(key=lambda x: -x["affinity"])
-        top_games = rec[:cfg.top_n]
-
-        # 工作室级亲和力（其全部游戏亲和力之和）
-        sp = defaultdict(float)
-        for n in games:
-            sp[n["raw"].get("developer_id")] += float(pr.get(n["id"], 0.0))
-        top_studios = [{"studio": studio_name.get(d, d), "affinity": round(v, 5)}
-                       for d, v in sorted(sp.items(), key=lambda kv: -kv[1])[:cfg.top_n]]
-
-        # 种子自身亲和力（用于对照）
-        seed_scores = [{"title_zh": byid[gid]["raw"].get("title_zh") or byid[gid]["raw"].get("title"),
-                       "studio": studio_name.get(byid[gid]["raw"].get("developer_id"),
-                                                 byid[gid]["raw"].get("developer")),
-                       "affinity": round(float(pr.get(gid, 0.0)), 5)}
-                      for gid in goty_ids]
-
-        summary = {
-            "n_seeds": len(goty_ids),
-            "alpha": cfg.alpha,
-            "top_games": top_games,
-            "top_studios": top_studios,
-            "seed_scores": seed_scores,
-        }
+        top_games = summary["top_games"]
+        top_studios = summary["top_studios"]
         rec_df = pd.DataFrame(top_games)
         std_df = pd.DataFrame(top_studios)
         res.add("goty_affinity", rec_df)
@@ -972,7 +837,7 @@ class GotyAffinityAnalyzer(Analyzer):
             "把**全部年度最佳（GOTY）获奖作**作为种子，在完整异构图（游戏↔类型↔工作室↔奖项）上做"
             "**个性化 PageRank**（随机游走以一定概率回到 GOTY 种子）。某节点得分越高，"
             "代表它在「年度最佳品味」网络中越中心——等于回答“**喜欢 GOTY 的人，还会喜欢谁**”。\n",
-            f"种子共 **{len(goty_ids)}** 款；排除种子后，亲和力最高的非 GOTY 作品 Top{cfg.top_n}：\n",
+            f"种子共 **{summary['n_seeds']}** 款；排除种子后，亲和力最高的非 GOTY 作品 Top{cfg.top_n}：\n",
             "| 排名 | 游戏 | 工作室 | 亲和力 |",
             "|---|---|---|---|",
         )
