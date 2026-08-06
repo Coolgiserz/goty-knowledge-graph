@@ -39,8 +39,33 @@ function esc(s) {
 }
 async function fetchJSON(url, opts) {
   const r = await fetch(url, opts);
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  if (!r.ok) {
+    // 服务端可能在 429/403 时返回 {error, message, retry_after}
+    let detail = `${r.status} ${r.statusText}`;
+    let retryAfter = null;
+    try {
+      const j = await r.json();
+      if (j && j.message) detail = j.message;
+      if (j && j.retry_after) retryAfter = j.retry_after;
+    } catch (_) { /* 非 JSON 错误体，保留默认描述 */ }
+    const err = new Error(detail);
+    err.status = r.status;
+    err.retryAfter = retryAfter;
+    throw err;
+  }
   return r.json();
+}
+
+// 把 fetch 抛出的错误转成给用户的友好文案（限流 / 封禁 / 一般失败）
+function friendlyError(e) {
+  if (e && e.status === 429) {
+    const sec = e.retryAfter ? ` 约 ${e.retryAfter}s 后可重试` : "";
+    return `请求过于频繁，已被限流。${sec}`;
+  }
+  if (e && e.status === 403) {
+    return `访问受限：您的地址已被加入黑名单，请联系管理员。`;
+  }
+  return `请求失败：${e && e.message ? e.message : "未知错误"}`;
 }
 function showTip(html, ev) {
   tooltip.innerHTML = html;
@@ -73,7 +98,7 @@ async function init() {
     const data = await fetchJSON(`${API}/boards`);
     BOARDS = data.boards || [];
   } catch (e) {
-    $("#result").innerHTML = `<div class="err-msg">无法连接 API（${esc(e.message)}）。请确认后端已启动。</div>`;
+    $("#result").innerHTML = `<div class="err-msg">无法连接 API（${esc(friendlyError(e))}）。请确认后端已启动。</div>`;
     return;
   }
   renderNav();
@@ -222,7 +247,7 @@ async function runBoard() {
     });
     renderResult(res);
   } catch (e) {
-    resultBox.innerHTML = `<div class="err-msg">请求失败：${esc(e.message)}</div>`;
+    resultBox.innerHTML = `<div class="err-msg">${esc(friendlyError(e))}</div>`;
   } finally {
     busy = false;
   }

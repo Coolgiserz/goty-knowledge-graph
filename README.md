@@ -119,6 +119,30 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ---
 
+## 🛡 安全与限流（云端 demo 防护）
+
+探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。`api/` 内置一层**零依赖**的防护中间件（`api/ratelimit.py` + `api/logging_config.py`）：
+
+- **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。
+- **两档限流（429）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。
+- **结构化日志**：每条请求记录 `客户端IP / 方法 / 路径 / 状态 / 耗时`；超限与封禁单独告警（WARNING/ERROR），控制台 + 可选滚动文件（`GOTY_LOG_FILE`）。已关闭 uvicorn 自带 access log，避免重复。
+
+**所有阈值通过环境变量配置，无需改代码即可调参（默认值已按云端 demo 取向设定）：**
+
+| 环境变量 | 含义 | 默认 |
+|----------|------|------|
+| `GOTY_TRUST_PROXY` | 是否信任 `X-Forwarded-For`/`X-Real-IP`（云端 LB/CDN 后务必开；边缘需剥离客户端伪造头） | `true` |
+| `GOTY_RATE_LIMIT_MAX` / `GOTY_RATE_WINDOW` | 一般请求限流：每 IP 上限 / 窗口秒 | `200` / `60` |
+| `GOTY_BOARD_LIMIT_MAX` / `GOTY_BOARD_WINDOW` | 探索计算限流：每 IP 上限 / 窗口秒 | `8` / `60` |
+| `GOTY_AUTOBAN_VIOLATIONS` / `GOTY_AUTOBAN_SECONDS` | 自动封禁：累计超限次数 / 封禁秒数（0=永久） | `5` / `3600` |
+| `GOTY_BLACKLIST` | 永久黑名单种子（逗号分隔 IP） | 空 |
+| `GOTY_BLACKLIST_FILE` | 自动封禁持久化文件（JSON，重启仍生效） | 空 |
+| `GOTY_LOG_LEVEL` / `GOTY_LOG_FILE` | 日志级别 / 日志文件（空=仅控制台） | `INFO` / 空 |
+
+> 多实例部署提示：当前限流/黑名单为**单进程内存版**，适用于单实例 demo。若横向扩展为多副本，请改用共享存储（如 Redis）或把实例数控制在 1，避免各副本计数独立导致实际阈值被放大。
+
+---
+
 ## 📁 目录结构
 
 ```
@@ -148,10 +172,12 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── serve_api.sh        # 本地启动 API + 探索 SPA + 原静态站点
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
 ├── api/                    # 探索后端（FastAPI）
-│   ├── app.py              # 路由 + 同源托管 SPA / 原静态站点
+│   ├── app.py              # 路由 + 同源托管 SPA / 原静态站点 + 安全中间件
 │   ├── models.py           # ParamSpec（参数 schema）+ 校验
 │   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
 │   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
+│   ├── ratelimit.py        # 限流 + 黑名单（含自动封禁）+ 客户端 IP 识别
+│   ├── logging_config.py   # 结构化请求 / 安全日志
 │   └── tools/              # 各探索板块（@register 自动发现）
 ├── analysis/
 │   ├── run_ml.py           # 统计机器学习流水线入口（瘦 CLI）
