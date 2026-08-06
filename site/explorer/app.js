@@ -64,9 +64,9 @@ function friendlyError(e) {
   if (e && e.status === 403) {
     if (/exploration_disabled/.test(e.message || ""))
       return "探索模式未开放：当前为只读浏览（仅图谱/表格）。";
-    return `访问受限：您的地址已被加入黑名单，请联系管理员。`;
+    return `访问受限：当前地址已被暂时限制，请联系管理员。`;
   }
-  if (e && e.status === 401) return "需要有效的访问令牌才能提交探索任务（在左侧粘贴令牌）。";
+  if (e && e.status === 401) return "需要有效的访问口令才能提交分析任务（在左侧粘贴口令）。";
   return `请求失败：${e && e.message ? e.message : "未知错误"}`;
 }
 function showTip(html, ev) {
@@ -137,14 +137,14 @@ async function init() {
 }
 
 function showExplorationDisabled() {
-  // 云端默认：只读浏览，隐藏探索控件，提示去看原图谱/表格
+  // 云端默认：只读浏览，隐藏探索控件，引导用户去看可交互的图谱/表格
   const aux = $(".side-aux");
   if (aux) aux.style.display = "none";
   const params = $("#params");
   if (params) params.style.display = "none";
   $("#result").innerHTML =
     `<div class="info-msg">探索模式未开放（当前为只读浏览）。<br>` +
-    `请在右上角「原图谱浏览」查看交互式图谱与表格，或联系管理员开放数据挖掘模式。</div>`;
+    `请点右上角「浏览图谱」查看交互式知识图谱与表格，或联系管理员开放数据挖掘模式。</div>`;
 }
 
 function renderDataStatus(meta) {
@@ -152,10 +152,10 @@ function renderDataStatus(meta) {
   const ok = meta.data_matches_baseline;
   if (ok === true) {
     box.className = "data-status ok";
-    box.textContent = `数据一致 ✓（${meta.sha256}）`;
+    box.textContent = "数据已校验 ✓";
   } else if (ok === false) {
     box.className = "data-status drift";
-    box.textContent = `数据漂移 ⚠（${meta.sha256}）`;
+    box.textContent = "数据已变更 ⚠";
   } else {
     box.className = "data-status loading";
     box.textContent = "数据基线缺失";
@@ -203,7 +203,7 @@ function defaultParams(b) {
 function renderParams(b) {
   const panel = $("#params");
   panel.innerHTML = "";
-  panel.appendChild(el("p", { class: "pp-title" }, "参数（调节后点「应用参数」提交后台任务，并判定解读有效性）"));
+  panel.appendChild(el("p", { class: "pp-title" }, "参数（调节后点「应用参数」开始分析）"));
 
   const groups = {};
   for (const p of b.params) {
@@ -426,16 +426,16 @@ function renderValidityBanner(res) {
   const v = res.validity || {};
   if (v.data_matches_baseline === false) {
     return el("div", { class: "validity-banner bad" }, [
-      el("strong", {}, "⚠ 数据已漂移"),
-      "　底层 graph.json 与文档快照基线不一致，",
-      "所有板块的「预写解读」均视为失效，请以图中实际结果为准。",
+      el("strong", {}, "⚠ 数据已变更"),
+      "　当前数据与之前记录的快照不一致，",
+      "各板块的预设解读均已失效，请以图中实际结果为准。",
     ]);
   }
   if (v.interpretation_valid === false) {
     const reasons = (v.invalid_reasons || []).map((r) =>
       el("li", {}, `「${r.key}」偏离默认（默认 ${esc(JSON.stringify(r.expected))} → 当前 ${esc(JSON.stringify(r.actual))}）`));
     return el("div", { class: "validity-banner warn" }, [
-      el("strong", {}, "⚠ 参数偏离默认口径"),
+      el("strong", {}, "⚠ 参数偏离默认设置"),
       "　你调节了会改变结论的参数，以下「解读」可能不再成立（已置灰），请以图中实际数据为准。",
       el("ul", {}, reasons),
     ]);
@@ -721,16 +721,16 @@ function renderInterpretation(res) {
   const invalid = dataDrift || !interpValid;
 
   const card = el("div", { class: `interp-card ${invalid ? "invalid" : "valid"}` });
-  card.appendChild(el("h3", {}, "数据解读（默认口径下撰写）"));
+  card.appendChild(el("h3", {}, "数据解读"));
   const body = el("div", { class: "interp-body", html: renderMarkdown(res.interpretation) });
   card.appendChild(body);
 
   if (dataDrift) {
-    card.appendChild(el("span", { class: "stamp" }, "✗ 数据已漂移 · 解读失效"));
+    card.appendChild(el("span", { class: "stamp" }, "✗ 数据已变更 · 解读失效"));
   } else if (!interpValid) {
     card.appendChild(el("span", { class: "stamp" }, "✗ 参数偏离默认 · 解读可能不成立"));
   } else {
-    card.appendChild(el("span", { class: "stamp" }, "✓ 参数与默认口径一致 · 解读有效"));
+    card.appendChild(el("span", { class: "stamp" }, "✓ 参数保持默认 · 解读有效"));
   }
   return card;
 }
