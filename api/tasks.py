@@ -30,7 +30,7 @@ class Task:
         self.result = None
         self.error = None
 
-    def to_dict(self, include_result: bool = False) -> dict:
+    def to_dict(self, include_result: bool = False, position: int = None) -> dict:
         d = {
             "id": self.id,
             "board": self.board,
@@ -40,6 +40,8 @@ class Task:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
         }
+        if position is not None:
+            d["queue_position"] = position
         if include_result and self.status in ("done", "failed"):
             d["result"] = self.result
             d["error"] = self.error
@@ -50,7 +52,8 @@ class TaskManager:
     def __init__(self, max_workers: int = 2, max_pending_per_owner: int = 5):
         self._lock = threading.Lock()
         self._tasks: dict = {}
-        self._exec = ThreadPoolExecutor(max_workers=max(1, max_workers))
+        self.max_workers = max(1, max_workers)
+        self._exec = ThreadPoolExecutor(max_workers=self.max_workers)
         self.max_pending_per_owner = max(1, max_pending_per_owner)
 
     # ---- 写入态操作（加锁） ----
@@ -104,6 +107,34 @@ class TaskManager:
         # 最近创建在前
         items.sort(key=lambda t: t.created_at, reverse=True)
         return items
+
+    def queue_position(self, tid: str):
+        """返回某任务在并发队列中的 1-based 位次；非排队态（已运行/完成等）返回 None。
+
+        语义：位次 = 比它更早创建、且仍处于 pending/running（仍在占用或等待算力）的
+        任务数量 + 1。即「前面还有多少任务在算或在等」，反映真正被服务的前后顺序。
+        """
+        with self._lock:
+            t = self._tasks.get(tid)
+            if not t or t.status != "pending":
+                return None
+            earlier = [
+                o for o in self._tasks.values()
+                if o.created_at < t.created_at
+                and o.status in ("pending", "running")
+            ]
+            return len(earlier) + 1
+
+    def queue_stats(self) -> dict:
+        """全局队列快照：运行中 / 等待中 / 并发上限，供前端展示整体负荷。"""
+        with self._lock:
+            running = sum(1 for t in self._tasks.values() if t.status == "running")
+            waiting = sum(1 for t in self._tasks.values() if t.status == "pending")
+        return {
+            "running": running,
+            "waiting": waiting,
+            "max_workers": self.max_workers,
+        }
 
 
 class TooManyPending(Exception):

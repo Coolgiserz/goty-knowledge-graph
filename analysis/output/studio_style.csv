@@ -1,5 +1,5 @@
 ﻿studio_id,studio,n_games,dominant_community,dominant_community_label,style_x,style_y
-studio_asobi,Asobi团队,5,11,平台跳跃、VR平台跳跃,0.4289130796750683,-0.43656854599820016
+studio_asobi,Asobi团队,5,11,3D平台跳跃、增强现实,0.4289130796750683,-0.43656854599820016
 studio_bethesda,贝塞斯达游戏工作室,8,4,动作角色扮演、动作冒险,-0.03670879478409833,0.11579423266348585
 studio_bioware,BioWare,9,2,角色扮演、科幻角色扮演,-0.3425951275711602,0.4340734616996195
 studio_blizzard,暴雪娱乐,8,5,动作角色扮演、英雄射击,-0.2735954266388063,0.1668993288260764
@@ -9,7 +9,7 @@ studio_hazelight,Hazelight工作室,4,12,合作冒险、解谜冒险,0.432192981
 studio_irrational,非理性游戏,7,8,第一人称射击、策略角色扮演,-0.5026633632717358,0.0671789435649385
 studio_larian,拉瑞安工作室,8,6,动作角色扮演、CRPG,-0.20837465991926574,-0.13890983378326202
 studio_naughtydog,顽皮狗,9,1,动作冒险、平台跳跃,0.13228267213792835,-0.24417661875847424
-studio_nintendoepd,任天堂企划制作本部（Nintendo Entertainment Planning & Development）,7,10,动作冒险、银河恶魔城,0.4675838901412589,-0.0597898582177601
+studio_nintendoepd,任天堂企划制作本部（Nintendo Entertainment Planning & Development）,7,10,动作冒险、生活模拟,0.4675838901412589,-0.0597898582177601
 studio_rockstar,Rockstar 游戏,11,0,动作冒险、西部动作冒险,0.23407235491401807,-0.02040139007596436
 studio_sandfall,沙落互动,1,13,回合制角色扮演,-0.5659645783599484,-0.49392775852161674
 studio_santamonica,圣莫尼卡工作室,6,0,动作冒险、西部动作冒险,0.27930033035378266,0.20149227993165042

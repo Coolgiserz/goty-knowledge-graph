@@ -152,6 +152,14 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 - 内置**有界线程池**（默认并发 2）提供背压：超额任务排队为 `pending`，天然限制同时运行的重计算；并设**单用户待处理上限**（默认 5），超了直接 `429`，防止队列被刷爆。
 - 前端「后台任务」面板列出任务（状态徽章 / 查看结果 / 取消），满足**查看运行状态、运行结果**的后台任务管理需求。
 
+### 排队位次可视化（用户感知背压）
+当并发被 `GOTY_TASK_WORKERS` 限制、任务进入 `pending` 排队时，前端会让用户清楚「我排在第几位、前面还有几个在算」，而不是干等：
+
+- 后端 `TaskManager.queue_position(tid)` 返回该任务的 **1-based 位次** = 比它更早创建且仍处于 `pending/running`（仍占用或等待算力）的任务数 + 1；非排队态（`running`/`done` 等）返回 `None`。
+- `GET /api/jobs/{id}` 在 `pending` 时附带 `queue_position`，并始终附带全局快照 `queue_running / queue_waiting / queue_max_workers`；`GET /api/jobs` 列表对每个 `pending` 任务同样给出位次。
+- 新增轻量端点 `GET /api/jobs/queue` 返回全局队列负荷（运行中 / 等待 / 并发上限），任务面板顶部常驻显示「队列负荷：X 运行中 · Y 等待 · 并发上限 Z」。
+- 前端：轮询中若处于 `pending`，提示「排队中…（队列第 N 位 · X/Y 计算中 · 共 Z 个等待）」；任务行对 `pending` 任务显示「第 N 位」徽章。任务开始计算或结束，位次随之前移。
+
 ### 探索总开关（默认不开放，避免撑爆服务器）
 云端部署通过 `GOTY_ENABLE_EXPLORATION` 控制是否对用户开放数据挖掘/探索：
 

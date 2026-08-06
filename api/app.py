@@ -5,7 +5,8 @@
 - POST /api/board/{name} 同步计算（调试用；耗资源，受总开关 + 限流约束）
 - POST /api/jobs         提交异步探索任务（立即返回 job_id，不阻塞）
 - GET  /api/jobs         列出任务（自己的；持令牌 + ?scope=all 看全部）
-- GET  /api/jobs/{id}   任务状态 + 结果（轮询）
+- GET  /api/jobs/queue   全局队列负荷快照（运行中/等待/并发上限）
+- GET  /api/jobs/{id}   任务状态 + 结果 + 排队位次（轮询）
 - DELETE /api/jobs/{id} 取消 pending 任务
 
 安全防护（云端 demo）：黑名单(403) + 两档限流(429) + 结构化日志（见 ratelimit/logging_config）。
@@ -158,6 +159,16 @@ def _forbid_if_disabled():
         raise HTTPException(status_code=403, detail="exploration_disabled")
 
 
+def _job_dict(t, stats: dict, include_result: bool = False) -> dict:
+    """把任务基础信息 + 排队位次 + 全局队列快照合并为一个返回体。"""
+    pos = tasks_mgr.queue_position(t.id)
+    d = t.to_dict(include_result=include_result, position=pos)
+    d["queue_running"] = stats["running"]
+    d["queue_waiting"] = stats["waiting"]
+    d["queue_max_workers"] = stats["max_workers"]
+    return d
+
+
 # ---------------- 路由 ----------------
 class BoardReq(BaseModel):
     params: dict = {}
@@ -226,8 +237,16 @@ def list_jobs(request: Request):
     all_scope = bool(EXPLORE_TOKEN) and extract_token(request) == EXPLORE_TOKEN \
         and request.query_params.get("scope") == "all"
     items = tasks_mgr.list(owner=owner, all_scope=all_scope)
-    return {"jobs": [t.to_dict() for t in items],
+    stats = tasks_mgr.queue_stats()
+    return {"jobs": [_job_dict(t, stats) for t in items],
             "scope": "all" if all_scope else "self"}
+
+
+@app.get("/api/jobs/queue")
+def queue_status(request: Request):
+    """轻量队列负荷快照，供前端任务面板常驻显示（无需列出个人任务即可查看）。"""
+    _forbid_if_disabled()
+    return {"queue": tasks_mgr.queue_stats()}
 
 
 @app.get("/api/jobs/{job_id}")
@@ -240,7 +259,8 @@ def get_job(job_id: str, request: Request):
     all_scope = bool(EXPLORE_TOKEN) and extract_token(request) == EXPLORE_TOKEN
     if not all_scope and t.owner != owner:
         raise HTTPException(status_code=404, detail="任务不存在")
-    return t.to_dict(include_result=True)
+    stats = tasks_mgr.queue_stats()
+    return _job_dict(t, stats, include_result=True)
 
 
 @app.delete("/api/jobs/{job_id}")

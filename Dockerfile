@@ -5,7 +5,7 @@
 #   探索 SPA：  http://localhost:8080/
 #   原图谱页：  http://localhost:8080/graph/
 #   API：       http://localhost:8080/api/meta
-FROM python:3.11-slim
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/python:3.11-slim-linuxarm64
 
 WORKDIR /app
 

@@ -299,7 +299,11 @@ function pollJob(id) {
       const job = await fetchJSON(`${API}/jobs/${id}`, { headers: authHeaders() });
       const box = $("#result");
       if (job.status === "pending") {
-        box.innerHTML = `<div class="loading-msg">排队中…（任务 ${id}）</div>`;
+        const pos = job.queue_position ?? "?";
+        const run = job.queue_running ?? 0;
+        const wait = job.queue_waiting ?? 0;
+        const maxw = job.queue_max_workers ?? "?";
+        box.innerHTML = `<div class="loading-msg">排队中…（任务 ${id} · 队列第 <b>${pos}</b> 位 · ${run}/${maxw} 计算中 · 共 ${wait} 个等待）</div>`;
         pollTimer = setTimeout(tick, 1000);
       } else if (job.status === "running") {
         box.innerHTML = `<div class="loading-msg">计算中…（任务 ${id}）</div>`;
@@ -335,12 +339,33 @@ async function loadJobs() {
     const jobs = data.jobs || [];
     if (!jobs.length) {
       list.innerHTML = `<p class="hint">暂无任务。调节参数后点「应用参数」提交。</p>`;
-      return;
+    } else {
+      list.innerHTML = "";
+      for (const j of jobs) list.appendChild(renderJobRow(j));
     }
-    list.innerHTML = "";
-    for (const j of jobs) list.appendChild(renderJobRow(j));
+    refreshQueueSummary(jobs);
   } catch (e) {
     list.innerHTML = `<p class="err-msg">${esc(friendlyError(e))}</p>`;
+  }
+}
+
+/* 队列负荷摘要：优先用全局端点；若端点不可用则用首条任务自带的快照字段兜底。 */
+async function refreshQueueSummary(jobs = null) {
+  const qs = $("#queue-summary");
+  if (!qs) return;
+  try {
+    const data = await fetchJSON(`${API}/jobs/queue`, { headers: authHeaders() });
+    const q = data.queue || {};
+    qs.textContent = `队列负荷：${q.running ?? 0} 运行中 · ${q.waiting ?? 0} 等待 · 并发上限 ${q.max_workers ?? "?"}`;
+    qs.classList.toggle("idle", (q.running ?? 0) === 0 && (q.waiting ?? 0) === 0);
+  } catch (_) {
+    const q = jobs && jobs[0];
+    if (q) {
+      qs.textContent = `队列负荷：${q.queue_running ?? 0} 运行中 · ${q.queue_waiting ?? 0} 等待 · 并发上限 ${q.queue_max_workers ?? "?"}`;
+      qs.classList.toggle("idle", (q.queue_running ?? 0) === 0 && (q.queue_waiting ?? 0) === 0);
+    } else {
+      qs.textContent = "";
+    }
   }
 }
 function statusBadge(s) {
@@ -359,6 +384,9 @@ function renderJobRow(j) {
   row.appendChild(statusBadge(j.status));
   row.appendChild(el("span", { class: "job-board" }, j.board));
   row.appendChild(el("span", { class: "job-id" }, `#${j.id}`));
+  if (j.status === "pending" && j.queue_position != null) {
+    row.appendChild(el("span", { class: "job-pos" }, `第 ${j.queue_position} 位`));
+  }
   const actions = el("div", { class: "job-actions" });
   if (j.status === "done") {
     actions.appendChild(el("button", {
