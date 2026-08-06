@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# 本地快速启动：数据探索 API + 探索 SPA（FastAPI/uvicorn）。
-# 同时托管：
-#   /            探索 SPA（site/explorer/，可调参数做数据挖掘）
-#   /graph/      原图谱浏览页（site/，vis-network 力导向图）
-#   /api/*       探索 API（板块 schema / 计算 / 双有效性判定 / 限流·黑名单·日志）
+# 本地快速启动：数据探索 API + 静态站点（FastAPI/uvicorn）。
+# 两种模式由环境变量 GOTY_ENABLE_EXPLORATION 控制：
+#   关（默认 / 洞察模式）：/ 提供「原始数据页 + 原始洞察页」只读浏览，/api/jobs 等返回 403
+#   开（探索模式）      ：/ 同上，额外挂载 /explore 探索 SPA（参数化数据挖掘）
 # 用法： bash scripts/serve_api.sh [端口]
 #
 # 云端部署可用环境变量调参（详见 README「安全与限流」）：
@@ -20,8 +19,12 @@ export PYTHONPATH="$ROOT_DIR:${PYTHONPATH:-}"
 
 # 关闭 uvicorn 自带的 access log，统一由 api/logging_config 输出结构化请求日志，
 # 避免重复且信息更全（含客户端 IP / 耗时 / 限流与封禁告警）。
-echo "🚀 数据探索已启动： http://localhost:${PORT}"
-echo "   探索页：  http://localhost:${PORT}/"
-echo "   原图谱：  http://localhost:${PORT}/graph/"
+EXPLORATION="${GOTY_ENABLE_EXPLORATION:-false}"
+
+echo "🚀 已启动： http://localhost:${PORT}"
+echo "   洞察页（原始数据 + 原始洞察）： http://localhost:${PORT}/"
+if [ "$EXPLORATION" = "true" ]; then
+  echo "   探索页（参数化数据挖掘）：        http://localhost:${PORT}/explore/"
+fi
 echo "   按 Ctrl+C 停止。"
 exec "$PY" -m uvicorn api.app:app --host 0.0.0.0 --port "$PORT" --no-access-log

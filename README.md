@@ -30,10 +30,17 @@
 
 ## 🚀 快速开始
 
-### 方式一：数据探索 + 原图谱（推荐，需后端）
+### 方式零：快速启动【洞察模式】（只读，推荐先看这个）
 
 ```bash
-make serve            # 启动 FastAPI（API + 原静态图谱 + 探索 SPA），默认 http://localhost:8080
+make insight          # 只读浏览「原始数据页 + 原始洞察页」，默认 http://localhost:8080
+# 原始数据页/洞察： http://localhost:8080/        （vis-network 图谱 + 表格 + 节点洞察）
+```
+
+### 方式一：数据探索 + 原图谱（需后端，含探索 SPA）
+
+```bash
+make serve            # 启动 FastAPI（API + 洞察页 + /explore 探索 SPA），默认 http://localhost:8080
 # 原始数据页/洞察： http://localhost:8080/        （默认落地页：vis-network 图谱 + 表格 + 节点洞察）
 # 探索 SPA：       http://localhost:8080/explore  （调参数做数据挖掘，需主动进入）
 ```
@@ -168,7 +175,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 | `false`（**默认**） | 只读快速模式：根路径 `/` 托管**原第一版** `site/index.html`（vis-network 图谱 + 表格双视图 + 节点洞察），用户只能浏览；`/api/jobs`、`/api/board` 返回 `403`。 |
 | `true` | 完整探索：根路径 `/` 同样托管**原 v1（数据页 + 洞察页，默认落地页）**，并额外在 `/explore` 托管探索 SPA（异步任务 + 参数调节 + 任务管理）；v1 工具栏会自动出现「开始数据探索 →」入口。 |
 
-> **本地快速模式**：本地直接 `make serve` 即为只读 v1（最快、等同第一版效果）。想在本地调试探索，设 `GOTY_ENABLE_EXPLORATION=true` 启动即可。
+> **本地快速模式**：直接 `make insight` 即为只读 v1（最快、等同第一版效果，仅看原始数据页 + 洞察）。想本地调试探索，用 `make serve`（已自动设 `GOTY_ENABLE_EXPLORATION=true`），或手动 `GOTY_ENABLE_EXPLORATION=true` 启动。
 
 ### 轻量令牌门禁（轻量用户管理）
 开启探索后，可用 `GOTY_EXPLORE_TOKEN` 限定**谁能提交计算任务**（无需注册/密码/数据库）：
@@ -194,7 +201,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 .
 ├── README.md
 ├── LICENSE                 # MIT
-├── Makefile                # 快捷命令（build/serve/serve-static/docker/up/neo4j/analysis）
+├── Makefile                # 快捷命令（insight/serve/serve-static/build/docker/run/up/neo4j/analysis）
 ├── Dockerfile              # 数据探索镜像（python + uvicorn，含 API 与原静态站点）
 ├── docker-compose.yml      # web(API+探索 SPA) + neo4j + 自动导入
 ├── requirements.txt        # 运行时依赖（FastAPI + analysis/ml 计算所需）
