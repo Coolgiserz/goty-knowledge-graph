@@ -26,7 +26,7 @@ import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 
@@ -279,11 +279,20 @@ def cancel_job(job_id: str, request: Request):
 
 # 静态资源：先注册 API 路由，最后按模式挂载静态目录。
 # 探索开启 → / 探索 SPA，/graph/ 原 v1；探索关闭（默认/快速模式）→ / 原 v1 只读浏览。
+@app.get("/graph")
+def redirect_graph():
+    """原图谱页挂载在 /graph/，无尾斜杠时重定向，避免裸 /graph 404。"""
+    return RedirectResponse(url="/graph/", status_code=307)
+
+
 if EXPLORATION_ENABLED:
-    if os.path.isdir(EXPLORER_DIR):
-        app.mount("/", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")
+    # 注意：必须先挂载更具体的 /graph，否则根挂载 "/" 作为 catch-all 会
+    # 先拦截 /graph/*（把剩余路径 graph/ 交给 explorer 的 StaticFiles 去找
+    # site/explorer/graph/index.html，找不到 → 404）。/graph 注册在后才轮不到。
     if os.path.isdir(SITE_DIR):
         app.mount("/graph", StaticFiles(directory=SITE_DIR, html=True), name="graph")
+    if os.path.isdir(EXPLORER_DIR):
+        app.mount("/", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")
 else:
     if os.path.isdir(SITE_DIR):
         app.mount("/", StaticFiles(directory=SITE_DIR, html=True), name="graph")

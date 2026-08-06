@@ -1,11 +1,11 @@
-# 构建 nginx 镜像时排除无关文件（只 COPY site/ 与 docker/）
+# 排除构建期输入/无关文件，但运行时必需的数据要保留：
+# api/graph_loader.py 在容器内加载 /app/data/graph.json，故不能忽略它。
 .git
 .workbuddy
 **/.DS_Store
 data/raw
 data/csv
 data/neo4j
-data/graph.json
 docs
 scripts
 src
