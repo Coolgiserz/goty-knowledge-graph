@@ -215,26 +215,24 @@
         <button id="clear-btn" type="button">清空画布</button>
       </div>
       <div id="canvas"></div>
+
+      <!-- 社团成员表格：点社团列表项时在画布右侧展开，不遮挡图谱；同时高亮该社团节点 -->
+      <aside id="comm-panel" class="comm-panel" aria-hidden="true">
+        <div class="comm-panel-head">
+          <span id="comm-panel-title">社团节点</span>
+          <button id="comm-panel-close" type="button" class="comm-panel-close" aria-label="关闭">×</button>
+        </div>
+        <div id="comm-panel-meta" class="comm-panel-meta"></div>
+        <div class="tbl-wrap comm-panel-tbl">
+          <table class="tbl">
+            <thead><tr><th>名称</th><th>类型</th></tr></thead>
+            <tbody id="comm-panel-body"></tbody>
+          </table>
+        </div>
+        <p class="hint">点任意一行，在画布上聚焦该节点。关闭面板后可重新点社团列表项查看。</p>
+      </aside>
     </section>
   </main>
-
-  <!-- 社团成员表格弹窗：点社团列表项弹出，展示该社团包含的全部节点 -->
-  <div id="comm-modal" class="modal">
-    <div class="modal-box">
-      <div class="modal-head">
-        <span id="comm-modal-title">社团节点</span>
-        <button id="comm-modal-close" type="button" class="modal-close" aria-label="关闭">×</button>
-      </div>
-      <div class="modal-meta" id="comm-modal-meta"></div>
-      <div class="tbl-wrap modal-tbl">
-        <table class="tbl">
-          <thead><tr><th>名称</th><th>类型</th></tr></thead>
-          <tbody id="comm-modal-body"></tbody>
-        </table>
-      </div>
-      <p class="hint">点任意一行，在画布上聚焦该节点并展开其邻居。</p>
-    </div>
-  </div>
 
   <script src="vis-network.min.js"></script>
   <script src="app.js"></script>

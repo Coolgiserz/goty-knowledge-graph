@@ -884,17 +884,17 @@ function renderCommunityList(communities) {
       `<span class="comm-dot" style="background:${color}"></span>` +
       `<span class="comm-name">社团 #${c.id}</span>` +
       `<span class="comm-size">${c.size} 个节点</span>`;
-    item.addEventListener("click", () => openCommModal(c));
+    item.addEventListener("click", () => openCommPanel(c));
     box.appendChild(item);
   });
 }
 
-// 点社团列表项：弹出该社团包含的全部节点表格（数据取自画布 DataSet，无需额外请求）。
-function openCommModal(c) {
-  const modal = $("#comm-modal");
-  const title = $("#comm-modal-title");
-  const meta = $("#comm-modal-meta");
-  const body = $("#comm-modal-body");
+// 点社团列表项：在画布右侧展开成员表格（不遮挡图谱），并高亮该社团的全部节点。
+function openCommPanel(c) {
+  const panel = $("#comm-panel");
+  const title = $("#comm-panel-title");
+  const meta = $("#comm-panel-meta");
+  const body = $("#comm-panel-body");
   const color = commColor(c.id);
   title.innerHTML = `<span class="comm-dot" style="background:${color};display:inline-block;vertical-align:middle;margin-right:6px"></span>社团 #${c.id} · 节点列表`;
   meta.textContent = `共 ${c.size} 个节点`;
@@ -909,26 +909,61 @@ function openCommModal(c) {
     const group = n ? (n.group || "") : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${esc(label)}</td><td>${esc(groupLabel(group))}</td>`;
-    tr.addEventListener("click", () => {
-      closeCommModal();
-      selectNode(id);
-      if (network) network.focus(id, { animation: true, scale: 1.1 });
-    });
+    tr.addEventListener("click", () => focusCommunityMember(id));
     body.appendChild(tr);
   }
-  modal.classList.add("show");
+  panel.classList.add("show");
+  panel.setAttribute("aria-hidden", "false");
+  const wrap = document.querySelector(".canvas-wrap");
+  if (wrap) wrap.classList.add("panel-open");
+  highlightCommunity(c);
 }
-function closeCommModal() {
-  $("#comm-modal").classList.remove("show");
+
+function closeCommPanel() {
+  const panel = $("#comm-panel");
+  panel.classList.remove("show");
+  panel.setAttribute("aria-hidden", "true");
+  const wrap = document.querySelector(".canvas-wrap");
+  if (wrap) wrap.classList.remove("panel-open");
 }
-function focusCommunity(c) {
-  const ids = (c.members || []).filter((id) => nodes.get(id));
-  if (!ids.length) { setStatus("该社团无可见节点"); return; }
-  if (network) {
-    network.selectNodes(ids);
-    network.fit({ nodes: ids, animation: true });
+
+// 跟踪当前被高亮（金色描边）的节点，便于切换社区/重跑影响力时清掉旧高亮，避免叠加残留。
+let highlightedNodeIds = new Set();
+function clearGraphHighlights() {
+  for (const id of highlightedNodeIds) {
+    const n = nodes.get(id);
+    if (!n) continue;
+    const bg = (n.color && n.color.background) || "#888";
+    nodes.update({ id, borderWidth: 2, color: Object.assign({}, n.color, { border: shade(bg) }) });
   }
-  setStatus(`已聚焦社团 #${c.id}（${ids.length} 个节点）`);
+  highlightedNodeIds = new Set();
+}
+
+// 在画布上高亮整个社团：保留社团配色，仅给成员节点加金色描边，并聚焦到它们。
+function highlightCommunity(c) {
+  clearGraphHighlights();
+  const ids = (c.members || []).filter((id) => nodes.get(id));
+  if (!ids.length) { setStatus("该社团无可见节点（请先运行社区分析）"); return; }
+  for (const id of ids) {
+    const n = nodes.get(id);
+    nodes.update({
+      id,
+      borderWidth: 3,
+      color: Object.assign({}, n.color, { border: "#f5b301" }),
+    });
+    highlightedNodeIds.add(id);
+  }
+  if (network) network.fit({ nodes: ids, animation: true });
+  setStatus(`已高亮社团 #${c.id}（${ids.length} 个节点，金色边框）。点右侧表格行可在画布聚焦单个节点。`);
+}
+
+// 点表格行：聚焦单个节点（不展开邻居，避免打乱社团视图），保持面板开启。
+function focusCommunityMember(id) {
+  if (!nodes.get(id)) return;
+  current = id;
+  if (network) network.focus(id, { animation: true, scale: 1.15 });
+  fetchJSON(`${API}/graph/node/${encodeURIComponent(id)}`).then(renderDetail).catch(() => {});
+  setStatus(`已聚焦：${displayLabel(nodes.get(id))}`);
 }
 
 /* ---------------- 网络影响力（中心性） ---------------- */
@@ -954,8 +989,9 @@ async function loadInfluence() {
     if (group) params.set("group", group);
     const data = await fetchJSON(`${API}/graph/influence?${params}`);
     renderInfluence(data);
+    applyInfluenceHighlight(data);
     const mlabel = { pagerank: "PageRank", degree: "度数中心性", betweenness: "中介中心性" }[data.metric] || data.metric;
-    setStatus(`影响力分析完成（${mlabel}${group ? " · " + groupLabel(group) : ""}，前 ${data.results.length} 名）`);
+    setStatus(`影响力分析完成（${mlabel}${group ? " · " + groupLabel(group) : ""}，前 ${data.results.length} 名已高亮于画布：节点越大、金色边框越醒目表示影响力越高）`);
   } catch (e) {
     setStatus("影响力分析失败：" + e.message);
   } finally {
@@ -985,6 +1021,49 @@ function renderInfluence(data) {
     item.addEventListener("click", () => focusOrLoadNode(r.id));
     box.appendChild(item);
   });
+}
+
+// 把中心性分数映射成节点尺寸（sqrt 让差异更可读）：score=0 → 12，score=max → 46。
+function sizeForScore(score, max) {
+  const t = max > 0 ? Math.sqrt(Math.max(0, score) / max) : 0;
+  return 12 + 34 * t;
+}
+
+// 影响力分析的可视化落地：把前 N 名节点直接“钉”在画布上并强调，让分析有可见效果。
+// 已在画布的节点就地放大 + 加金色描边；不在画布的（如起始为空）则补加为孤立高亮节点，
+// 保证无论当前画布状态，点击“运行影响力分析”都有明确反馈。
+function applyInfluenceHighlight(data) {
+  clearGraphHighlights();
+  const results = data.results || [];
+  if (!results.length) return;
+  const max = Math.max(...results.map((r) => r.score || 0)) || 1;
+  const topIds = [];
+  for (const r of results) {
+    const size = sizeForScore(r.score, max);
+    const existing = nodes.get(r.id);
+    if (existing) {
+      nodes.update({
+        id: r.id,
+        size,
+        borderWidth: 3,
+        color: Object.assign({}, existing.color, { border: "#f5b301" }),
+      });
+    } else {
+      const g = (GROUP_COLOR[r.group] && GROUP_COLOR[r.group].color) || { background: "#888", border: "#555" };
+      nodes.add({
+        id: r.id,
+        label: r.label || r.id,
+        group: r.group,
+        title: `${r.label || r.id}\n${groupLabel(r.group)}（影响力 ${Number(r.score).toFixed(4)}）`,
+        color: { background: g.background, border: "#f5b301" },
+        borderWidth: 3,
+        size,
+      });
+    }
+    topIds.push(r.id);
+    highlightedNodeIds.add(r.id);
+  }
+  if (network) network.fit({ nodes: topIds, animation: true });
 }
 
 // 影响力榜点击：节点已在画布就聚焦；否则拉取其 1 跳邻居后再聚焦（不清除现有视图）。
@@ -1093,9 +1172,8 @@ function bind() {
   $("#inf-metric").addEventListener("change", updateInfMetricNote);
   updateInfMetricNote();
   loadCommunityAlgorithms(); // 进入即从 /communities/meta 拉取算法目录并渲染下拉 + 参数表单
-  // 社团成员弹窗关闭
-  $("#comm-modal-close").addEventListener("click", closeCommModal);
-  $("#comm-modal").addEventListener("click", (e) => { if (e.target.id === "comm-modal") closeCommModal(); });
+  // 社团成员侧栏面板关闭
+  $("#comm-panel-close").addEventListener("click", closeCommPanel);
   // 最短路径节点选择器（带搜索联想）
   makePicker("path-a-input", "path-a-results", "a");
   makePicker("path-b-input", "path-b-results", "b");
