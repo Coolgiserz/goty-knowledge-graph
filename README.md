@@ -345,6 +345,14 @@ cp .env.sample .env      # 然后按需修改里面的默认值
 
 **健壮性**：若显式选了 `neo4j` 但连不上（驱动缺失 / 实例没起），工厂会**自动回退**到 networkx 并打告警，API 永不因此整体崩溃；查询时则统一返回 `503 graph_backend_unavailable`。
 
+> **⚠️ 遇到 `Neo4j.ClientError.Security.AuthenticationRateLimit`？**
+> 这是 Neo4j 的防暴力破解机制：连续多次用**错误密码**连接后，会临时拒绝一切认证（含正确密码），直到重启容器。根因通常是：
+> 1. **改了密码却没重建数据卷**——Neo4j 只在**首次启动**设置密码；若你改过 `.env` 的 `NEO4J_PASSWORD` 而 `neo4j_data` 卷里还是旧密码的库，导入/连接就会一直用新密码撞旧库 → 触发限流。
+>    - 恢复：先用**当前**密码重启容器清掉内存限流（`docker-compose restart neo4j` 或 `docker rm -f neo4j-goty-dev`），并重建数据卷使其采纳新密码（`docker-compose down -v` / `docker volume rm neo4j-goty-data` 后重跑）。
+> 2. **密码不一致**——compose 的 `neo4j` 与 `importer` 共用 `NEO4J_PASSWORD`；独立脚本 `neo4j_dev.sh` / `neo4j_import.sh` 也读 `.env` 的 `NEO4J_PASSWORD`。把 `.env` 的 `NEO4J_PASSWORD` 作为唯一真值即可三方一致（脚本默认 `password123`，但会自动读 `.env` 覆盖）。
+> 导入逻辑已改为「等 Bolt 端口 **TCP 就绪（不发凭据）** → 仅在非认证类瞬时错误时重试，认证错误立即退出」，不会再因轮询把账户锁死。
+> 镜像拉不动 Docker Hub 时，可在 `.env` 设 `NEO4J_IMAGE` 改用国内/ARM 镜像（如华为云 `swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64`）。
+
 ### 长期路线：GraphRAG 基础
 
 当前已具备「单一数据源 → CSV → Neo4j」的同步链路（`src/build.py` 导 CSV、`scripts/init.cypher` 导入）。把后端接到 Neo4j 后，后续可平滑演进：

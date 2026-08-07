@@ -18,14 +18,14 @@ services:
     restart: unless-stopped
 
   neo4j:
-    image: neo4j:5.26-community
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64
     ports:
       - "7474:7474"
       - "7687:7687"
     environment:
       # 本地演示用固定弱密码；生产环境请在 .env 中设 NEO4J_PASSWORD 改用强密码。
       # 该值与下方 importer 共享同一来源，确保导入时密码一致。
-      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-password123}"
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-pAsSwOrd123}"
     volumes:
       - ./data/csv:/import/csv:ro
       - neo4j_data:/data
@@ -39,13 +39,13 @@ services:
 
   # Neo4j 健康检查通过后，自动执行 scripts/init.cypher 导入数据集
   importer:
-    image: neo4j:5.26-community
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64
     depends_on:
       neo4j:
         condition: service_healthy
     environment:
       # 与 neo4j 服务共用同一密码来源
-      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-password123}"
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-pAsSwOrd123}"
     volumes:
       - ./data/csv:/import/csv:ro
       - ./scripts/init.cypher:/init.cypher:ro
@@ -53,15 +53,28 @@ services:
     command:
       - |
         PW="$NEO4J_PASSWORD"
-        echo "importer: 等待 Neo4j Bolt 端口…"
+        echo "importer: 等待 Neo4j Bolt 端口(TCP)就绪（不发送凭据，避免认证限流）…"
         for i in $(seq 1 60); do
-          if cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" "RETURN 1;" >/dev/null 2>&1; then
+          if (exec 3<>/dev/tcp/neo4j/7687) 2>/dev/null; then
+            exec 3>&- 3<&-
             break
           fi
           sleep 2
         done
         echo "importer: 执行 scripts/init.cypher …"
-        cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" -f /init.cypher
+        ok=0
+        for i in $(seq 1 30); do
+          if err=$(cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" -f /init.cypher 2>&1); then
+            ok=1; break
+          fi
+          if echo "$err" | grep -qiE 'AuthenticationRateLimit|invalid (username|password)|credentials'; then
+            echo "importer: 认证失败 —— $err"
+            echo "importer: 请确认 NEO4J_PASSWORD 与 neo4j 服务密码一致（改密码需 docker-compose down -v 重建）。"
+            exit 1
+          fi
+          sleep 2
+        done
+        if [ "$ok" -ne 1 ]; then echo "importer: 导入失败 —— $err"; exit 1; fi
         echo "importer: 导入完成 ✅"
     restart: "no"
 
