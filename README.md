@@ -67,7 +67,9 @@ make run              # 运行容器，访问 http://localhost:8080
 ```bash
 make up
 # 原始数据页/洞察： http://localhost:8080/   探索 SPA： http://localhost:8080/explore
+# 交互式探索浏览器： http://localhost:8090/   （独立前端容器，搜索/多跳展开/最短路径）
 # Neo4j Browser： http://localhost:7474  （用户名 neo4j / 密码 password123）
+# 想让 :8090 的查询走 Cypher：在 .env 设 GOTY_GRAPH_BACKEND=neo4j 后 make up
 ```
 
 `docker-compose` 会在 Neo4j 健康检查通过后，由 `importer` 服务自动执行 `scripts/init.cypher` 把数据集导入图库。
@@ -324,6 +326,18 @@ cp .env.sample .env      # 然后按需修改里面的默认值
 | `GET /api/graph/path?a=&b=` | 两节点间最短路径 |
 
 > 这些端点默认走 networkx 就已可用；切到 Neo4j 后只是把底层查询换成 Cypher，接口与响应结构不变。
+
+### 交互式图谱浏览器（独立前端容器，:8090）
+
+> 设计原则：**普通用户不写、也看不到 Cypher**——Cypher 只在后端发生，用来满足 UI 探索场景。下面这个前端就是纯 UI 驱动的交互式探索。
+
+Docker 全栈（`docker-compose up -d`）会额外起一个独立前端容器：
+
+- **新入口**：`http://localhost:8090`（交互式探索浏览器）
+- **旧入口**：`http://localhost:8080`（原数据页 / 探索 SPA，保持不变，便于对比差异）
+- **能力**：搜索节点 → 查看详情 → 多跳展开邻居（可按 `DEVELOPED / WON / BELONGS_TO_GENRE / SUBCLASS_OF` 过滤）→ 选两个节点算最短路径。
+- **独立容器**：前端是独立的 `nginx:alpine` 服务，挂载 `site/explorer-graph/`（只读），**不修改原 `site/`**；它只调用上面的 `/api/graph/*` 只读端点，无需令牌。
+- **体感 Neo4j**：该前端与图后端解耦。在 `.env` 设 `GOTY_GRAPH_BACKEND=neo4j`（并填 `GOTY_NEO4J_PASSWORD`，需与 `NEO4J_PASSWORD` 一致）后，同样的点击会改走 Cypher；页面左下角「后端」标识会从 `networkx` 变为 `neo4j`——用户全程无感，只是“图在答你的问题”。
 
 ### 切换到 Neo4j（可选）
 

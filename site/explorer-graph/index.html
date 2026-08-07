@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOTY 知识图谱 · 交互式探索浏览器</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>年度最佳游戏 · 知识图谱</h1>
+      <p class="sub">交互式探索浏览器 — 检索 / 钻取邻居 / 最短路径（可选 Neo4j 后端驱动）</p>
+    </div>
+    <div class="search">
+      <input id="search-input" type="text" placeholder="搜索游戏 / 工作室 / 类型 / 奖项…" autocomplete="off" />
+      <button id="search-btn" type="button">搜索</button>
+    </div>
+    <div id="backend-badge" class="badge nx" title="当前图查询后端；开启 Neo4j 后此处显示 neo4j">后端：—</div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="card">
+        <h2>当前节点</h2>
+        <div id="detail" class="detail empty">在上方搜索并点选一个节点，或从画布中点开邻居。</div>
+      </section>
+
+      <section class="card">
+        <h2>展开邻居</h2>
+        <label class="row">跳数
+          <input id="hops" type="range" min="1" max="4" step="1" value="1" />
+          <span id="hops-val">1</span>
+        </label>
+        <div id="type-filters" class="types">
+          <label><input type="checkbox" class="rel-type" value="DEVELOPED" checked /> DEVELOPED 开发</label>
+          <label><input type="checkbox" class="rel-type" value="WON" checked /> WON 获奖</label>
+          <label><input type="checkbox" class="rel-type" value="BELONGS_TO_GENRE" checked /> BELONGS_TO_GENRE 类型</label>
+          <label><input type="checkbox" class="rel-type" value="SUBCLASS_OF" checked /> SUBCLASS_OF 子类</label>
+        </div>
+        <button id="expand-btn" type="button" class="primary">从当前节点展开</button>
+      </section>
+
+      <section class="card">
+        <h2>最短路径</h2>
+        <p class="hint">选两个节点，看它们之间如何连起来。</p>
+        <div class="path-pick">
+          <div>起点 A：<span id="path-a" class="pid">未选</span></div>
+          <div>终点 B：<span id="path-b" class="pid">未选</span></div>
+        </div>
+        <div class="path-btns">
+          <button id="set-a-btn" type="button">设为起点</button>
+          <button id="set-b-btn" type="button">设为终点</button>
+          <button id="path-btn" type="button" class="primary">计算路径</button>
+          <button id="path-clear" type="button">清除</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <button id="reset-btn" type="button" class="ghost">重置画布</button>
+      </section>
+
+      <div id="status" class="status"></div>
+      <div id="search-results" class="results"></div>
+    </aside>
+
+    <section class="canvas-wrap">
+      <div id="canvas"></div>
+    </section>
+  </main>
+
+  <script src="vis-network.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

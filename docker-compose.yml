@@ -15,6 +15,13 @@ services:
       - neo4j
     # 自动加载仓库根目录的 .env（含全部 GOTY_* 变量）；缺失则启动前由 make 从 .env.sample 复制
     env_file: .env
+    # compose 网络内用服务名解析 Neo4j（覆盖 .env 里的 localhost:7687），
+    # 并把密码与 neo4j 服务对齐，这样在 .env 设 GOTY_GRAPH_BACKEND=neo4j 后，
+    # /api/graph/* 能直接走 Cypher，无需再手动配 GOTY_NEO4J_*。
+    environment:
+      - GOTY_NEO4J_URI=bolt://neo4j:7687
+      - GOTY_NEO4J_USER=neo4j
+      - GOTY_NEO4J_PASSWORD=${NEO4J_PASSWORD:-pAsSwOrd123}
     restart: unless-stopped
 
   neo4j:
@@ -58,6 +65,20 @@ services:
     entrypoint: ["/import_job.sh"]
     # 一次性任务：成功即退出；显式 no，避免被重启策略拉起造成重复导入/死循环
     restart: "no"
+
+  # 交互式图谱浏览器（独立前端容器）：搜索 / 多跳展开 / 最短路径，调用 /api/graph/*。
+  # 与 web 服务完全独立，便于和 :8080 的旧前端对比差异；不修改原 site/。
+  # 该前端本身与图后端无关；要“体感”Neo4j，需在 .env 设 GOTY_GRAPH_BACKEND=neo4j，
+  # 此时 /api/graph/* 走 Cypher（用户无感，仅左下角“后端”标识会变为 neo4j）。
+  graph-explorer:
+    image: nginx:alpine
+    ports:
+      - "8090:80"
+    volumes:
+      - ./site/explorer-graph:/usr/share/nginx/html:ro
+    depends_on:
+      - web
+    restart: unless-stopped
 
 volumes:
   neo4j_data:
