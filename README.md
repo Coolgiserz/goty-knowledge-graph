@@ -281,6 +281,33 @@ make ci          # 本地跑一遍 CI 等价步骤（lint + test + perf）
 
 ---
 
+## ⚙️ 环境变量（.env）
+
+本项目所有可配置项都收敛为 `GOTY_*` 环境变量（`api/config.py` 的 pydantic-settings，`env_prefix="GOTY_"`），并支持从 `.env` 文件加载。仓库提供 **`.env.sample`** 作为样例；**`.env` 已被 `.gitignore` 忽略，需你本地创建、不会进版本库**：
+
+```bash
+cp .env.sample .env      # 然后按需修改里面的默认值
+```
+
+启动方式都会自动加载 `.env`：
+
+- `make run`：`docker run --env-file .env`（若 `.env` 不存在会自动从 `.env.sample` 复制）。
+- `make up`：`docker-compose` 自动读取 `.env`（`web` 服务 `env_file` + 变量替换；Neo4j 密码经 `${NEO4J_PASSWORD:-...}` 注入）。
+- 本地 `make serve` / `make insight`（`uv run`）：因 `api/config.py` 已设 `env_file=".env"`，进程内同样自动读取。
+
+`.env.sample` 中每个变量等号右侧即为其**默认值**；常用项：
+
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `GOTY_ENABLE_EXPLORATION` | `false` | 是否开启探索 SPA（false=只读洞察页） |
+| `GOTY_EXPLORE_TOKEN` | 空 | 探索页操作口令（留空=不校验） |
+| `GOTY_GRAPH_BACKEND` | `networkx` | 图后端：`networkx`（默认，内存）\| `neo4j`（可选，见下节） |
+| `GOTY_RATE_LIMIT_MAX` / `GOTY_BOARD_LIMIT_MAX` | `200` / `8` | 全局 / 板块级限流阈值 |
+| `GOTY_AUTOBAN_VIOLATIONS` / `GOTY_AUTOBAN_SECONDS` | `5` / `3600` | 触发自动封禁的违规次数与封禁秒数 |
+| `NEO4J_PASSWORD` | `password123` | 仅容器化 Neo4j 用；在 `.env` 中改强密码（compose 的 `neo4j` 与 `importer` 共用） |
+
+---
+
 ## 🕸 可选图后端（Neo4j + 更丰富的查询/检索）
 
 后端把「图查询」抽象成 `api/graph_store.GraphStore`，默认用**内存 networkx**（零依赖、离线可用，也就是当前 API 的数据底座）。当你想要 Cypher 式的多跳遍历、路径查询、未来接 GraphRAG 时，可以把后端切换到 **Neo4j**——**默认仍是 networkx，零回退风险**。
@@ -422,4 +449,4 @@ python analysis/run_ml.py --community walktrap           # 或换成 Walktrap（
 - 后端：**FastAPI + uvicorn** 探索 API；复用 `analysis/ml/` 计算模块（Strategy + Registry 可插拔架构）
 - 数据：Python 3 合并脚本，输出 CSV（Neo4j 友好）+ JSON
 - 部署：FastAPI 同源托管 / Docker（python + uvicorn）/ docker-compose
-- 图数据库：Neo4j 5.x
+- 图数据库：Neo4j 5.26（Community，可选后端）

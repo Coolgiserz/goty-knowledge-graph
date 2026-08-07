@@ -51,11 +51,15 @@ docker:
 	docker build -t $(IMG) .
 
 ## run：运行镜像（默认只读洞察；EXPLORATION=true 开启探索 SPA，访问 http://localhost:8080）
+##   自动加载仓库根 .env（缺失则从 .env.sample 复制）。-e 显式值优先级高于 .env。
 run: docker
-	docker run -d -p $(PORT):8080 --name goty-graph -e GOTY_ENABLE_EXPLORATION=$(EXPLORATION) $(IMG)
+	@ [ -f .env ] || cp .env.sample .env
+	docker run -d -p $(PORT):8080 --name goty-graph --env-file .env -e GOTY_ENABLE_EXPLORATION=$(EXPLORATION) $(IMG)
 
 ## up：docker-compose 全栈（网站 + Neo4j 自动导入）
+##   自动加载仓库根 .env（缺失则从 .env.sample 复制）。
 up:
+	@ [ -f .env ] || cp .env.sample .env
 	docker-compose up -d --build
 
 ## down：停止并移除 compose 服务（保留数据卷用 -v 可加）

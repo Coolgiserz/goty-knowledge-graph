@@ -16,7 +16,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CSV_DIR="$ROOT_DIR/data/csv"
 CYPHER="$ROOT_DIR/scripts/init.cypher"
 NAME="neo4j-goty-dev"
+# 若仓库根 .env 设了 NEO4J_PASSWORD，则沿用；否则用默认弱密码（仅本地演示）
 PASS="password123"
+if [ -f "$ROOT_DIR/.env" ] && grep -qE '^NEO4J_PASSWORD=' "$ROOT_DIR/.env"; then
+  PASS="$(grep -E '^NEO4J_PASSWORD=' "$ROOT_DIR/.env" | head -1 | cut -d= -f2-)"
+fi
 HTTP_PORT="7475"   # 非默认（默认 7474）
 BOLT_PORT="7688"   # 非默认（默认 7687）
 
@@ -37,7 +41,7 @@ docker run -d --name "$NAME" \
   -e NEO4J_AUTH="neo4j/$PASS" \
   -v "$CSV_DIR:/import/csv:ro" \
   -v "${NAME}-data:/data" \
-  neo4j:5.23-community
+  neo4j:5.26-community
 
 echo "→ 等待 Neo4j 就绪（最多 120s）…"
 for i in $(seq 1 120); do

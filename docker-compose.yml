@@ -13,16 +13,19 @@ services:
       - "8080:8080"
     depends_on:
       - neo4j
+    # 自动加载仓库根目录的 .env（含全部 GOTY_* 变量）；缺失则启动前由 make 从 .env.sample 复制
+    env_file: .env
     restart: unless-stopped
 
   neo4j:
-    image: neo4j:5.23-community
+    image: neo4j:5.26-community
     ports:
       - "7474:7474"
       - "7687:7687"
     environment:
-      # 本地演示用固定弱密码；生产环境请改为强密码或外部密钥管理
-      NEO4J_AUTH: "neo4j/password123"
+      # 本地演示用固定弱密码；生产环境请在 .env 中设 NEO4J_PASSWORD 改用强密码。
+      # 该值与下方 importer 共享同一来源，确保导入时密码一致。
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-password123}"
     volumes:
       - ./data/csv:/import/csv:ro
       - neo4j_data:/data
@@ -36,25 +39,29 @@ services:
 
   # Neo4j 健康检查通过后，自动执行 scripts/init.cypher 导入数据集
   importer:
-    image: neo4j:5.23-community
+    image: neo4j:5.26-community
     depends_on:
       neo4j:
         condition: service_healthy
+    environment:
+      # 与 neo4j 服务共用同一密码来源
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-password123}"
     volumes:
       - ./data/csv:/import/csv:ro
       - ./scripts/init.cypher:/init.cypher:ro
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
+        PW="$NEO4J_PASSWORD"
         echo "importer: 等待 Neo4j Bolt 端口…"
         for i in $(seq 1 60); do
-          if cypher-shell -a bolt://neo4j:7687 -u neo4j -p password123 "RETURN 1;" >/dev/null 2>&1; then
+          if cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" "RETURN 1;" >/dev/null 2>&1; then
             break
           fi
           sleep 2
         done
         echo "importer: 执行 scripts/init.cypher …"
-        cypher-shell -a bolt://neo4j:7687 -u neo4j -p password123 -f /init.cypher
+        cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" -f /init.cypher
         echo "importer: 导入完成 ✅"
     restart: "no"
 
