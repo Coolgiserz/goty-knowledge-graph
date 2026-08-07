@@ -34,6 +34,7 @@ echo "→ 启动 Neo4j 容器（镜像 $IMAGE，数据卷 neo4j-goty-data）…"
 docker run -d --name "$NAME" \
   -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH="neo4j/$PASS" \
+  -e NEO4J_dbms_directories_import=/import \
   -v "$CSV_DIR:/import/csv:ro" \
   -v neo4j-goty-data:/data \
   "$IMAGE"

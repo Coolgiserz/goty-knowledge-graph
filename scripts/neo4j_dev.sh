@@ -45,6 +45,7 @@ echo "→ 启动 Neo4j 开发容器（镜像 $IMAGE，端口 HTTP:$HTTP_PORT / B
 docker run -d --name "$NAME" \
   -p "$HTTP_PORT:7474" -p "$BOLT_PORT:7687" \
   -e NEO4J_AUTH="neo4j/$PASS" \
+  -e NEO4J_dbms_directories_import=/import \
   -v "$CSV_DIR:/import/csv:ro" \
   -v "${NAME}-data:/data" \
   "$IMAGE"

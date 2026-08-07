@@ -26,6 +26,9 @@ services:
       # 本地演示用固定弱密码；生产环境请在 .env 中设 NEO4J_PASSWORD 改用强密码。
       # 该值与下方 importer 共享同一来源，确保导入时密码一致。
       NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-pAsSwOrd123}"
+      # 将 Neo4j 的 import 目录显式指向 /import，使 init.cypher 的 file:///csv/...
+      # 能解析到挂载进来的 CSV（默认 import 目录是 /var/lib/neo4j/import，会导致找不到文件）。
+      NEO4J_dbms_directories_import: "/import"
     volumes:
       - ./data/csv:/import/csv:ro
       - neo4j_data:/data

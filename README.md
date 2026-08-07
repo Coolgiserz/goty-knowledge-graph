@@ -72,6 +72,8 @@ make up
 
 `docker-compose` 会在 Neo4j 健康检查通过后，由 `importer` 服务自动执行 `scripts/init.cypher` 把数据集导入图库。
 
+> 导入细节：`init.cypher` 用 `LOAD CSV FROM 'file:///csv/...'` 读取挂载进来的 CSV。容器已通过 `NEO4J_dbms_directories_import=/import` 把 Neo4j 的 import 目录显式指向挂载点 `/import`（官方镜像默认是 `/var/lib/neo4j/import`，不改会导致找不到文件、导入零节点）。**请勿改动 `data/csv` 的挂载路径 `/import/csv`**。
+
 ### 方式五：导入到你自己的 Neo4j 实例
 
 如果你已有 Neo4j（非云 Aura），把 `data/csv/` 放到其 `import` 目录后执行：
