@@ -88,8 +88,9 @@ analysis:
 	$(UV) run --extra analysis python analysis/run_ml.py
 
 ## install：安装依赖（uv sync）+ 安装 pre-commit 钩子
+##   默认含 analysis 与 community 两个 extra，使 Louvain / Infomap 社区算法开箱即用
 install:
-	$(UV) sync --extra analysis
+	$(UV) sync --extra analysis --extra community
 	$(UV) run pre-commit install
 
 ## lint：ruff lint + format 检查

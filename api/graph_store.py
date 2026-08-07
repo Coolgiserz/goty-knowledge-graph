@@ -126,14 +126,21 @@ class GraphStore(ABC):
         algorithm: str = "modularity",
         params: dict[str, Any] | None = None,
         animate: bool = False,
+        scope: str = "all",
     ) -> dict[str, Any]:
         """社区发现：返回社团汇总（规模 + 成员）与每个节点的社团归属，供整图上色可视化。
 
         ``params`` 为算法特有参数（如 ``modularity`` 的 ``resolution`` 粒度控制）；
         不同算法忽略不相关参数。``animate=True`` 时额外返回 ``frames``（过程快照，
-        供前端逐步重着色做教育性动画）。返回结构含 ``algorithm``、``params``（实际生效参数）、
-        ``communities``（按规模降序，每项为 ``{id,size,members}``）、``nodes``、``edges``、
-        ``supports_animation``、``modularity``、``frames``。
+        供前端逐步重着色做教育性动画）。
+
+        ``scope`` 控制分析范围，处理**异质图谱**的核心差异：
+        - ``"all"``（默认）：在完整异质图上跑，社团往往是「实体 + 其属性节点」的属性簇；
+        - 某一节点类型（``game``/``genre``/``studio``/``award``/``goty``）：先做**单向投影**
+          （只保留该类型节点，两同类节点间按「共享异类邻居数」连加权边），再跑算法——
+          此时社团是同类节点的**亲和社群**，物理含义与全图混合不同。返回结构含 ``scope``
+          标明本次实际范围，以及 ``algorithm``、``params``、``communities``、
+          ``nodes``、``edges``、``supports_animation``、``modularity``、``frames``。
         """
 
     @abstractmethod
@@ -147,6 +154,79 @@ class GraphStore(ABC):
         - ``group``：按节点类型过滤（game/goty/studio/genre/award），``None`` 表示全类型。
         返回 ``{metric, top_n, group, results:[{id,label,group,score}]}``（已按分数降序）。
         """
+
+
+def _build_scope_graph(
+    node_dicts: list[dict[str, Any]],
+    edge_triples: list[tuple[str, str, str]],
+    scope: str = "all",
+) -> tuple[nx.Graph, list[dict[str, Any]], list[dict[str, Any]]]:
+    """构建社区发现用的图 G 与渲染所需的节点/边，按 ``scope`` 处理异质/同类差异。
+
+    - ``scope="all"``：完整异质图（所有类型节点一视同仁），社团往往是
+      「实体 + 其属性节点」的属性簇。
+    - ``scope`` 为某一节点类型：先做**单向投影（one-mode projection）**——只保留该类型
+      节点，两个同类节点之间按「共享的异类邻居数量」连加权边（权值=共享邻居数）。
+      投影图上的社区是同类节点的**亲和社群**（相似度=共享属性数量），物理含义与全图混合不同。
+
+    返回 ``(G, scoped_nodes, scoped_edges)``：
+    - ``G``：networkx 图（投影图带 ``weight`` 边权）；
+    - ``scoped_nodes``：节点 dict 列表（含 ``id``/``group``，供 ``_node_view`` 渲染）；
+    - ``scoped_edges``：边数 dict 列表（``{source,target,type,weight?}``，投影边带 ``weight``）。
+    """
+    if not scope or scope == "all":
+        G = nx.Graph()
+        for n in node_dicts:
+            G.add_node(n["id"])
+        scoped_nodes = list(node_dicts)
+        scoped_edges: list[dict[str, Any]] = []
+        seen: set[frozenset] = set()
+        for u, v, ty in edge_triples:
+            G.add_edge(u, v)
+            key = frozenset((u, v))
+            if key in seen:
+                continue
+            seen.add(key)
+            scoped_edges.append({"source": u, "target": v, "type": ty})
+        return G, scoped_nodes, scoped_edges
+
+    # ---- 单向投影（同类节点）----
+    target_ids = {n["id"] for n in node_dicts if n.get("group") == scope}
+    if not target_ids:
+        return nx.Graph(), [], []
+    # 邻接表：neigh[x] = 邻居集合（无向）
+    neigh: dict[str, set[str]] = {}
+    for u, v, _ty in edge_triples:
+        neigh.setdefault(u, set()).add(v)
+        neigh.setdefault(v, set()).add(u)
+    # 共享「异类」邻居计数 → 投影边权
+    weight: dict[tuple[str, str], int] = {}
+
+    def pkey(a: str, b: str) -> tuple[str, str]:
+        return (a, b) if a < b else (b, a)
+
+    for t in target_ids:
+        for x in neigh.get(t, ()):
+            if x in target_ids:
+                continue  # 属性必须是「其他类型」；同类直接边在下方单独累加
+            for y in neigh.get(x, ()):
+                if y in target_ids and y != t:
+                    k = pkey(t, y)
+                    weight[k] = weight.get(k, 0) + 1
+    # 同类节点间的直接边（如 genre-genre 的 SUBCLASS_OF）也计 +1
+    for u, v, _ty in edge_triples:
+        if u in target_ids and v in target_ids and u != v:
+            k = pkey(u, v)
+            weight[k] = weight.get(k, 0) + 1
+    G = nx.Graph()
+    for t in target_ids:
+        G.add_node(t)
+    scoped_edges = []
+    for (a, b), w in weight.items():
+        G.add_edge(a, b, weight=w)
+        scoped_edges.append({"source": a, "target": b, "type": "co_occurrence", "weight": w})
+    scoped_nodes = [n for n in node_dicts if n.get("group") == scope]
+    return G, scoped_nodes, scoped_edges
 
 
 class NetworkXStore(GraphStore):
@@ -385,32 +465,33 @@ class NetworkXStore(GraphStore):
         algorithm: str = "modularity",
         params: dict[str, Any] | None = None,
         animate: bool = False,
+        scope: str = "all",
     ) -> dict[str, Any]:
-        G = nx.Graph()
-        G.add_nodes_from(self._nodes.keys())
+        node_dicts = list(self._nodes.values())
+        edge_triples: list[tuple[str, str, str]] = []
         seen: set[frozenset] = set()
-        edges_out: list[dict[str, str]] = []
         for u in self._adj:
             for v, ty in self._adj[u]:
                 key = frozenset((u, v))
                 if key in seen:
                     continue
                 seen.add(key)
-                G.add_edge(u, v)
-                edges_out.append({"source": u, "target": v, "type": ty})
+                edge_triples.append((u, v, ty))
+        G, scoped_nodes, scoped_edges = _build_scope_graph(node_dicts, edge_triples, scope)
         res = run_detection(algorithm, G, params, animate=animate)
         nodes_out = []
-        for nid, n in self._nodes.items():
+        for n in scoped_nodes:
             view = _node_view(n)
-            view["community"] = res.assignment[nid]
+            view["community"] = res.assignment[n["id"]]
             nodes_out.append(view)
         return {
             "algorithm": res.algorithm,
             "display_name": res.display_name,
             "params": res.params,
+            "scope": scope,
             "communities": res.communities,
             "nodes": nodes_out,
-            "edges": edges_out,
+            "edges": scoped_edges,
             "supports_animation": res.supports_animation,
             "modularity": res.modularity,
             "frames": res.frames if animate else [],
@@ -861,42 +942,44 @@ class Neo4jStore(GraphStore):
         algorithm: str = "modularity",
         params: dict[str, Any] | None = None,
         animate: bool = False,
+        scope: str = "all",
     ) -> dict[str, Any]:
         driver = self._require()
-        # 拉全图：节点视图（含 id）+ 无向边
+        # 拉全图：节点视图（含 id/group）+ 无向边三元组
         node_views: dict[str, dict[str, Any]] = {}
         with driver.session() as s:
             for rec in s.run("MATCH (n) RETURN n LIMIT 10000"):
                 v = self._node_view_from(rec["n"])
                 node_views[v["id"]] = v
 
-        G = nx.Graph()
-        G.add_nodes_from(node_views.keys())
+        edge_triples: list[tuple[str, str, str]] = []
         seen: set[frozenset] = set()
-        edges_out: list[dict[str, str]] = []
         with driver.session() as s:
             for rec in s.run("MATCH (a)-[r]-(b) RETURN a, b LIMIT 20000"):
                 a = self._node_view_from(rec["a"])["id"]
                 b = self._node_view_from(rec["b"])["id"]
-                G.add_edge(a, b)
                 key = frozenset((a, b))
                 if key in seen:
                     continue
                 seen.add(key)
-                edges_out.append({"source": a, "target": b, "type": rec["r"].type})
+                edge_triples.append((a, b, rec["r"].type))
+        G, scoped_nodes, scoped_edges = _build_scope_graph(
+            list(node_views.values()), edge_triples, scope
+        )
         res = run_detection(algorithm, G, params, animate=animate)
         nodes_out = []
-        for nid, v in node_views.items():
-            view = dict(v)
-            view["community"] = res.assignment[nid]
+        for n in scoped_nodes:
+            view = dict(n)
+            view["community"] = res.assignment[n["id"]]
             nodes_out.append(view)
         return {
             "algorithm": res.algorithm,
             "display_name": res.display_name,
             "params": res.params,
+            "scope": scope,
             "communities": res.communities,
             "nodes": nodes_out,
-            "edges": edges_out,
+            "edges": scoped_edges,
             "supports_animation": res.supports_animation,
             "modularity": res.modularity,
             "frames": res.frames if animate else [],

@@ -33,6 +33,14 @@ RUN uv pip install --system --no-cache \
     --index-url ${PIP_INDEX} \
     "neo4j>=5.0,<6"
 
+# 社区发现的可选算法依赖（Louvain / Infomap）：同样「便捷预装」——
+# 不打也不影响默认（零依赖的模块度/标签传播/边分裂）路径；打进镜像后这两种算法即可直接用。
+# 去掉下行可进一步减小镜像、降低构建依赖面（需要时再 uv pip install ".[community]"）。
+RUN uv pip install --system --no-cache \
+    --index-url ${PIP_INDEX} \
+    "python-louvain>=0.16" \
+    "infomap>=2.0"
+
 # 复制全部源码（api/ 复用 analysis/ml/ 计算模块；data/graph.json 由 .dockerignore 保留）
 COPY . .
 

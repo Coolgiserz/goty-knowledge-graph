@@ -285,7 +285,9 @@ class LouvainDetector(CommunityDetector):
         randomize = bool(params.get("randomize", False))
         import community as community_louvain  # lazy：仅 louvain 策略用到
 
-        final = community_louvain.best_partition(G, resolution=resolution, randomize=randomize)
+        final = community_louvain.best_partition(
+            G, weight="weight", resolution=resolution, randomize=randomize
+        )
         assign = _pad_isolated(G, dict(final))
         comms = _communities_summary(assign)
         return CommResult(
@@ -304,7 +306,9 @@ class LouvainDetector(CommunityDetector):
         randomize = bool(params.get("randomize", False))
         import community as community_louvain  # lazy
 
-        dendro = community_louvain.generate_dendrogram(G, resolution=resolution, randomize=randomize)
+        dendro = community_louvain.generate_dendrogram(
+            G, weight="weight", resolution=resolution, randomize=randomize
+        )
         for step, level in enumerate(dendro):
             assign = _pad_isolated(G, dict(level))
             compact = _compact_ids(assign)
@@ -347,18 +351,23 @@ class InfomapDetector(CommunityDetector):
 
         seed = params.get("seed")
         two_level = bool(params.get("two_level", False))
-        # infomap 要求整数节点 id：做 0..n-1 重标号
+        # infomap 要求整数节点 id：做 0..n-1 重标号；seed 必须 >= 1
         nodes = list(G.nodes())
         idx = {n: i for i, n in enumerate(nodes)}
         im = infomap.Infomap(
             "--two-level" if two_level else "",
-            seed=seed if seed is not None else 0,
+            seed=seed if seed is not None else 1,
         )
         for u, v in G.edges():
-            im.add_link(idx[u], idx[v])
-        im.run(silent=True)
+            im.add_link(idx[u], idx[v], G[u][v].get("weight", 1))
+        result = im.run()
+        # infomap 2.x：优先用 run() 返回的 Result.modules()；老版本退回 get_modules()
+        try:
+            mod_map = result.modules()
+        except AttributeError:
+            mod_map = im.get_modules()
         assign: dict[str, int] = {}
-        for nid, mod in im.get_modules().items():
+        for nid, mod in mod_map.items():
             assign[nodes[int(nid)]] = int(mod)
         assign = _pad_isolated(G, assign)
         assign = _compact_ids(assign)
@@ -509,53 +518,107 @@ def run_detection(
     return res
 
 
-# ----------------------------- 内部工具 -----------------------------
+# ----------------------------- 分析范围（异质 vs 同类） -----------------------------
 
-def _safe_modularity(G: nx.Graph, partitions: list[set], resolution: float = 1.0) -> float | None:
-    """计算模块度 Q（partition 为空或单团时为 0）。"""
+# 图谱是**异质知识图谱**（节点分游戏/类型/工作室/奖项等类型）。标准社区发现把各类节点
+# 一视同仁，得到的「社团」往往是「一个实体 + 它的属性节点」这样的**属性簇**——它反映的是
+# 「实体与属性的绑定」，物理含义与同类节点的「亲和社群」并不相同。
+#
+# 为此提供「分析范围」：
+# - all：在完整异质图上跑（默认，兼容旧行为）；
+# - 某一类型：先做**单向投影（one-mode projection）**——只保留该类型节点，两个同类节点
+#   之间按「共享的异类邻居数」连加权边。投影图上的社区才是同类节点的**亲和社群**
+#   （相似度 = 共享属性数量），物理含义最清晰，也最适合做教育演示。
+COMMUNITY_SCOPES: list[dict[str, str]] = [
+    {
+        "id": "all",
+        "label": "全图（混合类型）",
+        "blurb": "所有类型节点一视同仁。社团往往是「一个游戏 + 它的类型/工作室/奖项」这样的属性簇——它反映的是实体与属性的绑定，物理含义不同于同类节点的亲和社群。",
+    },
+    {
+        "id": "game",
+        "label": "仅游戏（同类投影）",
+        "blurb": "把游戏按「共享类型/工作室/奖项」的数量聚类，得到「相似游戏」社群——这才是同类节点的亲和社群，物理含义最清晰，推荐先用它理解社区发现。",
+    },
+    {
+        "id": "goty",
+        "label": "仅年度游戏（同类投影）",
+        "blurb": "在历年 GOTY 获奖游戏之间，按共享类型/工作室聚类，看神作们是否分门别类成簇。",
+    },
+    {
+        "id": "genre",
+        "label": "仅类型（同类投影）",
+        "blurb": "把类型按「被哪些游戏共同拥有」聚类，得到「经常结伴出现的类型」社群（如开放世界 + 角色扮演）。",
+    },
+    {
+        "id": "studio",
+        "label": "仅工作室（同类投影）",
+        "blurb": "按「共同开发的游戏」聚类工作室；若多为独立簇，说明本数据里工作室各自出品、少有重叠。",
+    },
+    {
+        "id": "award",
+        "label": "仅奖项（同类投影）",
+        "blurb": "按「授予同一批游戏」聚类奖项，看奖项偏好是否成派系。",
+    },
+]
+
+
+def list_scopes() -> list[dict[str, str]]:
+    """分析范围目录：前端据此渲染「分析范围」下拉与物理含义说明。"""
+    return [dict(s) for s in COMMUNITY_SCOPES]
+
+
+# ----------------------------- 内部工具 -----------------------------
+def _safe_modularity(
+    G: nx.Graph, partitions: list[set], resolution: float = 1.0, weight: str = "weight"
+) -> float | None:
+    """计算模块度 Q（partition 为空或单团时为 0）。加权图按 ``weight`` 取边权。"""
     try:
         if not partitions or len(partitions) <= 1:
             return 0.0
-        return float(modularity(G, partitions, resolution=resolution))
+        return float(modularity(G, partitions, resolution=resolution, weight=weight))
     except Exception:  # 个别退化图无法算 Q 时不阻塞
         return None
 
 
-def _greedy_merge_sequence(G: nx.Graph, resolution: float = 1.0) -> list[dict[str, Any]]:
+def _greedy_merge_sequence(
+    G: nx.Graph, resolution: float = 1.0, weight: str = "weight"
+) -> list[dict[str, Any]]:
     """贪心模块度合并：返回每一步快照 [{step, assignment, modularity}]，用于教育性动画。
 
     从「每节点独立成团」出发，每步合并使 ΔQ 最大的两团：
 
-        ΔQ(C,D) = (1/m) · ( E_CD − ρ · T_C · T_D / (2m) )
+        ΔQ(C,D) = E_CD/(2m) − ρ · T_C·T_D / (4 m²)
 
-    其中 m=边数，E_CD=C/D 间的边数，T_C=C 的总度数，ρ=resolution。
+    其中 m=边权总和，E_CD=C/D 间边权之和，T_C=C 的加权度数之和，ρ=resolution。
+    该式与 networkx ``greedy_modularity_communities`` 的合并判据一致（仅整体缩放，
+    不影响「选哪一对」与「何时停止」），故对无权图最终划分与 networkx 完全相同。
     以「社区间边表 E」为唯一真相源（不另维护邻接表，避免二者失同步），每步扫描 E 选最优对；
-    合并直到 E 清空（每个连通分量收成一个社团）。最末帧即算法最终划分。
+    合并直到 E 清空（每个连通分量收成一个社团）或 ΔQ≤0。最末帧即算法最终划分。
     """
-    s = 2.0 * G.number_of_edges()
-    if s == 0:  # 无边图
+    m = sum(G[u][v].get(weight, 1) for u, v in G.edges())  # 边权总和
+    if m == 0:  # 无边图
         assign = {n: n for n in G.nodes()}
         return [{"step": 0, "assignment": assign, "modularity": 0.0}]
 
-    deg = dict(G.degree())
-    T = {n: deg[n] for n in G.nodes()}  # 社区总度数（用代表节点标识社区）
+    T = dict(G.degree(weight=weight))  # 加权度数（社区总度数用代表节点标识）
     members = {n: {n} for n in G.nodes()}
-    E: dict[tuple, int] = {}
+    E: dict[tuple, float] = {}
 
     def ekey(c: Any, d: Any) -> tuple:
         return (c, d) if c < d else (d, c)
 
     for u, v in G.edges():
         k = ekey(u, v)
-        E[k] = E.get(k, 0) + 1
+        E[k] = E.get(k, 0) + G[u][v].get(weight, 1)
     reps = set(G.nodes())
-    seq = [_snap(0, {n: n for n in G.nodes()}, G, resolution)]
+    seq = [_snap(0, {n: n for n in G.nodes()}, G, resolution, weight)]
 
     while E:  # 仍有社区间边 → 仍可合并
         best_c = best_d = None
         best_val = None
-        for (c, d), w in E.items():
-            val = w - resolution * T[c] * T[d] / s
+        for (c, d), wt in E.items():
+            val = wt / (2 * m) - resolution * T[c] * T[d] / (4 * m * m)
             if best_val is None or val > best_val:
                 best_val, best_c, best_d = val, c, d
         if best_c is None:
@@ -580,12 +643,15 @@ def _greedy_merge_sequence(G: nx.Graph, resolution: float = 1.0) -> list[dict[st
             E[nk] = E.get(nk, 0) + w2
         reps.discard(d)
         assign = {n: r for r in reps for n in members[r]}
-        seq.append(_snap(len(seq), assign, G, resolution))
+        seq.append(_snap(len(seq), assign, G, resolution, weight))
     return seq
 
 
-def _lpa_run(G: nx.Graph, rng, max_iter: int = 50):
-    """标签传播（LPA）同步迭代：yield (step, assignment)。初始每节点独立标签，直到稳定。"""
+def _lpa_run(G: nx.Graph, rng, max_iter: int = 50, weight: str = "weight"):
+    """标签传播（LPA）同步迭代：yield (step, assignment)。初始每节点独立标签，直到稳定。
+
+    邻居标签按边权加权计数——投影图上「共享属性更多」的邻居影响更大，结果更稳健。
+    """
     assign = {n: i for i, n in enumerate(G.nodes())}
     yield 0, dict(assign)
     for it in range(1, max_iter + 1):
@@ -596,9 +662,10 @@ def _lpa_run(G: nx.Graph, rng, max_iter: int = 50):
             nbrs = list(G.neighbors(n))
             if not nbrs:
                 continue
-            counts: dict[int, int] = {}
+            counts: dict[int, float] = {}
             for m in nbrs:
-                counts[assign[m]] = counts.get(assign[m], 0) + 1
+                w = G[n][m].get(weight, 1)
+                counts[assign[m]] = counts.get(assign[m], 0) + w
             best = max(counts.items(), key=lambda kv: (kv[1], rng.random()))[0]
             if assign[n] != best:
                 assign[n] = best
@@ -608,7 +675,9 @@ def _lpa_run(G: nx.Graph, rng, max_iter: int = 50):
             break
 
 
-def _snap(step: int, assign: dict[str, Any], G: nx.Graph, resolution: float) -> dict[str, Any]:
+def _snap(
+    step: int, assign: dict[str, Any], G: nx.Graph, resolution: float, weight: str = "weight"
+) -> dict[str, Any]:
     """把一个 assignment 快照转成 {step, assignment, modularity}（Q 由 networkx 计算，作为真值）。"""
     by_comm: dict[Any, set] = {}
     for nid, c in assign.items():
@@ -616,7 +685,7 @@ def _snap(step: int, assign: dict[str, Any], G: nx.Graph, resolution: float) -> 
     return {
         "step": step,
         "assignment": assign,
-        "modularity": _safe_modularity(G, list(by_comm.values()), resolution=resolution),
+        "modularity": _safe_modularity(G, list(by_comm.values()), resolution=resolution, weight=weight),
     }
 
 

@@ -510,18 +510,85 @@ def test_community_animation_frames_returned_when_animate():
         assert set(f0.assignment.keys()) == {n["id"] for n in res["nodes"]}
 
 
-def test_infomap_missing_dependency_returns_400(client):
-    """infomap 未安装时应返回 400 并提示如何安装（不静默兜底）。"""
-    # 确保环境确实没装 infomap；若已装则跳过该断言（仅验证可用性或 400 二选一）
+def test_infomap_runs_when_installed(client):
+    """infomap 已安装：应返回 200 + 合法划分（覆盖全图节点）。"""
     import importlib.util
 
-    if importlib.util.find_spec("infomap") is not None:
-        r = client.get("/api/graph/communities", params={"algorithm": "infomap"})
-        assert r.status_code == 200
-        return
+    if importlib.util.find_spec("infomap") is None:
+        pytest.skip("infomap 未安装，跳过运行验证")
+    r = client.get("/api/graph/communities", params={"algorithm": "infomap"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["algorithm"] == "infomap"
+    total = sum(len(c["members"]) for c in body["communities"])
+    assert total == len(body["nodes"])
+
+
+def test_louvain_runs_when_installed(client):
+    """louvain 已安装：应返回 200 + 合法划分（覆盖全图节点）。"""
+    import importlib.util
+
+    if importlib.util.find_spec("community") is None:
+        pytest.skip("python-louvain 未安装，跳过运行验证")
+    r = client.get("/api/graph/communities", params={"algorithm": "louvain"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["algorithm"] == "louvain"
+    total = sum(len(c["members"]) for c in body["communities"])
+    assert total == len(body["nodes"])
+
+
+def test_unavailable_optional_dependency_returns_400(client, monkeypatch):
+    """可选依赖缺失时，路由应返回清晰 400（不静默兜底）。"""
+    from api.community import InfomapDetector
+
+    monkeypatch.setattr(InfomapDetector, "available", classmethod(lambda cls: False))
     r = client.get("/api/graph/communities", params={"algorithm": "infomap"})
     assert r.status_code == 400
     assert "infomap" in r.json()["detail"]
+
+
+def test_community_scope_projection_game():
+    """scope=game 做单向投影：只返回游戏节点 + 带权边；覆盖全部游戏。"""
+    from api.graph_loader import NODES
+
+    game_ids = {n["id"] for n in NODES if n.get("group") == "game"}
+    s = NetworkXStore()
+    res = s.communities(algorithm="modularity", scope="game")
+    assert res["scope"] == "game"
+    assert {n["id"] for n in res["nodes"]} == game_ids
+    # 投影边带 weight（共享异类邻居数）
+    assert res["edges"] and all("weight" in e for e in res["edges"])
+    assert 1 < len(res["communities"]) <= len(game_ids)
+
+
+def test_community_scope_projection_studio_sparse():
+    """studio 投影：本数据里工作室各自出品、少有重叠，应多数为独立簇。"""
+    from api.graph_loader import NODES
+
+    studio_n = sum(1 for n in NODES if n.get("group") == "studio")
+    s = NetworkXStore()
+    res = s.communities(algorithm="modularity", scope="studio")
+    assert res["scope"] == "studio"
+    assert len(res["nodes"]) == studio_n
+    # 绝大多数工作室独立成团（与数据一致：少有共同开发的游戏），允许少量合并
+    assert sum(1 for c in res["communities"] if c["size"] == 1) >= studio_n - 4
+
+
+def test_community_scope_all_returns_full_graph():
+    """scope=all（默认）返回完整异质图的全部节点。"""
+    from api.graph_loader import NODES
+
+    s = NetworkXStore()
+    res = s.communities(algorithm="modularity", scope="all")
+    assert {n["id"] for n in res["nodes"]} == {n["id"] for n in NODES}
+
+
+def test_community_scope_invalid_returns_400(client):
+    """非法分析范围应返回 400。"""
+    r = client.get("/api/graph/communities", params={"algorithm": "modularity", "scope": "planet"})
+    assert r.status_code == 400
+    assert "planet" in r.json()["detail"]
 
 
 def test_girvan_newman_returns_valid_partition():

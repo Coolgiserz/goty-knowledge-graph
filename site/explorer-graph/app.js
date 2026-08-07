@@ -248,13 +248,20 @@ function upsertNode(n) {
 function upsertEdge(e) {
   const k = edgeKey(e);
   if (edges.get(k)) return;
-  edges.add({
+  // 投影图的边带 weight（共享异类邻居数）：边越粗=两个同类节点越「相似」。
+  const w = e.weight != null ? Number(e.weight) : null;
+  const edge = {
     id: k,
     from: e.source,
     to: e.target,
     label: REL_LABEL[e.type] || e.type,
     title: e.type,
-  });
+  };
+  if (w != null && w > 0) {
+    edge.width = Math.max(1, Math.min(8, 1 + Math.log2(w + 1)));
+    edge.title = `${e.type}（共享属性 ${w}）`;
+  }
+  edges.add(edge);
 }
 function upsertGraph(sub) {
   if (!sub) return false;
@@ -555,6 +562,7 @@ async function loadTagOptions() {
 /* ---------------- 社区分析 ---------------- */
 // 算法目录（来自 /api/graph/communities/meta），前端据此动态渲染下拉与参数表单，不再硬编码。
 let ALGO_META = {};
+let SCOPE_META = {};
 
 // 教育性动画播放器状态
 const commAnim = { frames: [], idx: 0, playing: false, timer: null, finalAssign: {}, data: null };
@@ -583,6 +591,8 @@ async function loadCommunityAlgorithms() {
     }
     const firstAvail = algos.find((a) => a.available);
     if (firstAvail) sel.value = firstAvail.name;
+    // 分析范围（异质 vs 同类投影）下拉
+    populateScopeSelect(data.scopes || []);
     $("#comm-btn").disabled = false;
     renderCommParams();
   } catch (e) {
@@ -603,6 +613,26 @@ async function loadCommunityAlgorithms() {
   }
 }
 
+// 启动时填充「分析范围」下拉（全图混合 / 各类型单向投影），并展示该范围的物理含义说明。
+function populateScopeSelect(scopes) {
+  const sel = $("#comm-scope");
+  SCOPE_META = {};
+  sel.innerHTML = "";
+  for (const s of scopes) {
+    SCOPE_META[s.id] = s;
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = s.label;
+    sel.appendChild(opt);
+  }
+  if (!sel.value) sel.value = "all";
+  const upd = () => {
+    $("#comm-scope-blurb").textContent = (SCOPE_META[sel.value] || {}).blurb || "";
+  };
+  sel.onchange = upd;
+  upd();
+}
+
 // 产品设计：点击后**立即**盖加载遮罩（spinner），布局在后台进行；稳定后取景并**冻结物理**
 // （静态大图：主线程不再持续抖动/卡顿，元素稳定便于定位）。支持「演示算法过程」动画模式。
 async function loadCommunities() {
@@ -613,13 +643,15 @@ async function loadCommunities() {
   if (!meta.available) { setStatus(`算法「${meta.display_name}」需要安装依赖：${meta.optional_dependency}`); return; }
   const wantsAnimate = meta.supports_animation && $("#comm-animate").checked;
   const params = commParamValue();
+  const scope = $("#comm-scope").value || "all";
+  const scopeLabel = (SCOPE_META[scope] || {}).label || scope;
   mode = "communities";
   stopCommunityAnimation(); // 任何进行中的动画先停
   if (btn) { btn.disabled = true; btn.textContent = "分析中…"; }
-  showOverlay("正在分析社区结构（约全图节点，布局中）…");
-  setStatus("整图社区分析中（约全图节点，正在布局）…");
+  showOverlay(`正在分析社区结构（${scopeLabel}，布局中）…`);
+  setStatus(`社区分析中（${scopeLabel}，正在布局）…`);
   try {
-    const q = new URLSearchParams({ algorithm: algo, animate: wantsAnimate ? "true" : "false" });
+    const q = new URLSearchParams({ algorithm: algo, scope, animate: wantsAnimate ? "true" : "false" });
     for (const [k, v] of Object.entries(params)) {
       if (v !== null && v !== undefined) q.set(k, String(v));
     }
@@ -635,7 +667,7 @@ async function loadCommunities() {
     const assign = buildAssignmentFromCommunities(data.communities || []);
     renderCommunityList(data.communities || []);
     const nComm = (data.communities || []).length;
-    setStatus(`已构建社区分析图（${meta.display_name}）：共 ${nComm} 个社团、${nodeViews.length} 个节点。${wantsAnimate ? "正在播放算法过程…" : "已按社团上色并冻结布局；点列表项查看社团包含哪些节点。"}`);
+    setStatus(`已构建社区分析图（${meta.display_name} · ${scopeLabel}）：共 ${nComm} 个社团、${nodeViews.length} 个节点。${wantsAnimate ? "正在播放算法过程…" : "已按社团上色并冻结布局；点列表项查看社团包含哪些节点。"}`);
 
     const finishBuild = () => {
       if (network) network.fit({ animation: true });

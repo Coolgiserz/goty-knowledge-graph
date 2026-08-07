@@ -157,13 +157,14 @@ def graph_filter(
 
 @router.get("/graph/communities/meta")
 def graph_communities_meta():
-    """社区分析算法目录：返回所有可用策略（名称/中文说明/参数表单/是否支持动画/依赖是否就绪）。
+    """社区分析算法目录 + 分析范围：返回所有可用策略（名称/中文说明/参数表单/是否支持动画/
+    依赖是否就绪）与「分析范围」列表（全图混合 / 各类型单向投影及其物理含义）。
 
-    前端据此动态渲染算法下拉与参数表单，无需硬编码算法列表。
+    前端据此动态渲染算法下拉、参数表单与分析范围下拉，无需硬编码。
     """
-    from ..community import list_detectors
+    from ..community import list_detectors, list_scopes
 
-    return {"algorithms": list_detectors()}
+    return {"algorithms": list_detectors(), "scopes": list_scopes()}
 
 
 @router.get("/graph/communities")
@@ -174,6 +175,7 @@ def graph_communities(
     randomize: bool = False,
     two_level: bool = False,
     target_communities: int | None = None,
+    scope: str = "all",
     animate: bool = False,
     store: GraphStore = Depends(get_graph_store_dep),
 ):
@@ -187,8 +189,17 @@ def graph_communities(
     - ``infomap``：信息流划分（需 ``pip install infomap``），暂不支持动画。
     - ``girvan_newman``：边中介度分裂，``target_communities`` 控制停止时机。
 
-    未知算法或缺依赖会返回 400，并给出可操作的提示（不静默兜底）。
+    ``scope`` 处理**异质图谱**的核心差异：``all``（默认）在完整异质图上跑，社团往往是
+    「实体 + 其属性节点」的属性簇；``game``/``genre``/``studio``/``award``/``goty`` 则先做
+    单向投影（同类节点按共享异类邻居数连加权边）再跑，得到同类节点的亲和社群。
+
+    未知算法、未知范围或缺依赖会返回 400，并给出可操作的提示（不静默兜底）。
     """
+    if scope not in {"all", "game", "goty", "genre", "studio", "award"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"未知分析范围：{scope!r}；可选：all / game / goty / genre / studio / award",
+        )
     params: dict = {}
     if resolution is not None:
         params["resolution"] = float(resolution)
@@ -201,7 +212,9 @@ def graph_communities(
     if target_communities is not None:
         params["target_communities"] = int(target_communities)
     try:
-        res = store.communities(algorithm=algorithm, params=params or None, animate=animate)
+        res = store.communities(
+            algorithm=algorithm, params=params or None, animate=animate, scope=scope
+        )
     except ValueError as exc:
         # 未知算法：来自策略注册表校验
         raise HTTPException(status_code=400, detail=str(exc)) from None
