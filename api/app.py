@@ -34,7 +34,7 @@ from .security import SecurityContext
 from .tasks import TaskManager
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXPLORER_DIR = os.path.join(ROOT, "site", "explorer")
+EXPLORER_DIR = os.path.join(ROOT, "site", "explorer-graph")
 SITE_DIR = os.path.join(ROOT, "site")
 
 log = setup_logging()

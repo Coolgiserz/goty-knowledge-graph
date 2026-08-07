@@ -10,20 +10,125 @@
   <header class="topbar">
     <div class="brand">
       <h1>年度最佳游戏 · 知识图谱</h1>
-      <p class="sub">交互式探索浏览器 — 检索 / 钻取邻居 / 最短路径（可选 Neo4j 后端驱动）</p>
+      <p class="sub">交互式探索浏览器 — 检索 / 钻取邻居 / 最短路径 / 社区分析</p>
     </div>
-    <div class="search">
+    <div class="search-wrap">
       <input id="search-input" type="text" placeholder="搜索游戏 / 工作室 / 类型 / 奖项…" autocomplete="off" />
       <button id="search-btn" type="button">搜索</button>
+      <!-- 搜索结果直接在此下拉展示，避免被埋在侧栏底部 -->
+      <div id="search-results" class="search-dropdown"></div>
     </div>
-    <div id="backend-badge" class="badge nx" title="当前图查询后端；开启 Neo4j 后此处显示 neo4j">后端：—</div>
+    <a id="home-btn" class="home-btn" href="/">返回首页</a>
   </header>
 
   <main class="layout">
     <aside class="sidebar">
+      <div id="status" class="status"></div>
+
       <section class="card">
         <h2>当前节点</h2>
         <div id="detail" class="detail empty">在上方搜索并点选一个节点，或从画布中点开邻居。</div>
+      </section>
+
+      <section class="card">
+        <h2>表格浏览</h2>
+        <p class="hint">浏览全部节点；点任意一行即从该节点开始探索（展开 1 跳）。</p>
+        <label class="row">类型
+          <select id="tbl-group">
+            <option value="all">全部</option>
+            <option value="goty">GOTY 获奖</option>
+            <option value="game">游戏</option>
+            <option value="studio">工作室</option>
+            <option value="genre">类型</option>
+            <option value="award">奖项</option>
+          </select>
+        </label>
+        <div class="tbl-search">
+          <input id="tbl-q" type="text" placeholder="关键词筛选…" autocomplete="off" />
+          <button id="tbl-btn" type="button">查询</button>
+        </div>
+        <div id="tbl-meta" class="tbl-meta"></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>标签</th><th>类型</th><th>ID</th></tr></thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+        <button id="tbl-more" type="button" class="ghost" style="margin-top:8px;display:none">加载更多</button>
+      </section>
+
+      <section class="card">
+        <h2>渲染种子（筛选探索起点）</h2>
+        <p class="hint">按<strong>类别</strong>和<strong>标签</strong>挑一批节点作为探索起点；点任意节点可继续展开邻居、算路径、看社区。选了标签后自动在「游戏」范围内筛选。</p>
+        <label class="row">类别
+          <select id="seed-group">
+            <option value="all">全部</option>
+            <option value="goty">GOTY 获奖</option>
+            <option value="game">游戏</option>
+            <option value="studio">工作室</option>
+            <option value="genre">类型</option>
+            <option value="award">奖项</option>
+          </select>
+        </label>
+        <label class="row">标签（类型，可多选 · 仅对游戏生效）
+          <button id="seed-tags-clear" type="button" class="ghost sm">清空标签</button>
+        </label>
+        <select id="seed-tags" class="seed-tags" multiple size="7"></select>
+        <label class="row">展开跳数
+          <input id="seed-hops" type="range" min="0" max="2" step="1" value="1" />
+          <span id="seed-hops-val">1</span>
+        </label>
+        <button id="seed-btn" type="button" class="primary" style="width:100%">渲染种子</button>
+      </section>
+
+      <section class="card">
+        <h2>社区分析</h2>
+        <p class="hint">对整个图谱做社区发现，按社团自动上色；分析完会冻结布局便于定位。点列表项可查看该社团包含的全部节点。</p>
+        <label class="row">算法
+          <select id="comm-algo">
+            <option value="modularity">模块度最大化</option>
+            <option value="label_propagation">标签传播</option>
+          </select>
+        </label>
+        <div id="comm-params" class="comm-params">
+          <!-- 算法参数随算法切换动态填充 -->
+        </div>
+        <button id="comm-btn" type="button" class="primary" style="width:100%">运行社区分析</button>
+        <div id="comm-list" class="comm-list"></div>
+      </section>
+
+      <section class="card">
+        <h2>网络影响力</h2>
+        <p class="hint">用中心性算法给全图节点排名，揭示「谁在这张图谱里最重要」——既是洞察，也是理解图算法的直观入口。</p>
+        <label class="row">算法
+          <select id="inf-metric">
+            <option value="pagerank">PageRank（综合重要性，默认）</option>
+            <option value="degree">度数中心性（直接连接数）</option>
+            <option value="betweenness">中介中心性（桥梁节点）</option>
+          </select>
+        </label>
+        <div id="inf-metric-note" class="metric-note"></div>
+        <div class="inf-row">
+          <label class="row inline">类型
+            <select id="inf-group">
+              <option value="">全部</option>
+              <option value="game">游戏</option>
+              <option value="goty">年度最佳游戏</option>
+              <option value="studio">工作室</option>
+              <option value="genre">类型</option>
+              <option value="award">奖项</option>
+            </select>
+          </label>
+          <label class="row inline">数量
+            <select id="inf-topn">
+              <option value="10">前 10</option>
+              <option value="20" selected>前 20</option>
+              <option value="50">前 50</option>
+            </select>
+          </label>
+        </div>
+        <button id="inf-btn" type="button" class="primary" style="width:100%">运行影响力分析</button>
+        <div id="inf-list" class="inf-list"></div>
       </section>
 
       <section class="card">
@@ -43,31 +148,70 @@
 
       <section class="card">
         <h2>最短路径</h2>
-        <p class="hint">选两个节点，看它们之间如何连起来。</p>
-        <div class="path-pick">
-          <div>起点 A：<span id="path-a" class="pid">未选</span></div>
-          <div>终点 B：<span id="path-b" class="pid">未选</span></div>
+        <p class="hint">选择或搜索两个节点，查看它们之间的最短连接。也可在画布 / 表格中点选节点后用下方按钮设为起点 / 终点。</p>
+        <div class="picker">
+          <label class="picker-label">起点</label>
+          <div class="picker-wrap">
+            <input id="path-a-input" type="text" placeholder="搜索并选择起点…" autocomplete="off" />
+            <div id="path-a-results" class="picker-dropdown"></div>
+          </div>
+          <div class="path-sel">已选：<span id="path-a" class="pid">未选</span></div>
+        </div>
+        <div class="picker">
+          <label class="picker-label">终点</label>
+          <div class="picker-wrap">
+            <input id="path-b-input" type="text" placeholder="搜索并选择终点…" autocomplete="off" />
+            <div id="path-b-results" class="picker-dropdown"></div>
+          </div>
+          <div class="path-sel">已选：<span id="path-b" class="pid">未选</span></div>
         </div>
         <div class="path-btns">
-          <button id="set-a-btn" type="button">设为起点</button>
-          <button id="set-b-btn" type="button">设为终点</button>
+          <button id="path-swap" type="button">交换</button>
           <button id="path-btn" type="button" class="primary">计算路径</button>
           <button id="path-clear" type="button">清除</button>
+        </div>
+        <div id="path-result" class="path-result"></div>
+        <div class="path-btns path-btns-secondary">
+          <button id="set-a-btn" type="button">当前节点设为起点</button>
+          <button id="set-b-btn" type="button">当前节点设为终点</button>
         </div>
       </section>
 
       <section class="card">
-        <button id="reset-btn" type="button" class="ghost">重置画布</button>
+        <button id="reset-btn" type="button" class="ghost">清空画布（也可点画布右上角按钮）</button>
       </section>
-
-      <div id="status" class="status"></div>
-      <div id="search-results" class="results"></div>
     </aside>
 
     <section class="canvas-wrap">
+      <div id="overlay" class="overlay">
+        <div class="spinner"></div>
+        <div class="ov-text">处理中…</div>
+      </div>
+      <div class="canvas-toolbar">
+        <button id="fit-btn" type="button">适应视图</button>
+        <button id="clear-btn" type="button">清空画布</button>
+      </div>
       <div id="canvas"></div>
     </section>
   </main>
+
+  <!-- 社团成员表格弹窗：点社团列表项弹出，展示该社团包含的全部节点 -->
+  <div id="comm-modal" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span id="comm-modal-title">社团节点</span>
+        <button id="comm-modal-close" type="button" class="modal-close" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-meta" id="comm-modal-meta"></div>
+      <div class="tbl-wrap modal-tbl">
+        <table class="tbl">
+          <thead><tr><th>名称</th><th>类型</th></tr></thead>
+          <tbody id="comm-modal-body"></tbody>
+        </table>
+      </div>
+      <p class="hint">点任意一行，在画布上聚焦该节点并展开其邻居。</p>
+    </div>
+  </div>
 
   <script src="vis-network.min.js"></script>
   <script src="app.js"></script>

@@ -62,14 +62,16 @@ make docker           # 构建镜像 goty-knowledge-graph（python + uvicorn）
 make run              # 运行容器，访问 http://localhost:8080
 ```
 
-### 方式四：全栈（网站 + 自动导入的 Neo4j）
+### 方式四：全栈（网站 + 可选 Neo4j）
 
 ```bash
-make up
-# 原始数据页/洞察： http://localhost:8080/   探索 SPA： http://localhost:8080/explore
-# 交互式探索浏览器： http://localhost:8090/   （独立前端容器，搜索/多跳展开/最短路径）
-# Neo4j Browser： http://localhost:7474  （用户名 neo4j / 密码 password123）
-# 想让 :8090 的查询走 Cypher：在 .env 设 GOTY_GRAPH_BACKEND=neo4j 后 make up
+make up                                  # 默认：web 容器同源托管一切，图后端 networkx
+# 原始数据页/洞察： http://localhost:8080/   探索 SPA： http://localhost:8080/explore/
+# API：             http://localhost:8080/api/meta
+# Neo4j Browser（可选，仅 --profile neo4j 时）： http://localhost:7474  （用户名 neo4j / 密码 password123）
+#
+# 体验 Neo4j（Cypher 驱动 /api/graph/*）：
+#   在 .env 设 GOTY_GRAPH_BACKEND=neo4j，再： docker-compose --profile neo4j up -d
 ```
 
 `docker-compose` 会在 Neo4j 健康检查通过后，由 `importer` 服务自动执行 `scripts/init.cypher` 把数据集导入图库。
@@ -324,20 +326,30 @@ cp .env.sample .env      # 然后按需修改里面的默认值
 | `GET /api/graph/node/{id}` | 取单个节点详情 |
 | `GET /api/graph/traverse?start=&hops=&types=` | 以某节点为中心做多跳邻居展开（子图，供可视化） |
 | `GET /api/graph/path?a=&b=` | 两节点间最短路径 |
+| `GET /api/graph/list?group=&q=&limit=&offset=` | 浏览节点（按类型过滤 + 关键词 + 分页），供前端表格面板 |
+| `GET /api/graph/seed?group=&limit=&hops=` | 按类型取一批种子节点并展开 `hops` 跳，返回合并子图，供初始画布 / 种子渲染 |
+| `GET /api/graph/communities?algorithm=&resolution=` | 社区发现：返回社团汇总（含 `members` 成员列表）与每个节点的社团归属。`algorithm` 为 `modularity`（默认）/ `label_propagation`；`resolution` 仅对 `modularity` 生效（社团粒度） |
+| `GET /api/graph/influence?metric=&top_n=&group=` | 节点影响力（中心性）排行榜：`metric` 为 `degree`（度数中心性）/ `pagerank`（默认）/ `betweenness`（中介中心性）；`top_n` 取前 N（默认 20）；`group` 按类型过滤。返回降序的 `{id,label,group,score}` 列表 |
 
-> 这些端点默认走 networkx 就已可用；切到 Neo4j 后只是把底层查询换成 Cypher，接口与响应结构不变。
+> 这些端点默认走 networkx 就已可用；切到 Neo4j 后只是把底层查询换成 Cypher，接口与响应结构不变。每个响应的 `backend` 字段会标明当前实际后端（`networkx` 或 `neo4j`）。
 
-### 交互式图谱浏览器（独立前端容器，:8090）
+### 交互式图谱浏览器（同源托管于 web 容器 /explore）
 
 > 设计原则：**普通用户不写、也看不到 Cypher**——Cypher 只在后端发生，用来满足 UI 探索场景。下面这个前端就是纯 UI 驱动的交互式探索。
 
-Docker 全栈（`docker-compose up -d`）会额外起一个独立前端容器：
+Docker 全栈（`docker-compose up -d`）由 **web 容器同源**托管探索 SPA：
 
-- **新入口**：`http://localhost:8090`（交互式探索浏览器）
-- **旧入口**：`http://localhost:8080`（原数据页 / 探索 SPA，保持不变，便于对比差异）
-- **能力**：搜索节点 → 查看详情 → 多跳展开邻居（可按 `DEVELOPED / WON / BELONGS_TO_GENRE / SUBCLASS_OF` 过滤）→ 选两个节点算最短路径。
-- **独立容器**：前端是独立的 `nginx:alpine` 服务，挂载 `site/explorer-graph/`（只读），**不修改原 `site/`**；它只调用上面的 `/api/graph/*` 只读端点，无需令牌。
-- **体感 Neo4j**：该前端与图后端解耦。在 `.env` 设 `GOTY_GRAPH_BACKEND=neo4j`（并填 `GOTY_NEO4J_PASSWORD`，需与 `NEO4J_PASSWORD` 一致）后，同样的点击会改走 Cypher；页面左下角「后端」标识会从 `networkx` 变为 `neo4j`——用户全程无感，只是“图在答你的问题”。
+- **入口**：`http://localhost:8080/explore/`（与 `/api` 同源，无需跨容器、无需反向代理）
+- **旧入口**：`http://localhost:8080`（原数据页 / 洞察页，保持不变）
+- **能力**：
+  - **进入即展示图谱**：页面打开先按 `goty`（GOTY 获奖作品）拉一批种子并展开 1 跳，画布不再空白；顶栏「返回首页」可随时回到原始数据 / 洞察页。
+  - **种子渲染**：侧栏选「类别 + 标签 + 跳数」一键铺一批节点（游戏 / 工作室 / 类型 / 奖项 / 全部），作为探索起点。
+  - **搜索 → 详情 → 多跳展开**：搜索节点、查看详情、以 `DEVELOPED / WON / BELONGS_TO_GENRE / SUBCLASS_OF` 过滤做多跳邻居展开。
+  - **表格浏览**：侧栏表格按类型 / 关键词列出全部节点，点任意一行即从该节点开始探索（展开 1 跳），无需先搜索。
+  - **社区分析**：选「算法」（模块度最大化 / 标签传播）；模块度算法可额外调「社团粒度 resolution」——值越大社团越细碎。分析完按社团上色并冻结布局；点左侧社团列表项会弹出该社团包含的**全部节点表格**（只展示名称与类型，不暴露后台节点 ID），点表格行即可在画布聚焦该节点。
+  - **网络影响力**：用中心性算法给全图节点排名，直观揭示「谁在这张图谱里最重要」，也是理解图算法的入口。三种指标各有侧重——`PageRank`（综合重要性，默认）、`度数中心性`（直接连接数）、`中介中心性`（桥梁节点）。可再按类型 / 数量过滤；点击榜首即在画布上聚焦该节点并展开其邻居。
+  - **最短路径**：通过两个带搜索联想的节点选择器直接选起点 / 终点（也可在画布或表格点选节点后「设为起点 / 终点」），支持交换起终点；计算后高亮路径（金色加粗），并在侧栏列出 `A → B → C` 文字链，节点名可点聚焦。
+- **后端说明**：默认 networkx（内存）即完整可用，普通用户无需关心底层；在 `.env` 设 `GOTY_GRAPH_BACKEND=neo4j` 并 `docker-compose --profile neo4j up -d` 后，`/api/graph/*` 改走 Cypher。Neo4j 未就绪时查询会如实 503，而非静默回退——错误可见、可定位。
 
 ### 切换到 Neo4j（可选）
 
@@ -348,7 +360,10 @@ Docker 全栈（`docker-compose up -d`）会额外起一个独立前端容器：
    # 停止： make neo4j-stop    重新导出 CSV： make neo4j-export
    ```
 
-2. 装 driver 并打开开关（driver 为可选依赖，默认镜像不含）：
+2. 装 driver 并打开开关：
+
+   - **Docker 部署（`docker-compose up -d`）**：镜像已内置 neo4j driver；要启用需两步——在 .env 设 `GOTY_GRAPH_BACKEND=neo4j`，并 `docker-compose --profile neo4j up -d` 启动 Neo4j 容器（否则默认走 networkx）。
+   - **本地非 Docker（`make serve`）**：driver 仍按需装（可选依赖组），需手动开：
 
    ```bash
    uv pip install ".[neo4j]"                       # 或 pip install neo4j>=5.0

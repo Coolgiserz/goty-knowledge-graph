@@ -123,3 +123,319 @@ def test_neo4j_fallback_to_networkx():
     # 显式选 neo4j 但不可达 -> 工厂回退 networkx。
     fb = get_graph_store(Settings(graph_backend="neo4j", neo4j_uri="bolt://127.0.0.1:59999"))
     assert fb.backend == "networkx"
+
+
+# ---------- 端点：list / seed（前端表格 + 种子渲染）----------
+
+
+def test_list_filter_group(client):
+    r = client.get("/api/graph/list", params={"group": "goty", "limit": 5})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["backend"] == "networkx"
+    assert body["total"] == 20
+    assert all(n["group"] == "goty" for n in body["items"])
+
+
+def test_list_query_and_pagination(client):
+    r = client.get("/api/graph/list", params={"q": "上古", "limit": 100})
+    assert r.status_code == 200
+    assert r.json()["total"] >= 1
+    first = client.get("/api/graph/list", params={"limit": 1, "offset": 0}).json()
+    second = client.get("/api/graph/list", params={"limit": 1, "offset": 1}).json()
+    assert first["items"][0]["id"] != second["items"][0]["id"]
+
+
+def test_seed_goty_returns_subgraph(client):
+    r = client.get("/api/graph/seed", params={"group": "goty", "limit": 10, "hops": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["center"] is None
+    assert body["backend"] == "networkx"
+    assert len(body["nodes"]) > 10  # 10 个种子 + 它们的邻居
+    assert len(body["edges"]) > 0
+
+
+def test_seed_all_group(client):
+    r = client.get("/api/graph/seed", params={"group": "all", "limit": 5, "hops": 1})
+    assert r.status_code == 200
+    assert len(r.json()["nodes"]) >= 5
+
+
+# ---------- 端点 + 单元：渲染种子（按类别/标签筛选）----------
+
+
+def test_filter_by_tag_open_world(client):
+    r = client.get("/api/graph/filter", params={"tags": "开放世界", "hops": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["backend"] == "networkx"
+    assert body["tags"] == ["开放世界"]
+    assert len(body["nodes"]) > 0
+    assert any(n["group"] in ("game", "goty") for n in body["nodes"])
+
+
+def test_filter_goty_with_genre(client):
+    r = client.get("/api/graph/filter", params={"group": "goty", "tags": "角色扮演", "hops": 1})
+    assert r.status_code == 200
+    body = r.json()
+    goty_ids = {n["id"] for n in body["nodes"] if n["group"] == "goty"}
+    # 上古卷轴IV 是 GOTY 且属角色扮演，应被筛出
+    assert "game_001" in goty_ids
+
+
+def test_filter_multi_tag_union(client):
+    r = client.get("/api/graph/filter", params={"tags": "角色扮演,射击", "hops": 0})
+    assert r.status_code == 200
+    body = r.json()
+    single = client.get("/api/graph/filter", params={"tags": "射击", "hops": 0}).json()
+    # 多标签取并集，规模应不小于单个标签
+    assert len(body["nodes"]) >= len(single["nodes"])
+
+
+def test_filter_by_group_only(client):
+    r = client.get("/api/graph/filter", params={"group": "studio", "hops": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["nodes"]) > 0
+    assert any(n["group"] == "studio" for n in body["nodes"])
+
+
+def test_networkx_store_filter_unit():
+    s = NetworkXStore()
+    res = s.filter(group=None, tags=["开放世界"], limit=200, hops=1)
+    assert len(res["nodes"]) > 0
+    assert any(n["group"] in ("game", "goty") for n in res["nodes"])
+
+
+# ---------- 后端单元：list / seed ----------
+
+
+def test_networkx_store_list_and_seed_unit():
+    s = NetworkXStore()
+    lst = s.list_nodes(group="studio", limit=3)
+    assert lst["total"] == 15
+    assert len(lst["items"]) == 3
+    sd = s.seed(group="goty", limit=5, hops=1)
+    assert sd["center"] is None
+    assert len(sd["nodes"]) > 5
+    assert len(sd["edges"]) > 0
+
+
+# ---------- 端点 + 单元：社区分析（前端社区分析模式）----------
+
+
+def test_communities_modularity(client):
+    r = client.get("/api/graph/communities", params={"algorithm": "modularity"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["backend"] == "networkx"
+    assert body["algorithm"] == "modularity"
+    assert len(body["communities"]) > 0
+    # 每个节点都带 community 归属，且总规模等于节点数
+    total_size = sum(c["size"] for c in body["communities"])
+    assert total_size == len(body["nodes"])
+    assert all(("community" in n) for n in body["nodes"])
+    # 社团按规模降序
+    sizes = [c["size"] for c in body["communities"]]
+    assert sizes == sorted(sizes, reverse=True)
+
+
+def test_communities_label_propagation(client):
+    r = client.get("/api/graph/communities", params={"algorithm": "label_propagation"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["algorithm"] == "label_propagation"
+    assert len(body["communities"]) > 0
+    # 社团成员与汇总规模要一一对应
+    for c in body["communities"]:
+        assert len(c["members"]) == c["size"]
+
+
+def test_communities_invalid_algo_falls_back(client):
+    # 非法算法名应回退到默认 modularity 而非报错
+    r = client.get("/api/graph/communities", params={"algorithm": "whatever"})
+    assert r.status_code == 200
+    assert r.json()["algorithm"] == "modularity"
+
+
+def test_communities_resolution_query_param(client):
+    """resolution 查询参数应传入后端并在响应 params 中回显。"""
+    r = client.get("/api/graph/communities", params={"algorithm": "modularity", "resolution": 2.5})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["params"] == {"resolution": 2.5}
+    # label_propagation 忽略 resolution
+    r2 = client.get(
+        "/api/graph/communities", params={"algorithm": "label_propagation", "resolution": 2.5}
+    )
+    assert r2.json()["params"] == {}
+
+
+def test_networkx_store_communities_unit():
+    s = NetworkXStore()
+    res = s.communities(algorithm="modularity")
+    # 节点数 = 全图节点数；社团数要合理（>1 且 < 节点数）。
+    from api.graph_loader import NODES
+
+    assert len(res["nodes"]) == len(NODES)
+    assert 1 < len(res["communities"]) < len(NODES)
+    # _compute_communities 在两种后端一致：跑到同一张无向图，结果应稳定可复现
+    res2 = s.communities(algorithm="modularity")
+    assert [c["size"] for c in res["communities"]] == [c["size"] for c in res2["communities"]]
+    # 每个社团含 members 列表（用于前端成员表），且成员总数 = 全图节点数
+    total_members = sum(len(c["members"]) for c in res["communities"])
+    assert total_members == len(NODES)
+    # 返回实际生效参数（modularity 默认 resolution=1.0）
+    assert res["params"] == {"resolution": 1.0}
+
+
+def test_communities_resolution_changes_granularity():
+    """resolution 拉开差距时应得到不同的社团粒度（社团数量不同）。"""
+    s = NetworkXStore()
+    low = s.communities(algorithm="modularity", params={"resolution": 0.6})
+    high = s.communities(algorithm="modularity", params={"resolution": 3.0})
+    assert low["params"] == {"resolution": 0.6}
+    assert high["params"] == {"resolution": 3.0}
+    # 高 resolution → 社团更细碎（数量不少于低 resolution）
+    assert len(high["communities"]) >= len(low["communities"])
+
+
+def test_communities_label_propagation_has_no_params():
+    s = NetworkXStore()
+    res = s.communities(algorithm="label_propagation", params={"resolution": 2.0})
+    # label_propagation 忽略 resolution，params 应为空
+    assert res["params"] == {}
+
+
+def test_get_graph_store_neo4j_off_returns_networkx():
+    """默认（不开启 neo4j）时，工厂返回内存 networkx 后端且可正常服务。"""
+    s = Settings()  # graph_backend 默认 networkx
+    store = get_graph_store(s)
+    assert store.backend == "networkx"
+    res = store.seed(group="goty", limit=12, hops=1)
+    assert len(res["nodes"]) > 0
+
+
+def test_get_graph_store_neo4j_on_but_unreachable_falls_back_at_init():
+    """配置了 neo4j 但连不上时，工厂在初始化阶段回退 networkx（而非查询中途静默切换）。"""
+    # 指向一个不存在的端口，确保初始化阶段 _try_connect 失败。
+    s = Settings(graph_backend="neo4j", neo4j_uri="bolt://localhost:1")
+    store = get_graph_store(s)
+    assert store.backend == "networkx"
+    res = store.seed(group="goty", limit=12, hops=1)
+    assert len(res["nodes"]) > 0  # 回退后内存数据可用，但标识如实为 networkx
+
+
+def test_neo4j_seed_filter_cypher_no_param_in_relationship_range():
+    """回归：seed/filter 的可变长关系模式不得用 $hops 参数（Neo4j 报错
+    Parameter maps cannot be used in MATCH patterns），必须插值成字面量。
+
+    这是 500 报 `CypherSyntaxError ... MATCH p = (s)-[*1..$hops]-(m)` 的根因。"""
+    from api.graph_store import Neo4jStore
+
+    captured: list[tuple[str, dict]] = []
+
+    class FakeNode:
+        def __init__(self, gid):
+            self._gid = gid
+
+        def get(self, k, default=None):
+            if k in ("game_id", "studio_id", "genre_id", "award_id"):
+                return self._gid
+            return default
+
+    class FakeRecord:
+        def __init__(self, **kw):
+            self._d = kw
+
+        def __getitem__(self, key):
+            return self._d[key]
+
+    class FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def run(self, cypher, **params):
+            captured.append((cypher, params))
+            if "RETURN n LIMIT" in cypher:
+                return [FakeRecord(n=FakeNode("game_001"))]
+            if "BELONGS_TO_GENRE" in cypher:
+                return [FakeRecord(gm=FakeNode("game_001"))]
+            return []
+
+    class FakeDriver:
+        def session(self):
+            return FakeSession()
+
+    neo = Neo4jStore.__new__(Neo4jStore)
+    neo._driver = FakeDriver()
+    neo._connected = True
+    neo._fallback = None
+    neo._using_fallback = False
+    neo._node_view_from = lambda node: {"id": node.get("game_id"), "group": "goty"}
+
+    # seed：hops=2 → 关系模式须为 [*1..2] 且不得含 $hops
+    neo.seed(group="goty", limit=5, hops=2)
+    seed_expand = [c for c, _ in captured if "MATCH p = (s)-[*1.." in c]
+    assert seed_expand, "seed 应执行展开查询"
+    assert "$hops" not in seed_expand[0], "关系模式不得用 $hops 参数"
+    assert "[*1..2]" in seed_expand[0], "hops 应插值成字面量"
+
+    # filter：hops=1（带标签命中）→ 同样插值字面量
+    captured.clear()
+    neo.filter(group="goty", tags=["角色扮演"], hops=1)
+    filt_expand = [c for c, _ in captured if "MATCH p = (s)-[*1.." in c]
+    assert filt_expand, "filter 应执行展开查询"
+    assert "$hops" not in filt_expand[0]
+    assert "[*1..1]" in filt_expand[0]
+
+    # filter：hops=0 → 不展开，只返回命中节点（UNWIND ... RETURN DISTINCT n）
+    captured.clear()
+    neo.filter(group="goty", tags=[], hops=0)
+    assert not any("MATCH p = (s)-[*1.." in c for c, _ in captured), "hops=0 不应执行展开查询"
+    assert any("RETURN DISTINCT n" in c for c, _ in captured), "hops=0 应只返回命中节点"
+
+
+# ---------- 节点影响力（中心性） ----------
+
+
+def test_networkx_store_influence_pagerank_sorted_and_positive():
+    """influence 默认 pagerank：返回降序、分数>0、字段完整。"""
+    s = NetworkXStore()
+    res = s.influence(metric="pagerank", top_n=10)
+    assert res["metric"] == "pagerank"
+    assert len(res["results"]) == 10
+    scores = [r["score"] for r in res["results"]]
+    assert all(sc > 0 for sc in scores)
+    assert scores == sorted(scores, reverse=True)  # 降序
+    for r in res["results"]:
+        assert set(r.keys()) >= {"id", "label", "group", "score"}
+
+
+def test_networkx_store_influence_group_filter_and_topn():
+    """group 过滤只返回该类型；top_n 截断生效。"""
+    s = NetworkXStore()
+    res = s.influence(metric="degree", top_n=5, group="studio")
+    assert all(r["group"] == "studio" for r in res["results"])
+    assert len(res["results"]) <= 5
+
+
+def test_influence_endpoint(client):
+    """路由端到端：默认 pagerank 返回前 N（按分数降序）。"""
+    r = client.get("/api/graph/influence", params={"metric": "degree", "top_n": 3})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["metric"] == "degree"
+    assert len(body["results"]) <= 3
+    sc = [x["score"] for x in body["results"]]
+    assert sc == sorted(sc, reverse=True)
+
+
+def test_influence_invalid_metric_falls_back(client):
+    r = client.get("/api/graph/influence", params={"metric": "bogus"})
+    assert r.status_code == 200
+    assert r.json()["metric"] == "pagerank"

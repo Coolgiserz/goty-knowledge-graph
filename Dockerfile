@@ -26,6 +26,13 @@ RUN uv pip install --system --no-cache \
     --index-url ${PIP_INDEX} \
     -r requirements.lock.txt
 
+# 可选图后端 Neo4j 的官方 driver：默认一起打进镜像，仅是「便捷预装」——
+# 真正是否启用由运行时的 GOTY_GRAPH_BACKEND 决定（默认 networkx，连不上也不会静默吞错）。
+# 不打这个包也不影响默认（networkx）路径；去掉下行可进一步减小镜像、降低构建依赖面。
+RUN uv pip install --system --no-cache \
+    --index-url ${PIP_INDEX} \
+    "neo4j>=5.0,<6"
+
 # 复制全部源码（api/ 复用 analysis/ml/ 计算模块；data/graph.json 由 .dockerignore 保留）
 COPY . .
 

@@ -1,9 +1,19 @@
-# 一键启动：数据探索（API + 探索 SPA + 原静态图谱）+ 自动导入的 Neo4j 图谱库
+# 一键启动：数据探索（API + 探索 SPA + 原静态图谱），默认走内存 networkx 后端。
+#
 #   docker-compose up -d
-#   探索 SPA： http://localhost:8080/       原图谱： http://localhost:8080/graph/
-#   Neo4j：    http://localhost:7474  （用户名 neo4j / 密码 password123）
-# 停止：       docker-compose down
-# 清数据：     docker-compose down -v
+#
+#   访问地址（均由 web 容器在同一端口同源提供，无需跨容器、无需反向代理）：
+#     探索 SPA： http://localhost:8080/explore/   （由 web 同源挂载 site/explorer-graph）
+#     原图谱：   http://localhost:8080/graph/     （307 跳转到原洞察首页 /）
+#     API：      http://localhost:8080/api/meta
+#
+#   图后端：默认 networkx（零依赖、离线可用、即起即用，是 API 的真实数据底座）。
+#     如需体验 Neo4j（Cypher 驱动 /api/graph/*），在 .env 设 GOTY_GRAPH_BACKEND=neo4j
+#     并加 --profile neo4j 启动： docker-compose --profile neo4j up -d
+#     （Neo4j 容器独立运行、默认不起；选了 neo4j 但库未就绪时，API 会如实 503 而非静默吞错。）
+#
+#   停止：       docker-compose down
+#   清数据：     docker-compose down -v
 
 services:
   web:
@@ -11,28 +21,29 @@ services:
     image: goty-knowledge-graph:latest
     ports:
       - "8080:8080"
-    depends_on:
-      - neo4j
     # 自动加载仓库根目录的 .env（含全部 GOTY_* 变量）；缺失则启动前由 make 从 .env.sample 复制
     env_file: .env
-    # compose 网络内用服务名解析 Neo4j（覆盖 .env 里的 localhost:7687），
-    # 并把密码与 neo4j 服务对齐，这样在 .env 设 GOTY_GRAPH_BACKEND=neo4j 后，
-    # /api/graph/* 能直接走 Cypher，无需再手动配 GOTY_NEO4J_*。
+    # 默认开启探索 SPA：在 /explore 同源挂载 site/explorer-graph，与 /api 同一来源。
+    # 图后端默认 networkx（见 .env / api/config.py），此处不强制 neo4j；
+    # 若要体验 Neo4j，在 .env 设 GOTY_GRAPH_BACKEND=neo4j 并用 --profile neo4j 启动。
+    # 注意：只在此处强制开启探索 SPA；图后端 / Neo4j 连接信息一律由 .env 控制，
+    # 以便复用你自己已有的 Neo4j 实例（见 README「方式五」），不被 compose 覆盖。
     environment:
-      - GOTY_NEO4J_URI=bolt://neo4j:7687
-      - GOTY_NEO4J_USER=neo4j
-      - GOTY_NEO4J_PASSWORD=${NEO4J_PASSWORD:-pAsSwOrd123}
+      - GOTY_ENABLE_EXPLORATION=true
     restart: unless-stopped
 
+  # 可选图库 + 自动导入：仅当显式 --profile neo4j 才启动，默认不起。
+  # web 默认用 networkx，无需等待 Neo4j；选了 neo4j 但库未就绪时，API 会如实报错而非静默兜底。
   neo4j:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64
+    image: ${NEO4J_IMAGE:-swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64}
+    profiles: ["neo4j"]
     ports:
       - "7474:7474"
       - "7687:7687"
     environment:
       # 本地演示用固定弱密码；生产环境请在 .env 中设 NEO4J_PASSWORD 改用强密码。
       # 该值与下方 importer 共享同一来源，确保导入时密码一致。
-      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-pAsSwOrd123}"
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-password123}"
       # 将 Neo4j 的 import 目录显式指向 /import，使 init.cypher 的 file:///csv/...
       # 能解析到挂载进来的 CSV（默认 import 目录是 /var/lib/neo4j/import，会导致找不到文件）。
       NEO4J_dbms_directories_import: "/import"
@@ -51,13 +62,14 @@ services:
   # 导入逻辑抽到独立脚本 scripts/neo4j_import_in_container.sh（幂等、一次性跑完即退出），
   # 避免把多行 bash 内联在 compose 里（易出 $ok 空变量 / 误重启等脆弱问题）。
   importer:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64
+    image: ${NEO4J_IMAGE:-swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64}
+    profiles: ["neo4j"]
     depends_on:
       neo4j:
         condition: service_healthy
     environment:
       # 与 neo4j 服务共用同一密码来源
-      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-pAsSwOrd123}"
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-password123}"
     volumes:
       - ./data/csv:/import/csv:ro
       - ./scripts/init.cypher:/init.cypher:ro
@@ -65,20 +77,6 @@ services:
     entrypoint: ["/import_job.sh"]
     # 一次性任务：成功即退出；显式 no，避免被重启策略拉起造成重复导入/死循环
     restart: "no"
-
-  # 交互式图谱浏览器（独立前端容器）：搜索 / 多跳展开 / 最短路径，调用 /api/graph/*。
-  # 与 web 服务完全独立，便于和 :8080 的旧前端对比差异；不修改原 site/。
-  # 该前端本身与图后端无关；要“体感”Neo4j，需在 .env 设 GOTY_GRAPH_BACKEND=neo4j，
-  # 此时 /api/graph/* 走 Cypher（用户无感，仅左下角“后端”标识会变为 neo4j）。
-  graph-explorer:
-    image: nginx:alpine
-    ports:
-      - "8090:80"
-    volumes:
-      - ./site/explorer-graph:/usr/share/nginx/html:ro
-    depends_on:
-      - web
-    restart: unless-stopped
 
 volumes:
   neo4j_data:
