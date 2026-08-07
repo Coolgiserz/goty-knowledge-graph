@@ -211,6 +211,31 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .comm-params { margin: 8px 0; }
 .slider { width: 100%; margin: 2px 0 0; accent-color: var(--accent-2); }
 .comm-params .pid { color: var(--accent); font-weight: 600; }
+.checkbox-row { cursor: pointer; gap: 6px; }
+.checkbox-row input { width: auto; margin: 0; accent-color: var(--accent-2); }
+.comm-blurb {
+  display: block; margin: 6px 0 2px; font-size: 12px; font-style: italic;
+  color: var(--accent); line-height: 1.5;
+}
+.param-row { margin: 4px 0; }
+.param-val { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.num-in {
+  width: 100%; margin: 2px 0 0; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 13px;
+}
+.num-in:focus { outline: none; border-color: var(--accent-2); }
+
+/* 社区分析：教育性动画播放器 */
+.comm-anim {
+  margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.anim-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.anim-controls .row.inline { flex: 1; margin: 0; font-size: 12px; }
+.anim-controls .row.inline select { width: auto; }
+.anim-controls .ghost.sm { margin-left: 0; }
+.anim-step { font-size: 12px; color: var(--accent); margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+.anim-desc { font-size: 12px; color: var(--text); line-height: 1.5; min-height: 32px; }
 
 /* 最短路径：节点选择器（带搜索联想） */
 .picker { margin-bottom: 10px; }

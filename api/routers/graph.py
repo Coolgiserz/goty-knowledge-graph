@@ -155,28 +155,62 @@ def graph_filter(
     return res
 
 
+@router.get("/graph/communities/meta")
+def graph_communities_meta():
+    """社区分析算法目录：返回所有可用策略（名称/中文说明/参数表单/是否支持动画/依赖是否就绪）。
+
+    前端据此动态渲染算法下拉与参数表单，无需硬编码算法列表。
+    """
+    from ..community import list_detectors
+
+    return {"algorithms": list_detectors()}
+
+
 @router.get("/graph/communities")
 def graph_communities(
     algorithm: str = "modularity",
     resolution: float | None = None,
+    seed: int | None = None,
+    randomize: bool = False,
+    two_level: bool = False,
+    target_communities: int | None = None,
+    animate: bool = False,
     store: GraphStore = Depends(get_graph_store_dep),
 ):
-    """社区发现：返回社团汇总（规模 + 成员）与每个节点的社团归属。前端社区分析模式用。
+    """社区发现：返回社团汇总（规模 + 成员）与节点归属；``animate=true`` 额外返回过程帧。
 
-    - ``algorithm``：``modularity``（默认，模块度最大化）或 ``label_propagation``（标签传播）。
-    - ``resolution``：仅对 ``modularity`` 生效，控制社团粒度（越大越细碎，默认 1.0）。
+    已支持的算法（详见 ``GET /api/graph/communities/meta``）：
+
+    - ``modularity``（默认）：贪心模块度最大化，``resolution`` 控制粒度。
+    - ``label_propagation``：标签传播，``seed`` 可复现。
+    - ``louvain``：多级模块度（需 ``pip install python-louvain``）。
+    - ``infomap``：信息流划分（需 ``pip install infomap``），暂不支持动画。
+    - ``girvan_newman``：边中介度分裂，``target_communities`` 控制停止时机。
+
+    未知算法或缺依赖会返回 400，并给出可操作的提示（不静默兜底）。
     """
-    if algorithm not in ("modularity", "label_propagation"):
-        algorithm = "modularity"
-    params = {}
-    if resolution is not None and algorithm == "modularity":
+    params: dict = {}
+    if resolution is not None:
         params["resolution"] = float(resolution)
+    if seed is not None:
+        params["seed"] = int(seed)
+    if randomize:
+        params["randomize"] = True
+    if two_level:
+        params["two_level"] = True
+    if target_communities is not None:
+        params["target_communities"] = int(target_communities)
     try:
-        res = store.communities(algorithm=algorithm, params=params or None)
+        res = store.communities(algorithm=algorithm, params=params or None, animate=animate)
+    except ValueError as exc:
+        # 未知算法：来自策略注册表校验
+        raise HTTPException(status_code=400, detail=str(exc)) from None
     except RuntimeError as exc:
-        if "neo4j_unavailable" in str(exc):
+        msg = str(exc)
+        if "neo4j_unavailable" in msg:
             raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
-        raise
+        # 可选依赖缺失等「算法不可用」：明确告知如何修复
+        raise HTTPException(status_code=400, detail=msg) from None
     res["backend"] = store.backend
     return res
 

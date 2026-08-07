@@ -33,6 +33,7 @@ from typing import Any
 
 import networkx as nx
 
+from .community import run_detection
 from .graph_loader import EDGES, NODES
 
 log = logging.getLogger("goty.graph_store")
@@ -121,13 +122,18 @@ class GraphStore(ABC):
 
     @abstractmethod
     def communities(
-        self, algorithm: str = "modularity", params: dict[str, Any] | None = None
+        self,
+        algorithm: str = "modularity",
+        params: dict[str, Any] | None = None,
+        animate: bool = False,
     ) -> dict[str, Any]:
         """社区发现：返回社团汇总（规模 + 成员）与每个节点的社团归属，供整图上色可视化。
 
         ``params`` 为算法特有参数（如 ``modularity`` 的 ``resolution`` 粒度控制）；
-        不同算法忽略不相关参数。返回结构含 ``algorithm``、``params``（实际生效参数）、
-        ``communities``（按规模降序，每项为 ``{id,size,members}``）、``nodes``、``edges``。
+        不同算法忽略不相关参数。``animate=True`` 时额外返回 ``frames``（过程快照，
+        供前端逐步重着色做教育性动画）。返回结构含 ``algorithm``、``params``（实际生效参数）、
+        ``communities``（按规模降序，每项为 ``{id,size,members}``）、``nodes``、``edges``、
+        ``supports_animation``、``modularity``、``frames``。
         """
 
     @abstractmethod
@@ -375,7 +381,10 @@ class NetworkXStore(GraphStore):
         }
 
     def communities(
-        self, algorithm: str = "modularity", params: dict[str, Any] | None = None
+        self,
+        algorithm: str = "modularity",
+        params: dict[str, Any] | None = None,
+        animate: bool = False,
     ) -> dict[str, Any]:
         G = nx.Graph()
         G.add_nodes_from(self._nodes.keys())
@@ -389,18 +398,22 @@ class NetworkXStore(GraphStore):
                 seen.add(key)
                 G.add_edge(u, v)
                 edges_out.append({"source": u, "target": v, "type": ty})
-        assign, communities, effective = _compute_communities(G, algorithm, params)
+        res = run_detection(algorithm, G, params, animate=animate)
         nodes_out = []
         for nid, n in self._nodes.items():
             view = _node_view(n)
-            view["community"] = assign[nid]
+            view["community"] = res.assignment[nid]
             nodes_out.append(view)
         return {
-            "algorithm": algorithm,
-            "params": effective,
-            "communities": communities,
+            "algorithm": res.algorithm,
+            "display_name": res.display_name,
+            "params": res.params,
+            "communities": res.communities,
             "nodes": nodes_out,
             "edges": edges_out,
+            "supports_animation": res.supports_animation,
+            "modularity": res.modularity,
+            "frames": res.frames if animate else [],
         }
 
     def influence(
@@ -844,7 +857,10 @@ class Neo4jStore(GraphStore):
         }
 
     def communities(
-        self, algorithm: str = "modularity", params: dict[str, Any] | None = None
+        self,
+        algorithm: str = "modularity",
+        params: dict[str, Any] | None = None,
+        animate: bool = False,
     ) -> dict[str, Any]:
         driver = self._require()
         # 拉全图：节点视图（含 id）+ 无向边
@@ -868,18 +884,22 @@ class Neo4jStore(GraphStore):
                     continue
                 seen.add(key)
                 edges_out.append({"source": a, "target": b, "type": rec["r"].type})
-        assign, communities, effective = _compute_communities(G, algorithm, params)
+        res = run_detection(algorithm, G, params, animate=animate)
         nodes_out = []
         for nid, v in node_views.items():
             view = dict(v)
-            view["community"] = assign[nid]
+            view["community"] = res.assignment[nid]
             nodes_out.append(view)
         return {
-            "algorithm": algorithm,
-            "params": effective,
-            "communities": communities,
+            "algorithm": res.algorithm,
+            "display_name": res.display_name,
+            "params": res.params,
+            "communities": res.communities,
             "nodes": nodes_out,
             "edges": edges_out,
+            "supports_animation": res.supports_animation,
+            "modularity": res.modularity,
+            "frames": res.frames if animate else [],
         }
 
     def influence(
@@ -923,58 +943,6 @@ def _group_predicate(group: str | None) -> str:
     if group == "award":
         return "n:Award"
     return ""
-
-
-def _compute_communities(G, algorithm: str, params: dict[str, Any] | None = None):
-    """在给定无向图 G 上跑社区发现，返回 (assign, communities, effective_params)。
-
-    - ``assign``：{node_id: community_index}
-    - ``communities``：按规模降序的社团列表 [{id, size, members}]
-    - ``effective_params``：实际生效的参数（回传前端展示）
-    两后端共用，保证结果一致；孤立点各自成团。
-
-    算法与参数：
-    - ``modularity``（默认，greedy modularity）：``resolution`` 控制社团粒度，
-      值越大社团越细碎（默认 1.0）。
-    - ``label_propagation``：无额外参数。
-    """
-    from networkx.algorithms.community import (
-        greedy_modularity_communities,
-        label_propagation_communities,
-    )
-
-    params = params or {}
-    effective: dict[str, Any] = {}
-    if algorithm == "label_propagation":
-        comms = label_propagation_communities(G)
-    else:
-        resolution = float(params.get("resolution", 1.0))
-        effective["resolution"] = resolution
-        comms = greedy_modularity_communities(G, resolution=resolution)
-
-    assign: dict[str, int] = {}
-    for idx, comm in enumerate(comms):
-        for nid in comm:
-            assign[nid] = idx
-    # 未落入任何社团的孤立点各自成团
-    nxt = len(comms)
-    for nid in G.nodes():
-        if nid not in assign:
-            assign[nid] = nxt
-            nxt += 1
-
-    sizes: dict[int, int] = {}
-    for c in assign.values():
-        sizes[c] = sizes.get(c, 0) + 1
-    communities = [
-        {
-            "id": c,
-            "size": sizes[c],
-            "members": [nid for nid, cc in assign.items() if cc == c],
-        }
-        for c in sorted(sizes, key=lambda c: -sizes[c])
-    ]
-    return assign, communities, effective
 
 
 def _compute_influence(G, metric: str) -> dict[str, float]:

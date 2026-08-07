@@ -86,14 +86,37 @@
         <p class="hint">对整个图谱做社区发现，按社团自动上色；分析完会冻结布局便于定位。点列表项可查看该社团包含的全部节点。</p>
         <label class="row">算法
           <select id="comm-algo">
-            <option value="modularity">模块度最大化</option>
-            <option value="label_propagation">标签传播</option>
+            <option value="">加载算法中…</option>
           </select>
         </label>
+        <span id="comm-blurb" class="comm-blurb"></span>
         <div id="comm-params" class="comm-params">
-          <!-- 算法参数随算法切换动态填充 -->
+          <!-- 算法参数随算法切换从 params_schema 动态填充 -->
         </div>
-        <button id="comm-btn" type="button" class="primary" style="width:100%">运行社区分析</button>
+        <label id="comm-anim-wrap" class="row checkbox-row" style="display:none">
+          <input id="comm-animate" type="checkbox" checked />
+          演示算法过程（动画）
+        </label>
+        <button id="comm-btn" type="button" class="primary" style="width:100%" disabled>运行社区分析</button>
+
+        <!-- 教育性动画播放器：在图谱上按帧重着色 + 步骤文字解说 -->
+        <div id="comm-anim" class="comm-anim" style="display:none">
+          <div class="anim-controls">
+            <button id="comm-anim-play" type="button" class="ghost sm">暂停</button>
+            <label class="row inline">速度
+              <select id="comm-anim-speed">
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="4">4×</option>
+              </select>
+            </label>
+          </div>
+          <input id="comm-anim-seek" type="range" min="0" max="0" step="1" value="0" class="slider" />
+          <div id="comm-anim-step" class="anim-step">步骤 0 / 0</div>
+          <div id="comm-anim-desc" class="anim-desc"></div>
+        </div>
+
         <div id="comm-list" class="comm-list"></div>
       </section>
 

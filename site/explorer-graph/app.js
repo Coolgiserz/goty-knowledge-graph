@@ -553,82 +553,320 @@ async function loadTagOptions() {
 }
 
 /* ---------------- 社区分析 ---------------- */
+// 算法目录（来自 /api/graph/communities/meta），前端据此动态渲染下拉与参数表单，不再硬编码。
+let ALGO_META = {};
+
+// 教育性动画播放器状态
+const commAnim = { frames: [], idx: 0, playing: false, timer: null, finalAssign: {}, data: null };
+let lastHighlightedEdgeKeys = new Set();
+
+// 启动时填充算法下拉（含中文说明 / 是否支持动画 / 依赖是否就绪）。
+async function loadCommunityAlgorithms() {
+  const sel = $("#comm-algo");
+  try {
+    const data = await fetchJSON(`${API}/graph/communities/meta`);
+    const algos = data.algorithms || [];
+    ALGO_META = {};
+    sel.innerHTML = "";
+    for (const a of algos) {
+      ALGO_META[a.name] = a;
+      const opt = document.createElement("option");
+      opt.value = a.name;
+      let label = a.display_name;
+      if (!a.available) {
+        const dep = a.optional_dependency || "额外依赖";
+        label += `（需安装 ${dep}）`;
+        opt.disabled = true;
+      }
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+    const firstAvail = algos.find((a) => a.available);
+    if (firstAvail) sel.value = firstAvail.name;
+    $("#comm-btn").disabled = false;
+    renderCommParams();
+  } catch (e) {
+    // 兜底：目录加载失败时至少保留两个零依赖核心算法，避免界面卡死。
+    sel.innerHTML = "";
+    for (const [v, t] of [["modularity", "模块度最大化（贪心）"], ["label_propagation", "标签传播（LPA）"]]) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = t; sel.appendChild(opt);
+    }
+    ALGO_META = {
+      modularity: { name: "modularity", display_name: "模块度最大化（贪心）", supports_animation: true, available: true,
+        params_schema: [{ name: "resolution", label: "社团粒度 (resolution)", type: "float", default: 1.0, min: 0.1, max: 5.0, step: 0.1, help: "越大社团越细碎；越小社团越聚合。" }], blurb: "最经典的凝聚式算法：直观展示「小团如何一步步并成大社区」，Q 值单调递增。" },
+      label_propagation: { name: "label_propagation", display_name: "标签传播（LPA）", supports_animation: true, available: true, params_schema: [], blurb: "近乎线性的高效算法：动画能直观看到「颜色（标签）如何一层层淹没整张图」。" },
+    };
+    $("#comm-btn").disabled = false;
+    renderCommParams();
+    setStatus("社区算法目录加载失败，已回退到内置核心算法：" + e.message);
+  }
+}
+
 // 产品设计：点击后**立即**盖加载遮罩（spinner），布局在后台进行；稳定后取景并**冻结物理**
-// （静态大图：主线程不再持续抖动/卡顿，元素稳定便于定位）。整个过程界面不卡死、有进度。
+// （静态大图：主线程不再持续抖动/卡顿，元素稳定便于定位）。支持「演示算法过程」动画模式。
 async function loadCommunities() {
   const btn = $("#comm-btn");
   const algo = $("#comm-algo").value;
-  const params = commParamValue(); // 随算法变化的参数（如 resolution）
+  const meta = ALGO_META[algo];
+  if (!algo || !meta) { setStatus("请先选择社区分析算法"); return; }
+  if (!meta.available) { setStatus(`算法「${meta.display_name}」需要安装依赖：${meta.optional_dependency}`); return; }
+  const wantsAnimate = meta.supports_animation && $("#comm-animate").checked;
+  const params = commParamValue();
   mode = "communities";
+  stopCommunityAnimation(); // 任何进行中的动画先停
   if (btn) { btn.disabled = true; btn.textContent = "分析中…"; }
   showOverlay("正在分析社区结构（约全图节点，布局中）…");
   setStatus("整图社区分析中（约全图节点，正在布局）…");
   try {
-    const q = new URLSearchParams({ algorithm: algo });
-    if (params.resolution != null) q.set("resolution", String(params.resolution));
+    const q = new URLSearchParams({ algorithm: algo, animate: wantsAnimate ? "true" : "false" });
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== null && v !== undefined) q.set(k, String(v));
+    }
     const data = await fetchJSON(`${API}/graph/communities?${q}`);
     nodes.clear(); edges.clear();
     const nodeViews = data.nodes || [];
     for (const n of nodeViews) {
-      const c = n.community || 0;
-      const color = commColor(c);
-      const d = {
-        id: n.id,
-        label: displayLabel(n),
-        group: n.group,           // 保留类型信息（tooltip/图例）
-        title: `${n.label || n.id}\n${n.group} · 社团#${c}`,
-        color: { background: color, border: shade(color) },
-        community: c,
-      };
-      if (nodes.get(n.id)) nodes.update(d); else nodes.add(d);
+      // 先只建节点（不赋色）：动画/静态上色由后续统一处理
+      upsertNode({ id: n.id, label: n.label, group: n.group });
     }
     (data.edges || []).forEach(upsertEdge);
+    setPhysics(true); // 重新打开物理，确保大量节点铺开后触发 stabilizationIterationsDone
+    const assign = buildAssignmentFromCommunities(data.communities || []);
     renderCommunityList(data.communities || []);
-    // 大图布局完成后：取景 + 冻结物理 + 收起遮罩
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
+    const nComm = (data.communities || []).length;
+    setStatus(`已构建社区分析图（${meta.display_name}）：共 ${nComm} 个社团、${nodeViews.length} 个节点。${wantsAnimate ? "正在播放算法过程…" : "已按社团上色并冻结布局；点列表项查看社团包含哪些节点。"}`);
+
+    const finishBuild = () => {
       if (network) network.fit({ animation: true });
       setPhysics(false); // 冻结，元素稳定、易定位
       hideOverlay();
-      const nComm = (data.communities || []).length;
-      const algoName = algo === "label_propagation" ? "标签传播" : "模块度最大化";
-      setStatus(`社区分析完成（${algoName}）：共 ${nComm} 个社团、${nodeViews.length} 个节点。已按社团上色并冻结布局；点列表项查看社团包含哪些节点。`);
       if (btn) { btn.disabled = false; btn.textContent = "运行社区分析"; }
     };
-    if (network) network.once("stabilizationIterationsDone", finish);
-    setTimeout(finish, 6000); // 兜底：稳定事件未触发也能收尾
+
+    if (wantsAnimate && data.frames && data.frames.length) {
+      startCommunityAnimation(data.frames, assign, data);
+      let done = false;
+      const fin = () => { if (done) return; done = true; finishBuild(); };
+      if (network) network.once("stabilizationIterationsDone", fin);
+      setTimeout(fin, 8000); // 兜底：稳定事件未触发也能收尾
+    } else {
+      applyAssignment(assign, {});
+      let done = false;
+      const fin = () => { if (done) return; done = true; finishBuild(); };
+      if (network) network.once("stabilizationIterationsDone", fin);
+      setTimeout(fin, 6000);
+    }
   } catch (e) {
     hideOverlay();
+    stopCommunityAnimation();
     setStatus("社区分析失败：" + e.message);
     if (btn) { btn.disabled = false; btn.textContent = "运行社区分析"; }
   }
 }
 
-// 社区分析的算法参数：随「算法」下拉动态切换。当前仅 modularity 有 resolution 粒度。
+// 由后端返回的 communities（每项含 members 列表）重建 {node_id: community_id} 归属表。
+// 后端未单独下发顶层 assignment，这里从 communities 派生，静态上色与动画末态都以此为准。
+function buildAssignmentFromCommunities(communities) {
+  const a = {};
+  for (const c of communities || []) {
+    for (const m of (c.members || [])) a[m] = c.id;
+  }
+  return a;
+}
+
+// 根据社团划分（{node_id: community_id}）给画布重新上色；可选高亮被切断的边（分裂式算法）。
+function applyAssignment(assign, opts) {
+  opts = opts || {};
+  const updates = [];
+  for (const [id, c] of Object.entries(assign)) {
+    if (!nodes.get(id)) continue;
+    const color = commColor(c);
+    updates.push({ id, color: { background: color, border: shade(color) } });
+  }
+  if (updates.length) nodes.update(updates);
+  applyHighlights(opts.highlightEdges);
+}
+
+// 高亮「桥边」（被切断的边）：红色加粗 + 阴影；其余复位。按端点匹配（边可能含类型）。
+function applyHighlights(highlightEdges) {
+  const want = new Set();
+  if (highlightEdges) {
+    for (const [u, v] of highlightEdges) want.add([u, v].sort().join("|"));
+  }
+  const toReset = [];
+  for (const ek of lastHighlightedEdgeKeys) {
+    if (!want.has(ek)) {
+      toReset.push({ id: ek, color: { color: "#46506a", highlight: "#f5b301", hover: "#8aa0c8" }, width: 1, shadow: { enabled: false } });
+    }
+  }
+  const toHi = [];
+  if (highlightEdges && highlightEdges.length) {
+    edges.forEach((e) => {
+      const ek = [e.from, e.to].sort().join("|");
+      if (want.has(ek)) {
+        toHi.push({ id: e.id, color: { color: "#e74c3c", highlight: "#ff6b5b", hover: "#ff6b5b" }, width: 3, shadow: { enabled: true, color: "#e74c3c", size: 12 } });
+      }
+    });
+  }
+  if (toReset.length) edges.update(toReset);
+  if (toHi.length) edges.update(toHi);
+  lastHighlightedEdgeKeys = want;
+}
+
+// 社区分析的算法参数：随「算法」下拉从 params_schema 动态生成表单（float/int 滑块、bool 勾选）。
 function renderCommParams() {
+  const algo = $("#comm-algo").value;
+  const meta = ALGO_META[algo];
   const box = $("#comm-params");
-  if ($("#comm-algo").value === "label_propagation") {
-    box.innerHTML = `<p class="hint" style="margin:6px 0 0">标签传播算法无额外参数，社团通常更多更细。</p>`;
+  box.innerHTML = "";
+  $("#comm-blurb").textContent = meta ? (meta.blurb || "") : "";
+  const animWrap = $("#comm-anim-wrap");
+  if (meta && meta.supports_animation) animWrap.style.display = "";
+  else { animWrap.style.display = "none"; const cb = $("#comm-animate"); if (cb) cb.checked = false; }
+  const schema = (meta && meta.params_schema) || [];
+  if (!schema.length) {
+    const p = document.createElement("p");
+    p.className = "hint"; p.style.margin = "6px 0 0";
+    p.textContent = "该算法无额外参数。";
+    box.appendChild(p);
     return;
   }
-  box.innerHTML =
-    `<label class="row">社团粒度（resolution）<span id="comm-res-val" class="pid">1.0</span></label>` +
-    `<input id="comm-res" class="slider" type="range" min="0.5" max="3" step="0.1" value="1" />` +
-    `<p class="hint" style="margin:4px 0 0">值越大社团越细碎；值越小越聚合。</p>`;
-  const sl = $("#comm-res");
-  if (sl) {
-    sl.addEventListener("input", () => {
-      $("#comm-res-val").textContent = parseFloat(sl.value).toFixed(1);
+  for (const sp of schema) {
+    if (sp.type === "bool") {
+      const lbl = document.createElement("label");
+      lbl.className = "row checkbox-row";
+      lbl.innerHTML = `<input type="checkbox" data-param="${esc(sp.name)}" ${sp.default ? "checked" : ""}/> ${esc(sp.label)}`;
+      box.appendChild(lbl);
+      if (sp.help) { const hp = document.createElement("p"); hp.className = "hint"; hp.style.margin = "2px 0 8px"; hp.textContent = sp.help; box.appendChild(hp); }
+      continue;
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "param-row";
+    const def = sp.default != null ? String(sp.default) : "";
+    const min = sp.min != null ? `min="${sp.min}"` : "";
+    const max = sp.max != null ? `max="${sp.max}"` : "";
+    const step = sp.step != null ? `step="${sp.step}"` : "";
+    const useRange = sp.min != null && sp.max != null;
+    if (useRange) {
+      wrap.innerHTML =
+        `<label class="row">${esc(sp.label)} <span class="pid param-val" data-for="${esc(sp.name)}">${def || "—"}</span></label>` +
+        `<input class="slider" type="range" data-param="${esc(sp.name)}" data-kind="${esc(sp.type)}" value="${def}" ${min} ${max} ${step} />` +
+        (sp.help ? `<p class="hint" style="margin:2px 0 8px">${esc(sp.help)}</p>` : "");
+    } else {
+      // 无 min/max 边界的参数（如可选随机种子）：用数字输入框，留空即「不传 / 随机」。
+      const ph = sp.default == null ? "留空=默认/随机" : "";
+      wrap.innerHTML =
+        `<label class="row">${esc(sp.label)} <span class="pid param-val" data-for="${esc(sp.name)}">${def || "—"}</span></label>` +
+        `<input class="num-in" type="number" data-param="${esc(sp.name)}" data-kind="${esc(sp.type)}" value="${def}" placeholder="${ph}" ${step} />` +
+        (sp.help ? `<p class="hint" style="margin:2px 0 8px">${esc(sp.help)}</p>` : "");
+    }
+    box.appendChild(wrap);
+    const inp = wrap.querySelector("input");
+    inp.addEventListener("input", () => {
+      const span = wrap.querySelector(`[data-for="${sp.name}"]`);
+      if (span) span.textContent = inp.value === "" ? "—" : inp.value;
     });
   }
 }
+
+// 收集当前参数表单的值（float/int 自动转类型；空值跳过；bool 取勾选）。
 function commParamValue() {
-  if ($("#comm-algo").value !== "modularity") return {};
-  const sl = $("#comm-res");
-  const v = sl ? parseFloat(sl.value) : 1.0;
-  return { resolution: isNaN(v) ? 1.0 : v };
+  const out = {};
+  document.querySelectorAll("#comm-params [data-param]").forEach((el) => {
+    const name = el.getAttribute("data-param");
+    if (el.type === "checkbox") { out[name] = el.checked; return; }
+    const kind = el.getAttribute("data-kind");
+    const raw = el.value;
+    if (raw === "" || raw == null) return;
+    out[name] = kind === "int" ? parseInt(raw, 10) : kind === "float" ? parseFloat(raw) : raw;
+  });
+  return out;
+}
+
+/* ---------------- 社区分析：教育性动画播放器 ---------------- */
+// 在图谱上按帧重着色，配合步骤文字解说，帮助直观理解算法原理（凝聚合并 / 标签扩散 / 边分裂）。
+function startCommunityAnimation(frames, finalAssign, data) {
+  commAnim.frames = frames;
+  commAnim.finalAssign = finalAssign || {};
+  commAnim.data = data;
+  commAnim.idx = 0;
+  const panel = $("#comm-anim");
+  if (panel) panel.style.display = "";
+  const seek = $("#comm-anim-seek");
+  seek.min = "0"; seek.max = String(frames.length - 1); seek.value = "0";
+  const sp = $("#comm-anim-play");
+  if (sp) sp.textContent = "暂停";
+  commAnim.playing = true;
+  renderAnimFrame(0);
+  scheduleAnimTick();
+}
+
+function scheduleAnimTick() {
+  clearTimeout(commAnim.timer);
+  const speedSel = $("#comm-anim-speed");
+  const speed = speedSel ? (parseFloat(speedSel.value) || 1) : 1;
+  commAnim.timer = setTimeout(commAnimTick, 950 / speed);
+}
+
+function commAnimTick() {
+  if (!commAnim.playing) return;
+  if (commAnim.idx >= commAnim.frames.length - 1) {
+    commAnim.idx = commAnim.frames.length - 1;
+    renderAnimFrame(commAnim.idx);
+    commAnim.playing = false;
+    const sp = $("#comm-anim-play"); if (sp) sp.textContent = "重播";
+    setStatus("算法过程演示完成。已显示最终社团划分；点列表项查看社团包含哪些节点。");
+    return;
+  }
+  commAnim.idx += 1;
+  renderAnimFrame(commAnim.idx);
+  scheduleAnimTick();
+}
+
+function renderAnimFrame(i) {
+  const f = commAnim.frames[i];
+  if (!f) return;
+  applyAssignment(f.assignment || {}, { highlightEdges: f.highlight_edges });
+  const seek = $("#comm-anim-seek"); if (seek) seek.value = String(i);
+  const total = commAnim.frames.length;
+  const qtxt = (f.metric != null) ? ` · 模块度 Q=${Number(f.metric).toFixed(3)}` : "";
+  $("#comm-anim-step").textContent = `步骤 ${i + 1} / ${total}${qtxt}`;
+  $("#comm-anim-desc").textContent = f.description || "";
+}
+
+function commAnimPlayPause() {
+  const last = commAnim.frames.length - 1;
+  if (!commAnim.frames.length) return;
+  if (commAnim.idx >= last && !commAnim.playing) {
+    // 已到末帧 → 重播
+    commAnim.idx = 0; commAnim.playing = true;
+    const sp = $("#comm-anim-play"); if (sp) sp.textContent = "暂停";
+    renderAnimFrame(0); scheduleAnimTick();
+    return;
+  }
+  commAnim.playing = !commAnim.playing;
+  const sp = $("#comm-anim-play"); if (sp) sp.textContent = commAnim.playing ? "暂停" : "播放";
+  if (commAnim.playing) scheduleAnimTick();
+  else clearTimeout(commAnim.timer);
+}
+
+function commAnimSeek(i) {
+  commAnim.idx = i;
+  renderAnimFrame(i);
+  const last = commAnim.frames.length - 1;
+  const sp = $("#comm-anim-play");
+  if (i >= last) { commAnim.playing = false; if (sp) sp.textContent = "重播"; }
+  else { commAnim.playing = false; if (sp) sp.textContent = "播放"; }
+}
+
+function stopCommunityAnimation() {
+  clearTimeout(commAnim.timer);
+  commAnim.playing = false;
+  commAnim.frames = [];
+  const panel = $("#comm-anim");
+  if (panel) panel.style.display = "none";
+  applyHighlights(null);
 }
 
 function renderCommunityList(communities) {
@@ -846,11 +1084,15 @@ function bind() {
   $("#clear-btn").addEventListener("click", clearCanvas);
   $("#fit-btn").addEventListener("click", focusGraph);
   $("#comm-btn").addEventListener("click", loadCommunities);
-  $("#comm-algo").addEventListener("change", renderCommParams);
+  $("#comm-algo").addEventListener("change", () => { stopCommunityAnimation(); renderCommParams(); });
+  $("#comm-animate").addEventListener("change", () => { /* 仅运行前读取，无需即时响应 */ });
+  $("#comm-anim-play").addEventListener("click", commAnimPlayPause);
+  $("#comm-anim-speed").addEventListener("change", () => { if (commAnim.playing) scheduleAnimTick(); });
+  $("#comm-anim-seek").addEventListener("input", (e) => commAnimSeek(parseInt(e.target.value, 10) || 0));
   $("#inf-btn").addEventListener("click", loadInfluence);
   $("#inf-metric").addEventListener("change", updateInfMetricNote);
   updateInfMetricNote();
-  renderCommParams(); // 进入即按默认算法填充参数控件
+  loadCommunityAlgorithms(); // 进入即从 /communities/meta 拉取算法目录并渲染下拉 + 参数表单
   // 社团成员弹窗关闭
   $("#comm-modal-close").addEventListener("click", closeCommModal);
   $("#comm-modal").addEventListener("click", (e) => { if (e.target.id === "comm-modal") closeCommModal(); });

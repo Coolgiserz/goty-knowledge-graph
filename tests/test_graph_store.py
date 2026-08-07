@@ -252,11 +252,11 @@ def test_communities_label_propagation(client):
         assert len(c["members"]) == c["size"]
 
 
-def test_communities_invalid_algo_falls_back(client):
-    # 非法算法名应回退到默认 modularity 而非报错
+def test_communities_invalid_algo_returns_400(client):
+    # 非法算法名应如实 400（不静默兜底到默认算法）
     r = client.get("/api/graph/communities", params={"algorithm": "whatever"})
-    assert r.status_code == 200
-    assert r.json()["algorithm"] == "modularity"
+    assert r.status_code == 400
+    assert "whatever" in r.json()["detail"]
 
 
 def test_communities_resolution_query_param(client):
@@ -265,7 +265,7 @@ def test_communities_resolution_query_param(client):
     assert r.status_code == 200
     body = r.json()
     assert body["params"] == {"resolution": 2.5}
-    # label_propagation 忽略 resolution
+    # label_propagation 忽略 resolution，params 应为空
     r2 = client.get(
         "/api/graph/communities", params={"algorithm": "label_propagation", "resolution": 2.5}
     )
@@ -439,3 +439,96 @@ def test_influence_invalid_metric_falls_back(client):
     r = client.get("/api/graph/influence", params={"metric": "bogus"})
     assert r.status_code == 200
     assert r.json()["metric"] == "pagerank"
+
+
+# ---------- 社区分析：策略模式 / 多算法 / 动画帧 ----------
+
+
+def test_community_detector_registry_has_core_algorithms():
+    """策略注册表应包含核心算法（含用户点名的 infomap 与新增的 louvain/girvan_newman）。"""
+    from api.community import DETECTORS, list_detectors
+
+    for name in ("modularity", "label_propagation", "louvain", "infomap", "girvan_newman"):
+        assert name in DETECTORS
+    catalog = {d["name"]: d for d in list_detectors()}
+    # 零依赖算法必须可用；可选依赖算法标记 available 由环境决定
+    assert catalog["modularity"]["available"] is True
+    assert catalog["label_propagation"]["available"] is True
+    assert catalog["girvan_newman"]["available"] is True
+    # 每个算法都暴露参数表单与动画支持标记
+    for d in catalog.values():
+        assert isinstance(d["params_schema"], list)
+        assert isinstance(d["supports_animation"], bool)
+
+
+def test_greedy_modularity_matches_networkx():
+    """自实现贪心合并序列的最终划分应与 networkx greedy_modularity_communities 一致。"""
+    from collections import defaultdict
+
+    import networkx as nx
+    from api.graph_store import NetworkXStore
+    from networkx.algorithms.community import greedy_modularity_communities
+
+    s = NetworkXStore()
+    G = nx.Graph()
+    G.add_nodes_from(s._nodes.keys())
+    seen = set()
+    for u in s._adj:
+        for v, _ in s._adj[u]:
+            k = frozenset((u, v))
+            if k in seen:
+                continue
+            seen.add(k)
+            G.add_edge(u, v)
+    nx_assign = {}
+    for i, c in enumerate(greedy_modularity_communities(G, resolution=1.0)):
+        for n in c:
+            nx_assign[n] = i
+    ours = s.communities(algorithm="modularity")
+    our_assign = {n["id"]: n["community"] for n in ours["nodes"]}
+
+    def groups(a):
+        g = defaultdict(set)
+        for n, c in a.items():
+            g[c].add(n)
+        return {frozenset(v) for v in g.values()}
+
+    assert groups(nx_assign) == groups(our_assign)
+
+
+def test_community_animation_frames_returned_when_animate():
+    """animate=true 时，支持动画的算法应返回过程帧；帧含 step/description/assignment。"""
+    s = NetworkXStore()
+    for algo in ("modularity", "label_propagation", "girvan_newman"):
+        res = s.communities(algorithm=algo, animate=True)
+        assert res["supports_animation"] is True
+        assert len(res["frames"]) >= 2
+        f0 = res["frames"][0]
+        assert f0.step == 0
+        assert isinstance(f0.description, str) and f0.description
+        # 每帧 assignment 覆盖全图节点
+        assert set(f0.assignment.keys()) == {n["id"] for n in res["nodes"]}
+
+
+def test_infomap_missing_dependency_returns_400(client):
+    """infomap 未安装时应返回 400 并提示如何安装（不静默兜底）。"""
+    # 确保环境确实没装 infomap；若已装则跳过该断言（仅验证可用性或 400 二选一）
+    import importlib.util
+
+    if importlib.util.find_spec("infomap") is not None:
+        r = client.get("/api/graph/communities", params={"algorithm": "infomap"})
+        assert r.status_code == 200
+        return
+    r = client.get("/api/graph/communities", params={"algorithm": "infomap"})
+    assert r.status_code == 400
+    assert "infomap" in r.json()["detail"]
+
+
+def test_girvan_newman_returns_valid_partition():
+    """girvan_newman 应返回合法划分（社团数随 target_communities 变化）。"""
+    s = NetworkXStore()
+    res = s.communities(algorithm="girvan_newman", params={"target_communities": 4})
+    # 社团数应 >= 目标（达到目标即停），且覆盖全图节点
+    assert len(res["communities"]) >= 4
+    total = sum(len(c["members"]) for c in res["communities"])
+    assert total == len(res["nodes"])

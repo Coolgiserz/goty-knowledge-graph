@@ -240,10 +240,12 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── schemas.py          # 类型化响应模型（response_model）
 │   ├── deps.py             # 依赖注入（settings/security/task_manager/owner/require_exploration）
 │   ├── security.py         # 安全上下文（限流/黑名单/令牌）
-│   ├── routers/            # APIRouter 拆分：meta / boards / jobs
+│   ├── routers/            # APIRouter 拆分：meta / boards / jobs / graph
 │   ├── models.py           # ParamSpec（参数 schema）+ 校验
 │   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
 │   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
+│   ├── graph_store.py      # GraphStore 抽象（networkx / neo4j 双后端，统一图查询）
+│   ├── community.py        # 社区发现策略模式（5 算法 + 教育性动画帧 CommFrame）
 │   ├── tasks.py            # 后台异步任务管理器（有界线程池 + 待处理上限 + 归属）
 │   ├── ratelimit.py        # 限流 + 黑名单（含自动封禁）+ 客户端 IP 识别
 │   ├── logging_config.py   # 结构化请求 / 安全日志
@@ -328,7 +330,8 @@ cp .env.sample .env      # 然后按需修改里面的默认值
 | `GET /api/graph/path?a=&b=` | 两节点间最短路径 |
 | `GET /api/graph/list?group=&q=&limit=&offset=` | 浏览节点（按类型过滤 + 关键词 + 分页），供前端表格面板 |
 | `GET /api/graph/seed?group=&limit=&hops=` | 按类型取一批种子节点并展开 `hops` 跳，返回合并子图，供初始画布 / 种子渲染 |
-| `GET /api/graph/communities?algorithm=&resolution=` | 社区发现：返回社团汇总（含 `members` 成员列表）与每个节点的社团归属。`algorithm` 为 `modularity`（默认）/ `label_propagation`；`resolution` 仅对 `modularity` 生效（社团粒度） |
+| `GET /api/graph/communities/meta` | 社区分析算法目录：返回所有可用策略（`name` / `display_name` / `description` / `blurb` / `supports_animation` / `available` / `optional_dependency` / `params_schema`）。前端据此**动态**生成算法下拉与参数表单，无需硬编码 |
+| `GET /api/graph/communities?algorithm=&animate=&<params>` | 社区发现（策略模式）：`algorithm` 支持 `modularity`（默认，贪心模块度）/ `label_propagation`（标签传播）/ `louvain`（多级模块度，需 `pip install python-louvain`）/ `infomap`（信息流，需 `pip install infomap`，暂不支持动画）/ `girvan_newman`（边中介度分裂）。各算法参数见 `/communities/meta`（`resolution` / `seed` / `randomize` / `two_level` / `target_communities`）。`animate=true` 额外返回 `frames`（过程快照：`assignment` / `description` / `metric` / `highlight_edges`），供前端做教育性分步动画。缺依赖或未知算法返回 400（含修复提示） |
 | `GET /api/graph/influence?metric=&top_n=&group=` | 节点影响力（中心性）排行榜：`metric` 为 `degree`（度数中心性）/ `pagerank`（默认）/ `betweenness`（中介中心性）；`top_n` 取前 N（默认 20）；`group` 按类型过滤。返回降序的 `{id,label,group,score}` 列表 |
 
 > 这些端点默认走 networkx 就已可用；切到 Neo4j 后只是把底层查询换成 Cypher，接口与响应结构不变。每个响应的 `backend` 字段会标明当前实际后端（`networkx` 或 `neo4j`）。
@@ -346,7 +349,7 @@ Docker 全栈（`docker-compose up -d`）由 **web 容器同源**托管探索 SP
   - **种子渲染**：侧栏选「类别 + 标签 + 跳数」一键铺一批节点（游戏 / 工作室 / 类型 / 奖项 / 全部），作为探索起点。
   - **搜索 → 详情 → 多跳展开**：搜索节点、查看详情、以 `DEVELOPED / WON / BELONGS_TO_GENRE / SUBCLASS_OF` 过滤做多跳邻居展开。
   - **表格浏览**：侧栏表格按类型 / 关键词列出全部节点，点任意一行即从该节点开始探索（展开 1 跳），无需先搜索。
-  - **社区分析**：选「算法」（模块度最大化 / 标签传播）；模块度算法可额外调「社团粒度 resolution」——值越大社团越细碎。分析完按社团上色并冻结布局；点左侧社团列表项会弹出该社团包含的**全部节点表格**（只展示名称与类型，不暴露后台节点 ID），点表格行即可在画布聚焦该节点。
+  - **社区分析**：从后端 `/communities/meta` **动态**拉取算法目录并渲染下拉——内置「模块度最大化（贪心）/ 标签传播（LPA）/ Louvain（多级模块度，需装依赖）/ Infomap（信息流，需装依赖）/ Girvan-Newman（边中介度分裂）」五种，每种的细分参数（如社团粒度 `resolution`、随机种子 `seed`、目标社团数 `target_communities`）也按 `params_schema` 动态生成表单。可勾选「演示算法过程（动画）」——支持动画的算法会在图谱上**逐帧重着色**并配步骤文字解说（凝聚合并 / 标签扩散 / 边分裂高亮），直观展示算法原理（对理解图算法很有教育意义）；分析完按最终社团上色并冻结布局；点左侧社团列表项会弹出该社团包含的**全部节点表格**（只展示名称与类型，不暴露后台节点 ID），点表格行即可在画布聚焦该节点。
   - **网络影响力**：用中心性算法给全图节点排名，直观揭示「谁在这张图谱里最重要」，也是理解图算法的入口。三种指标各有侧重——`PageRank`（综合重要性，默认）、`度数中心性`（直接连接数）、`中介中心性`（桥梁节点）。可再按类型 / 数量过滤；点击榜首即在画布上聚焦该节点并展开其邻居。
   - **最短路径**：通过两个带搜索联想的节点选择器直接选起点 / 终点（也可在画布或表格点选节点后「设为起点 / 终点」），支持交换起终点；计算后高亮路径（金色加粗），并在侧栏列出 `A → B → C` 文字链，节点名可点聚焦。
 - **后端说明**：默认 networkx（内存）即完整可用，普通用户无需关心底层；在 `.env` 设 `GOTY_GRAPH_BACKEND=neo4j` 并 `docker-compose --profile neo4j up -d` 后，`/api/graph/*` 改走 Cypher。Neo4j 未就绪时查询会如实 503，而非静默回退——错误可见、可定位。
