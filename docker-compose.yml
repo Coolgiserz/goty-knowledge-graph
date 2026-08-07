@@ -40,7 +40,9 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # Neo4j 健康检查通过后，自动执行 scripts/init.cypher 导入数据集
+  # Neo4j 健康检查通过后，自动执行 scripts/init.cypher 导入数据集。
+  # 导入逻辑抽到独立脚本 scripts/neo4j_import_in_container.sh（幂等、一次性跑完即退出），
+  # 避免把多行 bash 内联在 compose 里（易出 $ok 空变量 / 误重启等脆弱问题）。
   importer:
     image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/neo4j:5.26-linuxarm64
     depends_on:
@@ -52,33 +54,9 @@ services:
     volumes:
       - ./data/csv:/import/csv:ro
       - ./scripts/init.cypher:/init.cypher:ro
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        PW="$NEO4J_PASSWORD"
-        echo "importer: 等待 Neo4j Bolt 端口(TCP)就绪（不发送凭据，避免认证限流）…"
-        for i in $(seq 1 60); do
-          if (exec 3<>/dev/tcp/neo4j/7687) 2>/dev/null; then
-            exec 3>&- 3<&-
-            break
-          fi
-          sleep 2
-        done
-        echo "importer: 执行 scripts/init.cypher …"
-        ok=0
-        for i in $(seq 1 30); do
-          if err=$(cypher-shell -a bolt://neo4j:7687 -u neo4j -p "$PW" -f /init.cypher 2>&1); then
-            ok=1; break
-          fi
-          if echo "$err" | grep -qiE 'unauthorized|AuthenticationRateLimit|invalid (username|password)|credentials'; then
-            echo "importer: 认证失败 —— $err"
-            echo "importer: 请确认 NEO4J_PASSWORD 与 neo4j 服务密码一致（改密码需 docker-compose down -v 重建）。"
-            exit 1
-          fi
-          sleep 2
-        done
-        if [ "$ok" -ne 1 ]; then echo "importer: 导入失败 —— $err"; exit 1; fi
-        echo "importer: 导入完成 ✅"
+      - ./scripts/neo4j_import_in_container.sh:/import_job.sh:ro
+    entrypoint: ["/import_job.sh"]
+    # 一次性任务：成功即退出；显式 no，避免被重启策略拉起造成重复导入/死循环
     restart: "no"
 
 volumes:
