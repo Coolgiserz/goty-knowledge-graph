@@ -61,7 +61,7 @@ for i in $(seq 1 30); do
     import_ok=1
     break
   fi
-  if echo "$err" | grep -qiE 'AuthenticationRateLimit|invalid (username|password)|credentials'; then
+  if echo "$err" | grep -qiE 'unauthorized|AuthenticationRateLimit|invalid (username|password)|credentials'; then
     echo "✗ 认证失败（$err）" >&2
     echo "  请确认 .env 的 NEO4J_PASSWORD 与容器启动密码一致。" >&2
     echo "  （Neo4j 仅在首次启动设置密码；改过密码需先 docker volume rm neo4j-goty-data 再重跑。）" >&2
