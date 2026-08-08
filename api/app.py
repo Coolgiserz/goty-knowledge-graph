@@ -24,7 +24,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -35,6 +35,7 @@ from .audit.store import AuditStore
 from .auth.middleware import create_auth_guard_middleware
 from .auth.store import UserStore
 from .config import Settings, get_settings
+from .deps import get_settings_dep
 from .graph_store import get_graph_store
 from .logging_config import setup_logging
 from .middleware import create_security_audit_middleware
@@ -112,7 +113,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.8.0",
+        version="1.8.1",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -153,8 +154,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return RedirectResponse(url="/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
     @app.get("/login")
-    def login_page():
-        """内置登录 / 注册页。"""
+    def login_page(settings: Settings = Depends(get_settings_dep)):
+        """内置登录 / 注册页；认证关闭（全部免登录调试模式）时改为「登录已关闭」提示页。"""
+        if not settings.auth_enabled:
+            return auth.login_page_disabled()
         return auth.login_page()
 
     # 静态资源：先注册 API 路由，最后按模式挂载静态目录。

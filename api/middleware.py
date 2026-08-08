@@ -14,7 +14,9 @@ app 解耦：任何 ASGI app 都能通过 ``app.middleware("http")(create_securi
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import re
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -50,6 +52,66 @@ _ASSET_CT_PREFIXES = (
     "application/font",
     "application/octet-stream",
 )
+
+# 审计日志中需脱敏的请求/响应体字段（凭据 / 令牌等，绝不落明文）。
+# 登录/注册接口的请求体含明文密码，必须遮蔽后再写审计文件与审计库。
+_SENSITIVE_KEYS = {
+    "password",
+    "passwd",
+    "pwd",
+    "current_password",
+    "new_password",
+    "token",
+    "access_token",
+    "refresh_token",
+    "api_key",
+    "apikey",
+    "secret",
+    "client_secret",
+    "otp",
+    "authorization",
+}
+_MASK = "***"
+# 针对被截断（非完整 JSON）的请求体，回退正则遮蔽敏感键的值。
+_SENSITIVE_RE = re.compile(
+    r'("(?:'
+    + "|".join(re.escape(k) for k in sorted(_SENSITIVE_KEYS, key=len, reverse=True))
+    + r')"\s*:\s*")([^"]*)(")',
+    re.IGNORECASE,
+)
+
+
+def _mask_node(node) -> None:
+    """就地把敏感键的值替换为 ``***``（递归 dict/list）。"""
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if isinstance(k, str) and k.lower() in _SENSITIVE_KEYS:
+                node[k] = _MASK
+            else:
+                _mask_node(v)
+    elif isinstance(node, list):
+        for item in node:
+            _mask_node(item)
+
+
+def _redact_sensitive(body: str) -> str:
+    """对审计用的请求/响应体做凭据脱敏：仅遮蔽敏感字段的值，其余原样保留。
+
+    - 完整个 JSON：解析后递归遮蔽敏感键，再序列化回去（结构/其余字段不变）。
+    - 被截断的非完整 JSON：回退正则遮蔽 ``"key": "value"`` 形态的敏感键。
+    这样登录/注册接口的明文密码不会进入审计文件或审计库。
+    """
+    if not body:
+        return body
+    try:
+        data = json.loads(body)
+    except Exception:
+        return _SENSITIVE_RE.sub(lambda m: m.group(1) + _MASK + m.group(3), body)
+    _mask_node(data)
+    try:
+        return json.dumps(data, ensure_ascii=False)
+    except Exception:
+        return body
 
 
 def _compute_visitor_id(ip: str, user_agent: str) -> str:
@@ -214,7 +276,10 @@ def create_security_audit_middleware(
                 try:
                     raw = await request.body()
                     if raw:
-                        req_body = raw[: settings.audit_body_max_bytes].decode("utf-8", "replace")
+                        # 凭据脱敏：登录/注册等含明文密码的接口，写审计前先遮蔽敏感字段。
+                        req_body = _redact_sensitive(
+                            raw[: settings.audit_body_max_bytes].decode("utf-8", "replace")
+                        )
                 except Exception:
                     req_body = ""
 
@@ -244,7 +309,8 @@ def create_security_audit_middleware(
                 try:
                     body = getattr(response, "body", None)
                     if body and len(body) <= settings.audit_body_max_bytes:
-                        snippet = body.decode("utf-8", "replace")
+                        # 同样脱敏响应体中的敏感字段（纵深防御；登录响应不含密码，但统一处理）
+                        snippet = _redact_sensitive(body.decode("utf-8", "replace"))
                 except Exception:
                     snippet = ""
                 record = {
@@ -277,6 +343,13 @@ def create_security_audit_middleware(
                         await audit_store.record_audit(record)
                     except Exception:
                         log.warning("审计入库失败（已忽略，不影响主响应）", exc_info=True)
+
+        # 生产（HTTPS）部署：开启 Secure Cookie 时一并下发 HSTS，强制客户端仅经 TLS 访问，
+        # 避免凭据在明文 HTTP 下被窃听。本地 http 开发（session_cookie_secure=false）不加。
+        if settings.session_cookie_secure:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
 
         return response
 

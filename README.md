@@ -226,6 +226,10 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 - **探索页登录门禁**：`GOTY_EXPLORE_REQUIRES_AUTH=true`（默认）时，未登录访问 `/explore` 由独立守卫中间件（`api/auth/middleware.py`）307 跳转到内置登录页 `/login?next=...`；登录页与 `/api/auth/*` 永远放行，避免死循环。
 - **计算/提交接口登录门禁**：`POST /api/jobs`、`POST /api/board/{name}` 经 `require_user` 依赖强制登录（未登录 `401 authentication_required`）。登录用户的任务 `owner` 记为其用户名，便于按用户维度追溯。
 - **审计记录用户身份**：安全+审计中间件（`api/middleware.py`）对已登录请求解析会话用户，并把 `user_id` / `username` 写入审计记录（存量审计库自动 ALTER 加列）。
+- **「全部免登录」调试开关**：`GOTY_AUTH_ENABLED=false` 即关闭整个账号体系——不要求任何登录、`/explore` 与计算接口直接放行、界面**隐藏登录/注册入口**（`/login` 改为「登录已关闭」提示页、审计用户身份留空）。仅用于本地调试，**生产务必保持 `true`**。前端可经 `GET /api/meta` 的 `auth_enabled` 字段感知当前模式，自行决定是否展示登录入口。
+- **凭据安全（传输与存储）**：① 密码经 **bcrypt** 加盐哈希存储，库中**绝不存明文**；② 审计日志写入前对请求/响应体中的 `password` / `token` 等敏感字段**自动脱敏**（遮蔽为 `***`），登录/注册接口的明文密码不会进入审计文件或审计库；③ 会话 Cookie 为 **HttpOnly + SameSite=Lax**，且生产（`GOTY_SESSION_COOKIE_SECURE=true`）下带 **Secure** 标记、仅经 HTTPS 下发，并同时下发 **HSTS**（`Strict-Transport-Security`）强制客户端仅走 TLS；④ 登录/注册响应**不回显密码**。因此用户名/密码只在客户端到服务端之间以 **HTTPS 加密通道**传输，服务端落库与落日志均不含明文密码。
+
+> 部署硬性要求：账号体系依赖 **HTTPS（TLS）** 承载——凭据明文仅在 TLS 加密通道内传输，明文 HTTP 部署会使凭据可被窃听。生产请将反向代理/网关配置为 TLS 终止，并把 `GOTY_SESSION_COOKIE_SECURE=true`。本地 http 开发（`false`）仅用于调试，切勿暴露到公网。
 
 > 设计取舍：认证与「探索总开关 `GOTY_ENABLE_EXPLORATION`」正交——auth 关闭则整站回退匿名流程（守卫与门禁全放行，`/explore` 与计算接口不再要求登录）；auth 开启但 `GOTY_EXPLORE_REQUIRES_AUTH=false` 时，仅计算接口要求登录、探索页导航不拦截。两套存储（`api/auth/store.py` 用户库 vs `api/audit/store.py` 审计库）**独立建库**，请勿共用同一文件。
 
@@ -233,7 +237,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 | 环境变量 | 含义 | 默认 |
 |----------|------|------|
-| `GOTY_AUTH_ENABLED` | 是否开启账号体系（注册/登录/会话）；关闭则回退匿名流程 | `true` |
+| `GOTY_AUTH_ENABLED` | 是否开启账号体系；`false` = 「全部免登录」本地调试模式（不要求登录、界面隐藏登录/注册入口） | `true` |
 | `GOTY_AUTH_REGISTRATION_OPEN` | 是否开放自助注册；`false` 时注册接口整体 `403`（仅 CLI 建号） | `true` |
 | `GOTY_EXPLORE_REQUIRES_AUTH` | 探索页是否需要登录方可进入（关闭则守卫整体放行） | `true` |
 | `GOTY_USERS_DB_URL` | 用户库 SQLAlchemy URL（SQLite 打通流程；换 MySQL/PostgreSQL 仅改此值） | `sqlite:///./data/users.db` |

@@ -24,6 +24,7 @@ def meta(settings: Settings = Depends(get_settings_dep)):
         data_matches_baseline=data_matches_baseline(),
         exploration_enabled=settings.enable_exploration,
         graph_backend=settings.graph_backend,
+        auth_enabled=settings.auth_enabled,
         boards=[
             MetaBoardSummary(name=b.name, label=b.label, description=b.description)
             for b in all_boards()

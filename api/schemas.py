@@ -27,6 +27,7 @@ class MetaResponse(BaseModel):
     exploration_enabled: bool
     graph_backend: str
     boards: list[MetaBoardSummary]
+    auth_enabled: bool
 
 
 class ParamSpecView(BaseModel):

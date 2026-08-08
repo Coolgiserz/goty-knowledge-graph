@@ -40,13 +40,15 @@ def stub_run_board(monkeypatch):
 
 
 def _auth_client(tmp_path, **over) -> TestClient:
-    s = Settings(
-        enable_exploration=True,
-        explore_token="",
-        auth_enabled=True,
-        users_db_url=f"sqlite:///{tmp_path}/users.db",
-        **over,
-    )
+    kwargs = {
+        "enable_exploration": True,
+        "explore_token": "",
+        "users_db_url": f"sqlite:///{tmp_path}/users.db",
+    }
+    kwargs.update(over)
+    # 默认开启 auth（与既有用例一致）；调用方可用 auth_enabled=False 进入免登录调试模式
+    kwargs.setdefault("auth_enabled", True)
+    s = Settings(**kwargs)
     return TestClient(create_app(s))
 
 
@@ -156,3 +158,56 @@ def test_audit_records_username(tmp_path):
     assert row.path == "/api/meta"
     assert row.username == "judy"
     assert row.user_id is not None
+
+
+def test_password_redacted_in_audit(tmp_path):
+    c = _auth_client(
+        tmp_path,
+        audit_enabled=True,
+        audit_db_url=f"sqlite:///{tmp_path}/audit.db",
+        audit_log_file="",
+    )
+    plain = "SUPERSECRET123"
+    c.post("/api/auth/register", json={"username": "kate", "password": plain, "email": "k@x.com"})
+
+    store = c.app.state.audit_store
+    assert store is not None
+
+    async def _find():
+        async with store._session() as s:
+            return list(
+                await s.scalars(select(AuditLog).where(AuditLog.path == "/api/auth/register"))
+            )
+
+    rows = asyncio.run(_find())
+    assert rows, "注册请求应写入审计"
+    for r in rows:
+        body = r.request_body or ""
+        assert plain not in body, "明文密码不应进入审计日志（文件/库）"
+        assert '"password": "***"' in body, "密码字段应被脱敏为 ***"
+
+
+def test_login_page_hidden_when_auth_disabled(tmp_path):
+    # 全部免登录调试模式：/login 不渲染登录/注册表单
+    c = _auth_client(tmp_path, auth_enabled=False)
+    r = c.get("/login")
+    assert r.status_code == 200
+    assert "登录已关闭" in r.text
+    assert "doLogin" not in r.text
+    assert "doRegister" not in r.text
+
+
+def test_meta_exposes_auth_enabled(tmp_path):
+    assert _auth_client(tmp_path, auth_enabled=True).get("/api/meta").json()["auth_enabled"] is True
+    assert (
+        _auth_client(tmp_path, auth_enabled=False).get("/api/meta").json()["auth_enabled"] is False
+    )
+
+
+def test_bypass_mode_allows_anonymous(tmp_path, stub_run_board):
+    # GOTY_AUTH_ENABLED=false：探索页直接可访问，计算接口免登录直接 200
+    c = _auth_client(tmp_path, auth_enabled=False)
+    r = c.get("/explore/", follow_redirects=False)
+    assert "/login" not in r.headers.get("location", "")
+    r2 = c.post("/api/jobs", json={"board": "community", "params": {}})
+    assert r2.status_code == 200

@@ -269,3 +269,40 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
 def login_page() -> HTMLResponse:
     """返回内置登录页（由 ``api.app`` 以 ``GET /login`` 挂载）。"""
     return HTMLResponse(LOGIN_PAGE_HTML)
+
+
+# 认证关闭（全部免登录调试模式）时访问 /login 的提示页：不渲染任何登录/注册表单，
+# 引导用户直接回到首页。避免界面出现「不该有的」登录/注册入口。
+LOGIN_DISABLED_HTML = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登录已关闭 · GOTY 知识图谱</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f172a; color: #e2e8f0; }
+  .card { max-width: 420px; padding: 28px 26px; border-radius: 14px; background: #1e293b;
+    box-shadow: 0 10px 40px rgba(0,0,0,.35); text-align: center; }
+  h1 { font-size: 19px; margin: 0 0 10px; }
+  p { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+  a { color: #60a5fa; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>登录已关闭（本地调试模式）</h1>
+    <p>当前站点已关闭账号体系，无需登录即可使用数据探索。<br />
+       <a href="/">返回首页</a></p>
+  </div>
+</body>
+</html>
+"""
+
+
+def login_page_disabled() -> HTMLResponse:
+    """认证关闭时返回「登录已关闭」提示页（无登录/注册表单）。"""
+    return HTMLResponse(LOGIN_DISABLED_HTML)
