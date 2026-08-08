@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..config import Settings
+from ..constants import HTTP, ErrorCode
 from ..deps import (
     get_security,
     get_settings_dep,
@@ -40,7 +41,7 @@ def _job_dict(task, tasks: TaskManager, stats: dict, include_result: bool = Fals
     return d
 
 
-@router.post("/jobs", response_model=JobCreated, status_code=200)
+@router.post("/jobs", response_model=JobCreated, status_code=HTTP.OK)
 def create_job(
     req: JobReq,
     request: Request,
@@ -50,20 +51,25 @@ def create_job(
 ):
     require_exploration(settings)
     owner, err = resolve_owner(request, settings, security)
-    if err == "invalid_or_missing_token":
+    if err == ErrorCode.INVALID_OR_MISSING_TOKEN:
         return JSONResponse(
-            status_code=401,
-            content={"error": "unauthorized", "message": "需要有效的访问令牌才能提交探索任务。"},
+            status_code=HTTP.UNAUTHORIZED,
+            content={
+                "error": ErrorCode.UNAUTHORIZED,
+                "message": "需要有效的访问令牌才能提交探索任务。",
+            },
         )
     if req.board not in {b.name for b in all_boards()}:
-        raise HTTPException(status_code=404, detail=f"未知探索板块: {req.board}")
+        raise HTTPException(
+            status_code=HTTP.NOT_FOUND, detail=f"{ErrorCode.UNKNOWN_BOARD}: {req.board}"
+        )
     try:
         t = tasks.create(req.board, req.params, owner)
     except TooManyPending as e:
         return JSONResponse(
-            status_code=429,
+            status_code=HTTP.TOO_MANY_REQUESTS,
             headers={"Retry-After": "30"},
-            content={"error": "too_many_pending", "retry_after": 30, "message": str(e)},
+            content={"error": ErrorCode.TOO_MANY_PENDING, "retry_after": 30, "message": str(e)},
         )
     return JobCreated(id=t.id, status=t.status, board=t.board, owner=t.owner)
 
@@ -108,10 +114,10 @@ def get_job(
     require_exploration(settings)
     t = tasks.get(job_id)
     if not t:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.TASK_NOT_FOUND)
     owner, _ = resolve_owner(request, settings, security)
     if not is_admin_scope(request, settings) and t.owner != owner:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.TASK_NOT_FOUND)
     stats = tasks.queue_stats()
     return JobView(**_job_dict(t, tasks, stats, include_result=True))
 
@@ -127,9 +133,9 @@ def cancel_job(
     require_exploration(settings)
     t = tasks.get(job_id)
     if not t:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.TASK_NOT_FOUND)
     owner, _ = resolve_owner(request, settings, security)
     if not is_admin_scope(request, settings) and t.owner != owner:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.TASK_NOT_FOUND)
     canceled = tasks.cancel(job_id)
     return {"id": job_id, "canceled": canceled}

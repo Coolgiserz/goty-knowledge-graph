@@ -25,6 +25,7 @@ from fastapi.responses import JSONResponse
 from .anomaly import AnomalyDetector
 from .audit.store import AuditStore
 from .config import Settings
+from .constants import HTTP, ErrorCode
 from .logging_config import log_audit_event
 from .rules import AccessRule
 from .security import SecurityContext
@@ -106,9 +107,9 @@ def create_security_audit_middleware(
             if blocked:
                 log.warning("client=%s method=%s path=%s BLOCKED rule=%s", ip, method, path, reason)
                 response = JSONResponse(
-                    status_code=403,
+                    status_code=HTTP.FORBIDDEN,
                     content={
-                        "error": "blocked",
+                        "error": ErrorCode.BLOCKED,
                         "message": "该请求来源被拒绝，请使用真实浏览器访问。",
                     },
                 )
@@ -119,8 +120,11 @@ def create_security_audit_middleware(
             if security.blacklist.is_blacklisted(ip):
                 log.warning("client=%s method=%s path=%s BLOCKED blacklisted", ip, method, path)
                 response = JSONResponse(
-                    status_code=403,
-                    content={"error": "blacklisted", "message": "您的访问已被限制，请联系管理员。"},
+                    status_code=HTTP.FORBIDDEN,
+                    content={
+                        "error": ErrorCode.BLACKLISTED,
+                        "message": "您的访问已被限制，请联系管理员。",
+                    },
                 )
             else:
                 # 2) 一般限流
@@ -138,10 +142,10 @@ def create_security_audit_middleware(
                         banned,
                     )
                     response = JSONResponse(
-                        status_code=429,
+                        status_code=HTTP.TOO_MANY_REQUESTS,
                         headers={"Retry-After": str(retry)},
                         content={
-                            "error": "rate_limited",
+                            "error": ErrorCode.RATE_LIMITED,
                             "retry_after": retry,
                             "message": "请求过于频繁，请稍后再试。",
                         },
@@ -162,10 +166,10 @@ def create_security_audit_middleware(
                             banned,
                         )
                         response = JSONResponse(
-                            status_code=429,
+                            status_code=HTTP.TOO_MANY_REQUESTS,
                             headers={"Retry-After": str(retry2)},
                             content={
-                                "error": "rate_limited",
+                                "error": ErrorCode.RATE_LIMITED,
                                 "retry_after": retry2,
                                 "message": "探索计算请求过于频繁，请稍后再试。",
                             },

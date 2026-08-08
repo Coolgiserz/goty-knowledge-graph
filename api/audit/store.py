@@ -180,6 +180,9 @@ class AuditStore:
             bind=self.engine, expire_on_commit=False, future=True
         )
         self._schema_ready = False
+        # 并发首写保护：首个 record_audit 在运行中事件循环里惰性建表，
+        # 若不加锁，40 路并发会同时进入 create_all 触发「table already exists」竞态。
+        self._schema_lock = asyncio.Lock()
 
     async def _create_all(self) -> None:
         """在运行中的事件循环里幂等建表，并标记已就绪。"""
@@ -203,10 +206,18 @@ class AuditStore:
         # 已有运行中的事件循环：留给 _ensure_schema 在首次 await 时建表
 
     async def _ensure_schema(self) -> None:
-        """惰性建表：仅在尚未建过时执行一次（幂等），在运行中的事件循环内安全调用。"""
+        """惰性建表：仅在尚未建过时执行一次（幂等），在运行中的事件循环内安全调用。
+
+        并发首写（如压测 40 路同时到达）会同时通过 ``_schema_ready`` 初判，因此用
+        ``asyncio.Lock`` + 双重检查保证 ``create_all`` 只真正执行一次，避免
+        ``table audit_log already exists`` 竞态。
+        """
         if self._schema_ready:
             return
-        await self._create_all()
+        async with self._schema_lock:
+            if self._schema_ready:
+                return
+            await self._create_all()
 
     async def record_audit(self, data: dict[str, Any]) -> None:
         """写入一条审计记录（异步原生，调用方直接 await）。"""

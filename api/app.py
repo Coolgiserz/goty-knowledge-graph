@@ -33,6 +33,7 @@ from . import tools  # 触发板块注册（导入即注册）  # noqa: F401
 from .anomaly import AnomalyDetector, FrequencyRule
 from .audit.store import AuditStore
 from .config import Settings, get_settings
+from .constants import HTTP
 from .graph_store import get_graph_store
 from .logging_config import setup_logging
 from .middleware import create_security_audit_middleware
@@ -101,7 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.7.1",
+        version="1.7.2",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -135,7 +136,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/graph/")
     def redirect_graph_to_root():
         """旧书签 /graph/ 直接跳回根（v1 原始页）。"""
-        return RedirectResponse(url="/", status_code=307)
+        return RedirectResponse(url="/", status_code=HTTP.TEMPORARY_REDIRECT)
 
     # 静态资源：先注册 API 路由，最后按模式挂载静态目录。
     # 无论是否开启探索，根路径 "/" 都默认承载「原始数据页 + 原始洞察页」(v1 只读浏览)；
@@ -144,7 +145,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         @app.get("/explore")
         def redirect_explore():
-            return RedirectResponse(url="/explore/", status_code=307)
+            return RedirectResponse(url="/explore/", status_code=HTTP.TEMPORARY_REDIRECT)
 
         if os.path.isdir(EXPLORER_DIR):
             app.mount("/explore", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from ..audit.report import build_report
 from ..audit.store import AuditStore
 from ..config import Settings
+from ..constants import HTTP, ErrorCode
 from ..deps import get_audit_store, get_settings_dep
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -33,10 +34,10 @@ def _require_admin(request: Request, settings: Settings = Depends(get_settings_d
     """管理接口守卫：未配置令牌返回 403；令牌不匹配返回 401（常量时间比较防时序侧信道）。"""
     token = settings.admin_token
     if not token:
-        raise HTTPException(status_code=403, detail="admin_report_disabled")
+        raise HTTPException(status_code=HTTP.FORBIDDEN, detail=ErrorCode.ADMIN_REPORT_DISABLED)
     provided = _extract_admin_token(request)
     if not provided or not hmac.compare_digest(provided, token):
-        raise HTTPException(status_code=401, detail="invalid_admin_token")
+        raise HTTPException(status_code=HTTP.UNAUTHORIZED, detail=ErrorCode.INVALID_ADMIN_TOKEN)
 
 
 def _parse_dt(value: str | None) -> datetime | None:
@@ -67,7 +68,9 @@ async def report(
 ) -> dict[str, Any]:
     """站点访问统计报表（内部接口，需 ``GOTY_ADMIN_TOKEN`` 鉴权）。"""
     if store is None:
-        raise HTTPException(status_code=503, detail="audit_store_unavailable")
+        raise HTTPException(
+            status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.AUDIT_STORE_UNAVAILABLE
+        )
     return await build_report(
         store,
         from_=_parse_dt(from_),

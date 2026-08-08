@@ -18,6 +18,7 @@ Neo4j 后端连不上时，工厂已回退到 networkx；若显式选了 neo4j �
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ..constants import HTTP, ErrorCode
 from ..deps import get_graph_store_dep
 from ..graph_store import GraphStore
 from ..schema import list_scopes, scope_ids
@@ -32,7 +33,9 @@ def graph_search(q: str = "", limit: int = 20, store: GraphStore = Depends(get_g
         results = store.search(q, limit=max(1, min(limit, 100)))
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     return {"query": q, "backend": store.backend, "results": results}
 
@@ -44,10 +47,12 @@ def graph_node(node_id: str, store: GraphStore = Depends(get_graph_store_dep)):
         node = store.get_node(node_id)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     if node is None:
-        raise HTTPException(status_code=404, detail="node_not_found")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.NODE_NOT_FOUND)
     return node
 
 
@@ -67,10 +72,12 @@ def graph_traverse(
         sub = store.neighbors(start, hops=hops, edge_types=ets)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     if sub["center"] is None:
-        raise HTTPException(status_code=404, detail="node_not_found")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.NODE_NOT_FOUND)
     sub["backend"] = store.backend
     return sub
 
@@ -82,10 +89,12 @@ def graph_path(a: str, b: str, store: GraphStore = Depends(get_graph_store_dep))
         path = store.shortest_path(a, b)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     if path is None:
-        raise HTTPException(status_code=404, detail="no_path")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=ErrorCode.NO_PATH)
     path["backend"] = store.backend
     return path
 
@@ -108,7 +117,9 @@ def graph_list(
         res = store.list_nodes(group=group, query=q, limit=limit, offset=offset)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     res["backend"] = store.backend
     return res
@@ -128,7 +139,9 @@ def graph_seed(
         res = store.seed(group=group, limit=limit, hops=hops)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     res["backend"] = store.backend
     return res
@@ -153,7 +166,9 @@ def graph_filter(
         res = store.filter(group=group, tags=tag_list, limit=limit, hops=hops)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     res["backend"] = store.backend
     return res
@@ -201,7 +216,7 @@ def graph_communities(
     """
     if scope not in scope_ids():
         raise HTTPException(
-            status_code=400,
+            status_code=HTTP.BAD_REQUEST,
             detail=f"未知分析范围：{scope!r}；可选：{' / '.join(sorted(scope_ids()))}",
         )
     params: dict = {}
@@ -221,13 +236,15 @@ def graph_communities(
         )
     except ValueError as exc:
         # 未知算法：来自策略注册表校验
-        raise HTTPException(status_code=400, detail=str(exc)) from None
+        raise HTTPException(status_code=HTTP.BAD_REQUEST, detail=str(exc)) from None
     except RuntimeError as exc:
         msg = str(exc)
         if "neo4j_unavailable" in msg:
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         # 可选依赖缺失等「算法不可用」：明确告知如何修复
-        raise HTTPException(status_code=400, detail=msg) from None
+        raise HTTPException(status_code=HTTP.BAD_REQUEST, detail=msg) from None
     res["backend"] = store.backend
     return res
 
@@ -252,7 +269,9 @@ def graph_influence(
         res = store.influence(metric=metric, top_n=top_n, group=group)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
-            raise HTTPException(status_code=503, detail="graph_backend_unavailable") from None
+            raise HTTPException(
+                status_code=HTTP.SERVICE_UNAVAILABLE, detail=ErrorCode.GRAPH_BACKEND_UNAVAILABLE
+            ) from None
         raise
     res["backend"] = store.backend
     return res

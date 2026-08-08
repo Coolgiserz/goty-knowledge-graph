@@ -9,6 +9,7 @@ from fastapi import Depends, HTTPException, Request
 
 from .audit.store import AuditStore
 from .config import Settings
+from .constants import HTTP, ErrorCode
 from .graph_store import GraphStore
 from .security import SecurityContext
 from .tasks import TaskManager
@@ -44,7 +45,7 @@ def get_audit_store(request: Request) -> AuditStore | None:
 def require_exploration(settings: Settings = Depends(get_settings_dep)) -> None:
     """探索总开关守卫：关闭时所有计算/任务接口返回 403。"""
     if not settings.enable_exploration:
-        raise HTTPException(status_code=403, detail="exploration_disabled")
+        raise HTTPException(status_code=HTTP.FORBIDDEN, detail=ErrorCode.EXPLORATION_DISABLED)
 
 
 def extract_token(request: Request) -> str:
@@ -69,7 +70,7 @@ def resolve_owner(
     """
     if settings.explore_token:
         if extract_token(request) != settings.explore_token:
-            return None, "invalid_or_missing_token"
+            return None, ErrorCode.INVALID_OR_MISSING_TOKEN
         return "admin", None
     uid = request.headers.get("x-user-id")
     if uid:

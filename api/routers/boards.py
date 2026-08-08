@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from .. import registry
 from ..config import Settings
+from ..constants import HTTP, ErrorCode
 from ..deps import get_settings_dep, require_exploration
 from ..graph_loader import data_matches_baseline
 from ..schemas import BoardMeta, BoardRunResult, BoardsResponse
@@ -37,5 +38,5 @@ def board(name: str, req: BoardReq, settings: Settings = Depends(get_settings_de
     require_exploration(settings)
     res = registry.run_board(name, req.params, data_matches_baseline())
     if res is None:
-        raise HTTPException(status_code=404, detail=f"未知探索板块: {name}")
+        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=f"{ErrorCode.UNKNOWN_BOARD}: {name}")
     return BoardRunResult(**res)
