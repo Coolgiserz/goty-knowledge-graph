@@ -1,6 +1,6 @@
 [project]
 name = "goty-knowledge-graph"
-version = "1.5.0"
+version = "1.6.0"
 description = "年度最佳游戏知识图谱 · 数据探索 API（FastAPI）"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "sqlalchemy>=2.0",
+    "aiosqlite>=0.19",
     "numpy>=1.24",
     "pandas>=2.0",
     "networkx>=3.0",

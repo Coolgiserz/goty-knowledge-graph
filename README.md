@@ -134,7 +134,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ## 🛡 安全与限流（云端 demo 防护）
 
-探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。防护与审计已抽成**独立公共模块** `api/middleware.py`（`create_security_audit_middleware` 工厂，与具体 app 解耦、可被任意 ASGI app 复用），内部按 **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库** 顺序横切；采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），数据库写入走 `asyncio.to_thread` 不阻塞事件循环。底层原语分散在 `api/ratelimit.py`（限流+黑名单）/ `api/ua.py`（UA 解析）/ `api/rules.py`（访问规则协议）/ `api/anomaly.py`（异常判定）/ `api/audit/*`（审计存储）/ `api/logging_config.py`（日志）。
+探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。防护与审计已抽成**独立公共模块** `api/middleware.py`（`create_security_audit_middleware` 工厂，与具体 app 解耦、可被任意 ASGI app 复用），内部按 **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库** 顺序横切；采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），审计数据库写入为**原生 async**（`await audit_store.record_audit`，SQLAlchemy 异步引擎，不占用线程、不阻塞事件循环），对齐 FastAPI 官方「有异步库就用 async def + await」的 async 文档。底层原语分散在 `api/ratelimit.py`（限流+黑名单）/ `api/ua.py`（UA 解析）/ `api/rules.py`（访问规则协议）/ `api/anomaly.py`（异常判定）/ `api/audit/*`（审计存储）/ `api/logging_config.py`（日志）。
 
 - **访问控制（403，可插拔规则）**：`GOTY_BLOCK_BOT_UA=true` 时，凡 User-Agent 命中 `GOTY_BOT_UA_BLOCKLIST`（默认含 `python`/`java`/`go-http`/`curl`/`httpx`…）的请求直接 403，实现「只放行真实浏览器」。规则实现 `AccessRule` 协议，新增策略（地域封禁、UA 指纹库…）零改中间件。默认关闭，避免误伤 API 服务间调用与测试。
 - **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。

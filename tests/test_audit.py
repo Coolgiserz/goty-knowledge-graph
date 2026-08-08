@@ -4,6 +4,7 @@
 中间件审计落库、异常频率命中后后续请求被 403。
 """
 
+import asyncio
 import time
 import uuid
 from collections import deque
@@ -22,39 +23,43 @@ def test_audit_store_sqlite_records(tmp_path):
     db = tmp_path / "audit.db"
     store = AuditStore(f"sqlite:///{db}")
     store.init()
-    assert store.count_audit() == 0
+    assert asyncio.run(store.count_audit()) == 0
 
-    store.record_audit(
-        {
-            "request_id": uuid.uuid4().hex,
-            "client_ip": "1.2.3.4",
-            "client_device": "Desktop",
-            "user_agent": "test-agent",
-            "method": "GET",
-            "path": "/api/meta",
-            "query": "",
-            "request_body": "",
-            "status_code": 200,
-            "duration_ms": 1.5,
-            "is_anomaly": False,
-            "anomaly_reasons": "",
-            "response_snippet": "{}",
-        }
+    asyncio.run(
+        store.record_audit(
+            {
+                "request_id": uuid.uuid4().hex,
+                "client_ip": "1.2.3.4",
+                "client_device": "Desktop",
+                "user_agent": "test-agent",
+                "method": "GET",
+                "path": "/api/meta",
+                "query": "",
+                "request_body": "",
+                "status_code": 200,
+                "duration_ms": 1.5,
+                "is_anomaly": False,
+                "anomaly_reasons": "",
+                "response_snippet": "{}",
+            }
+        )
     )
-    assert store.count_audit() == 1
-    assert store.count_audit("1.2.3.4") == 1
-    assert store.count_audit("9.9.9.9") == 0
+    assert asyncio.run(store.count_audit()) == 1
+    assert asyncio.run(store.count_audit("1.2.3.4")) == 1
+    assert asyncio.run(store.count_audit("9.9.9.9")) == 0
 
-    store.record_anomaly(
-        {
-            "request_id": uuid.uuid4().hex,
-            "client_ip": "1.2.3.4",
-            "rule": "frequency",
-            "detail": "frequency:>3/60s",
-            "action": "blacklist_86400s",
-        }
+    asyncio.run(
+        store.record_anomaly(
+            {
+                "request_id": uuid.uuid4().hex,
+                "client_ip": "1.2.3.4",
+                "rule": "frequency",
+                "detail": "frequency:>3/60s",
+                "action": "blacklist_86400s",
+            }
+        )
     )
-    assert store.count_anomalies("1.2.3.4") == 1
+    assert asyncio.run(store.count_anomalies("1.2.3.4")) == 1
 
 
 def test_frequency_rule_evaluate():
@@ -97,13 +102,17 @@ def test_middleware_audit_records_to_db(tmp_path):
 
     store = app.state.audit_store
     assert store is not None
-    assert store.count_audit() >= 1
-    with store._session() as s:
-        row = s.scalar(select(AuditLog).order_by(AuditLog.id.desc()).limit(1))
-        assert row.path == "/api/meta"
-        assert row.status_code == 200
-        assert row.client_ip
-        assert row.client_device  # 设备推断非空
+    assert asyncio.run(store.count_audit()) >= 1
+
+    async def _last_row():
+        async with store._session() as s:
+            return await s.scalar(select(AuditLog).order_by(AuditLog.id.desc()).limit(1))
+
+    row = asyncio.run(_last_row())
+    assert row.path == "/api/meta"
+    assert row.status_code == 200
+    assert row.client_ip
+    assert row.client_device  # 设备推断非空
 
 
 def test_middleware_anomaly_bans_after_threshold():

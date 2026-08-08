@@ -7,12 +7,12 @@ app 解耦：任何 ASGI app 都能通过 ``app.middleware("http")(create_securi
 设计要点（对齐 FastAPI async 最佳实践，不用 BaseHTTPMiddleware）：
 - 横切顺序：**访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 处理 → 审计**。
 - 依赖通过工厂参数注入（闭包捕获），运行时不再读取 ``app.state``，便于复用/测试。
-- 审计 DB 写入经 ``asyncio.to_thread``，不阻塞事件循环。
+- 审计 DB 写入为原生 async（``await audit_store.record_audit``），不占用线程、不阻塞事件循环，
+  对齐 FastAPI 官方「有异步库就用 async def + await」的 async 最佳实践。
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
@@ -153,15 +153,14 @@ def create_security_audit_middleware(
                         settings.anomaly_ban_seconds,
                     )
                     if audit_store:
-                        await asyncio.to_thread(
-                            audit_store.record_anomaly,
+                        await audit_store.record_anomaly(
                             {
                                 "request_id": uuid.uuid4().hex,
                                 "client_ip": ip,
                                 "rule": "frequency",
                                 "detail": ";".join(reasons),
                                 "action": f"blacklist_{settings.anomaly_ban_seconds}s",
-                            },
+                            }
                         )
             # 5) 计数（通过后）
             security.general_limiter.hit(ip)
@@ -183,7 +182,7 @@ def create_security_audit_middleware(
             dur_ms = (time.time() - start) * 1000
         # else: 被拦截（访问规则/黑名单/限流）——仍纳入审计，但无响应体 / 耗时
 
-        # 8) 审计日志：文件（时间轮转，同步、轻量）+ 数据库（SQLAlchemy，to_thread 不阻塞）
+        # 8) 审计日志：文件（时间轮转，同步、轻量）+ 数据库（SQLAlchemy 异步原生，await 不阻塞）
         if audit_enabled and is_api:
             status = response.status_code
             snippet = ""
@@ -210,7 +209,7 @@ def create_security_audit_middleware(
             }
             log_audit_event(record)
             if audit_store:
-                await asyncio.to_thread(audit_store.record_audit, record)
+                await audit_store.record_audit(record)
 
         return response
 

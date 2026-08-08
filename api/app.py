@@ -11,8 +11,8 @@
   跨切面依赖在 :mod:`api.deps`。
 - **横切中间件独立成公共模块** :mod:`api.middleware`（工厂 ``create_security_audit_middleware``），
   与具体 app 解耦，可被其他 ASGI app 复用；其内顺序为
-  **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库**，审计 DB 写入走
-  ``asyncio.to_thread`` 不阻塞事件循环（对齐 FastAPI 官方 async 文档）。
+  **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库**，审计 DB 写入为原生 async
+  （``await audit_store.record_audit``），对齐 FastAPI 官方「有异步库就用 async def + await」的 async 文档。
 - 限流后端可替换：默认内存 :class:`api.ratelimit.Limiter`，配置 ``GOTY_RATE_LIMIT_REDIS_URL``
   即换 Redis（经 :func:`api.ratelimit.create_rate_limiter` 工厂，调用方无感知）。
 - 静态托管：``/`` 永远承载「原始数据页 + 原始洞察页」（v1 只读）；探索 SPA 仅在开启时
@@ -95,7 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.5.0",
+        version="1.6.0",
         lifespan=lifespan,
     )
     app.state.settings = settings
