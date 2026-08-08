@@ -48,6 +48,11 @@ class AuditLog(Base):
     # 默认 'api' 以便迁移前旧行（皆为 api 行为）仍能正确归类。
     route_type: Mapped[str] = mapped_column(String(8), index=True, default="api")
 
+    # ---- 已登录用户身份（v1.8.0 新增；匿名/未登录留空）----
+    # user_id：关联 api.auth.models.User.id；未登录为 NULL。审计可按用户维度追溯。
+    user_id: Mapped[int | None] = mapped_column(Integer, index=True, default=None)
+    username: Mapped[str] = mapped_column(String(64), default="")
+
 
 class AnomalyEvent(Base):
     __tablename__ = "anomaly_event"

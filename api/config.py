@@ -69,6 +69,24 @@ class Settings(BaseSettings):
     anomaly_frequency_window: int = 60  # 滑动窗口（秒），默认 1 分钟
     anomaly_ban_seconds: int = 86400  # 命中后封禁时长（秒），默认 24h
 
+    # ---- 用户账号 / 会话（探索页登录门禁 + 审计记录用户身份）----
+    # auth_enabled 默认开启：探索计算/提交接口与 /explore 页面要求登录。
+    # 关闭后回退到旧行为（匿名可操作，审计用户身份留空），便于内部/测试场景。
+    auth_enabled: bool = True
+    # 是否开放自助注册；关闭后只能通过预置管理员/脚本建账号（本期仅控制注册接口）。
+    auth_registration_open: bool = True
+    # 用户库（SQLAlchemy URL；默认 SQLite 文件，与审计库分离便于独立运维）。
+    users_db_url: str = "sqlite:///./data/users.db"
+    users_db_echo: bool = False
+    # 会话时长（秒），默认 7 天；过期后需重新登录。
+    session_ttl_seconds: int = 604800
+    # 会话 Cookie 名称（HttpOnly + SameSite=Lax；生产建议加 Secure）。
+    session_cookie_name: str = "goty_session"
+    # 会话 Cookie 是否带 Secure（仅 HTTPS 下下发）。本地 http 开发设为 false，生产建议 true。
+    session_cookie_secure: bool = False
+    # 探索页（/explore）是否要求已登录；auth_enabled 关闭时此开关自动失效。
+    explore_requires_auth: bool = True
+
     # ---- 访问控制：UA 策略（拦截明显爬虫，仅放行真实浏览器）----
     # 默认开启：拦截疑似爬虫/脚本 UA（命中 bot_ua_blocklist 即 403），并拦截**空 UA**
     # （扫描器常见特征）。运维内部报表接口 ``/api/admin`` 前缀**豁免** UA 拦截，

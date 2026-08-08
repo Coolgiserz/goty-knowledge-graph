@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     # 默认配置：graph_backend=networkx，探索关闭（图查询端点无需探索开关）。
-    return TestClient(create_app(Settings()))
+    return TestClient(create_app(Settings(auth_enabled=False)))
 
 
 # ---------- 端点：默认 networkx 后端 ----------

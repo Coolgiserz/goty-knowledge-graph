@@ -4,12 +4,14 @@
 - ``POST /api/board/{name}`` 同步计算（调试用；耗资源，受总开关约束 + 中间件限流）。
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from .. import registry
+from ..auth.deps import require_user
+from ..auth.models import User
 from ..config import Settings
-from ..constants import HTTP, ErrorCode
+from ..constants import ErrorCode
 from ..deps import get_settings_dep, require_exploration
 from ..graph_loader import data_matches_baseline
 from ..schemas import BoardMeta, BoardRunResult, BoardsResponse
@@ -30,13 +32,21 @@ def boards():
 
 
 @router.post("/board/{name}", response_model=BoardRunResult)
-def board(name: str, req: BoardReq, settings: Settings = Depends(get_settings_dep)):
+def board(
+    name: str,
+    req: BoardReq,
+    current_user: User | None = Depends(require_user),
+    settings: Settings = Depends(get_settings_dep),
+):
     """对某个板块用给定参数做同步计算（调试 / 轻量场景）。
 
     受探索总开关保护：关闭时返回 403。生产重负载请改用异步 ``POST /api/jobs``。
+    同时要求已登录（auth 关闭时放行，兼容内部/测试场景）。
     """
     require_exploration(settings)
     res = registry.run_board(name, req.params, data_matches_baseline())
     if res is None:
-        raise HTTPException(status_code=HTTP.NOT_FOUND, detail=f"{ErrorCode.UNKNOWN_BOARD}: {name}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{ErrorCode.UNKNOWN_BOARD}: {name}"
+        )
     return BoardRunResult(**res)

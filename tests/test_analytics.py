@@ -26,6 +26,7 @@ def _make_app(tmp_path, **overrides) -> FastAPI:
     db = tmp_path / "audit.db"
     settings = Settings(
         enable_exploration=False,
+        auth_enabled=False,
         audit_enabled=True,
         audit_db_url=f"sqlite:///{db}",
         audit_log_file="",

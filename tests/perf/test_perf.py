@@ -33,6 +33,7 @@ async def test_meta_p95_and_throughput(tmp_path):
             rate_window=60,
             block_bot_ua=False,  # httpx 默认 UA 为 python-httpx，关拦截以测纯吞吐
             audit_enabled=False,
+            auth_enabled=False,
         )
     )
     transport = httpx.ASGITransport(app=app)
@@ -78,6 +79,7 @@ async def test_boards_p95_and_throughput(tmp_path):
             rate_window=60,
             block_bot_ua=False,  # httpx 默认 UA 为 python-httpx，关拦截以测纯吞吐
             audit_enabled=False,
+            auth_enabled=False,
         )
     )
     transport = httpx.ASGITransport(app=app)

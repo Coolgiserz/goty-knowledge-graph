@@ -1,0 +1,271 @@
+"""认证路由：注册 / 登录 / 登出 / 当前用户；以及内置登录页 ``/login``。
+
+- ``POST /api/auth/register`` 自助注册（``GOTY_AUTH_REGISTRATION_OPEN=false`` 时整体 403）。
+- ``POST /api/auth/login``    校验凭据并写入会话 Cookie。
+- ``POST /api/auth/logout``   吊销会话并清除 Cookie。
+- ``GET  /api/auth/me``       返回当前登录用户（未登录 401）。
+- ``GET  /login``             内置登录/注册页（由 ``api.app`` 挂载）。
+
+会话为服务端存储，Cookie 仅持随机会话 id（HttpOnly + SameSite=Lax）。
+"""
+
+from __future__ import annotations
+
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+
+from ..auth.deps import get_current_user, get_user_store
+from ..auth.models import User
+from ..auth.session import clear_session_cookie, set_session_cookie
+from ..auth.store import UserStore
+from ..config import Settings
+from ..deps import get_settings_dep
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# 用户名规则：3-32 位，字母/数字/._-/，避免空白与特殊字符注入。
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
+PASSWORD_MIN_LEN = 8
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: str = ""
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: str
+
+
+def _user_out(u: User) -> UserOut:
+    return UserOut(id=u.id, username=u.username, email=u.email or "")
+
+
+@router.post("/register")
+async def register(
+    req: RegisterRequest,
+    request: Request,
+    response: Response,
+    store: UserStore | None = Depends(get_user_store),
+    settings: Settings = Depends(get_settings_dep),
+):
+    if not settings.auth_registration_open:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="registration_closed")
+    if not USERNAME_RE.match(req.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_username")
+    if not req.password or len(req.password) < PASSWORD_MIN_LEN:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="weak_password")
+    if store is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="auth_store_unavailable"
+        )
+    try:
+        u = await store.register(req.username, req.password, req.email)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="username_taken") from None
+    # 注册成功即自动登录（写入会话 Cookie）
+    ip = request.client.host if request.client else ""
+    sid = await store.create_session(u.id, ip, settings.session_ttl_seconds)
+    set_session_cookie(
+        response,
+        settings.session_cookie_name,
+        sid,
+        settings.session_ttl_seconds,
+        settings.session_cookie_secure,
+    )
+    return _user_out(u)
+
+
+@router.post("/login")
+async def login(
+    req: LoginRequest,
+    request: Request,
+    response: Response,
+    store: UserStore | None = Depends(get_user_store),
+    settings: Settings = Depends(get_settings_dep),
+):
+    if store is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="auth_store_unavailable"
+        )
+    u = await store.authenticate(req.username, req.password)
+    if u is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials")
+    ip = request.client.host if request.client else ""
+    sid = await store.create_session(u.id, ip, settings.session_ttl_seconds)
+    set_session_cookie(
+        response,
+        settings.session_cookie_name,
+        sid,
+        settings.session_ttl_seconds,
+        settings.session_cookie_secure,
+    )
+    return _user_out(u)
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    store: UserStore | None = Depends(get_user_store),
+    settings: Settings = Depends(get_settings_dep),
+):
+    sid = request.cookies.get(settings.session_cookie_name)
+    if store is not None and sid:
+        await store.delete_session(sid)
+    clear_session_cookie(response, settings.session_cookie_name)
+    return {"ok": True}
+
+
+@router.get("/me")
+async def me(current_user: User | None = Depends(get_current_user)):
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="authentication_required"
+        )
+    return _user_out(current_user)
+
+
+# ---------------------------------------------------------------------------
+# 内置登录 / 注册页（静态 HTML，无外部依赖；同源 Cookie 随请求自动携带）
+# ---------------------------------------------------------------------------
+
+LOGIN_PAGE_HTML = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登录 · GOTY 知识图谱</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f172a; color: #e2e8f0;
+  }
+  .card {
+    width: 360px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
+    background: #1e293b; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #94a3b8; margin: 0 0 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 8px; text-align: center; border-radius: 8px; cursor: pointer;
+    background: #334155; color: #cbd5e1; font-size: 14px; user-select: none; }
+  .tab.active { background: #2563eb; color: #fff; }
+  label { display: block; font-size: 13px; margin: 12px 0 6px; color: #cbd5e1; }
+  input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #475569;
+    background: #0f172a; color: #e2e8f0; font-size: 14px; }
+  button.submit { margin-top: 18px; width: 100%; padding: 11px; border: 0; border-radius: 8px;
+    background: #2563eb; color: #fff; font-size: 15px; cursor: pointer; }
+  button.submit:hover { background: #1d4ed8; }
+  .msg { margin-top: 14px; font-size: 13px; min-height: 18px; }
+  .msg.err { color: #f87171; }
+  .msg.ok { color: #4ade80; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>GOTY 知识图谱</h1>
+    <p class="sub">数据探索需要登录</p>
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="switchTab('login')">登录</div>
+      <div class="tab" id="tab-register" onclick="switchTab('register')">注册</div>
+    </div>
+
+    <div class="panel active" id="panel-login">
+      <label for="l-user">用户名</label>
+      <input id="l-user" autocomplete="username" placeholder="用户名" />
+      <label for="l-pass">密码</label>
+      <input id="l-pass" type="password" autocomplete="current-password" placeholder="密码" />
+      <button class="submit" onclick="doLogin()">登录</button>
+    </div>
+
+    <div class="panel" id="panel-register">
+      <label for="r-user">用户名（3-32 位字母/数字/._-）</label>
+      <input id="r-user" autocomplete="username" placeholder="用户名" />
+      <label for="r-email">邮箱（可选）</label>
+      <input id="r-email" autocomplete="email" placeholder="you@example.com" />
+      <label for="r-pass">密码（至少 8 位）</label>
+      <input id="r-pass" type="password" autocomplete="new-password" placeholder="密码" />
+      <button class="submit" onclick="doRegister()">注册并登录</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+<script>
+  function switchTab(name) {
+    document.getElementById("tab-login").classList.toggle("active", name === "login");
+    document.getElementById("tab-register").classList.toggle("active", name === "register");
+    document.getElementById("panel-login").classList.toggle("active", name === "login");
+    document.getElementById("panel-register").classList.toggle("active", name === "register");
+    setMsg("");
+  }
+  function setMsg(text, kind) {
+    const el = document.getElementById("msg");
+    el.textContent = text || "";
+    el.className = "msg" + (kind ? " " + kind : "");
+  }
+  function nextUrl() {
+    const p = new URLSearchParams(location.search).get("next");
+    return (p && p.startsWith("/")) ? p : "/explore/";
+  }
+  async function doLogin() {
+    setMsg("");
+    const body = { username: document.getElementById("l-user").value.trim(),
+                   password: document.getElementById("l-pass").value };
+    if (!body.username || !body.password) { setMsg("请输入用户名和密码", "err"); return; }
+    try {
+      const r = await fetch("/api/auth/login", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        credentials: "same-origin", body: JSON.stringify(body)
+      });
+      if (!r.ok) { setMsg((await r.json()).detail || "登录失败", "err"); return; }
+      location.href = nextUrl();
+    } catch (e) { setMsg("网络错误", "err"); }
+  }
+  async function doRegister() {
+    setMsg("");
+    const body = { username: document.getElementById("r-user").value.trim(),
+                   email: document.getElementById("r-email").value.trim(),
+                   password: document.getElementById("r-pass").value };
+    if (!body.username || !body.password) { setMsg("请输入用户名和密码", "err"); return; }
+    try {
+      let r = await fetch("/api/auth/register", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        credentials: "same-origin", body: JSON.stringify(body)
+      });
+      if (!r.ok) { setMsg((await r.json()).detail || "注册失败", "err"); return; }
+      // 注册成功后自动登录
+      r = await fetch("/api/auth/login", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        credentials: "same-origin", body: JSON.stringify(body)
+      });
+      if (!r.ok) { setMsg((await r.json()).detail || "登录失败", "err"); return; }
+      location.href = nextUrl();
+    } catch (e) { setMsg("网络错误", "err"); }
+  }
+</script>
+</body>
+</html>
+"""
+
+
+def login_page() -> HTMLResponse:
+    """返回内置登录页（由 ``api.app`` 以 ``GET /login`` 挂载）。"""
+    return HTMLResponse(LOGIN_PAGE_HTML)

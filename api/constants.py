@@ -1,15 +1,17 @@
-"""集中管理 HTTP 状态码与统一错误代码，消除散落各模块的魔法值（magic number / string）。
+"""集中管理 API 统一错误代码，消除散落各模块的魔法字符串。
 
-背景与收益
-----------
-此前 ``status_code=403/503/404/...`` 与 ``detail="graph_backend_unavailable"`` 这类值在
-``middleware.py`` ``app.py`` ``deps.py`` ``routers/*`` 中重复出现（如
-``graph_backend_unavailable`` 出现 9 次、``任务不存在`` 出现 4 次），既难全局审查也易改漏。
+说明
+----
+**HTTP 状态码不需要在这里重复定义** —— FastAPI 已经通过 :mod:`fastapi.status`
+（本质是 ``starlette.status`` 的全部 ``HTTP_xxx`` 常量）提供了标准状态码，例如
+``status.HTTP_403_FORBIDDEN``、``status.HTTP_503_SERVICE_UNAVAILABLE``。
+业务代码请统一 ``from fastapi import status`` 后引用 ``status.HTTP_xxx``，不要再维护
+自定义的 ``IntEnum``（那是重复造轮子）。
 
-集中后：
-- :class:`HTTP`：HTTP 状态码（``IntEnum``），作为 ``status_code=`` 的具名引用。
-- :class:`ErrorCode`：API 统一错误标识字符串（``detail`` / ``error`` 字段值），全局唯一，
-  作为前后端契约的一部分；变更文案或码值只需改这里一处。
+本模块只集中**应用自定义**的错误标识字符串（``detail`` / ``error`` 字段值），它们是
+前后端契约的一部分，FastAPI 不提供、且此前在 ``middleware.py`` ``app.py`` ``deps.py``
+``routers/*`` 中重复出现（如 ``graph_backend_unavailable`` 出现 9 次、``任务不存在`` 出现
+4 次），既难全局审查也易改漏。集中后变更文案或码值只需改这里一处。
 
 约定
 ----
@@ -19,24 +21,6 @@
 """
 
 from __future__ import annotations
-
-from enum import IntEnum
-
-
-class HTTP(IntEnum):
-    """项目实际用到的 HTTP 状态码子集（按需补充）。
-
-    ``IntEnum`` 成员即 ``int`` 子类，可直接传给 ``status_code=`` / ``JSONResponse(...)`` 等。
-    """
-
-    OK = 200
-    BAD_REQUEST = 400
-    UNAUTHORIZED = 401
-    FORBIDDEN = 403
-    NOT_FOUND = 404
-    TOO_MANY_REQUESTS = 429
-    TEMPORARY_REDIRECT = 307
-    SERVICE_UNAVAILABLE = 503
 
 
 class ErrorCode:

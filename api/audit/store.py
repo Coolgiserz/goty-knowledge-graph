@@ -51,6 +51,8 @@ _NEW_AUDIT_COLUMNS = [
     ("visitor_id", "VARCHAR(32)"),
     ("referer", "TEXT"),
     ("route_type", "VARCHAR(8)"),
+    ("user_id", "INTEGER"),
+    ("username", "VARCHAR(64)"),
 ]
 
 
@@ -146,7 +148,12 @@ def _migrate_audit_columns_sync(conn) -> None:
         existing = {c["name"] for c in _sa_inspect(conn).get_columns("audit_log")}
         for name, ddl in _NEW_AUDIT_COLUMNS:
             if name not in existing:
-                default = "DEFAULT 'api'" if name == "route_type" else "DEFAULT ''"
+                # user_id 为可空整型，不加默认值；route_type 旧行默认 'api'；其余默认空串。
+                default = (
+                    ""
+                    if name == "user_id"
+                    else ("DEFAULT 'api'" if name == "route_type" else "DEFAULT ''")
+                )
                 conn.execute(_sa_text(f"ALTER TABLE audit_log ADD COLUMN {name} {ddl} {default}"))
     except Exception:
         # 迁移异常（如驱动不支持）静默放过：建表/启动不受影响，统计维度可能缺失。

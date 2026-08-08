@@ -23,6 +23,8 @@ data/databases/
 data/transactions/
 # ---- 审计日志 SQLite（运行时由默认 GOTY_AUDIT_DB_URL 生成）----
 data/audit.db
+# ---- 用户库 SQLite（运行时由默认 GOTY_USERS_DB_URL 生成）----
+data/users.db
 
 # ---- 编辑器 ----
 .idea/

@@ -13,13 +13,13 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def settings_disabled() -> Settings:
-    return Settings(enable_exploration=False)
+    return Settings(enable_exploration=False, auth_enabled=False)
 
 
 @pytest.fixture
 def settings_enabled() -> Settings:
-    # 不设置令牌：匿名身份即可提交任务
-    return Settings(enable_exploration=True, explore_token="")
+    # 不设置令牌：匿名身份即可提交任务（auth 关闭，验证探索逻辑而非登录）
+    return Settings(enable_exploration=True, explore_token="", auth_enabled=False)
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def client_enabled(app_enabled):
 @pytest.fixture
 def settings_ratelimit() -> Settings:
     # 把一般限流阈值调小，便于在单测中触发 429
-    return Settings(enable_exploration=False, rate_limit_max=3, rate_window=60)
+    return Settings(enable_exploration=False, rate_limit_max=3, rate_window=60, auth_enabled=False)
 
 
 @pytest.fixture
@@ -55,7 +55,9 @@ def client_ratelimit(settings_ratelimit):
 
 @pytest.fixture
 def settings_blacklist() -> Settings:
-    return Settings(enable_exploration=False, blacklist="1.2.3.4", trust_proxy=True)
+    return Settings(
+        enable_exploration=False, blacklist="1.2.3.4", trust_proxy=True, auth_enabled=False
+    )
 
 
 @pytest.fixture
@@ -66,9 +68,26 @@ def client_blacklist(settings_blacklist):
 @pytest.fixture
 def settings_token() -> Settings:
     # 开启探索且要求令牌
-    return Settings(enable_exploration=True, explore_token="secret-token")
+    return Settings(enable_exploration=True, explore_token="secret-token", auth_enabled=False)
 
 
 @pytest.fixture
 def client_token(settings_token):
     return TestClient(create_app(settings_token))
+
+
+@pytest.fixture
+def settings_auth(tmp_path) -> Settings:
+    # 探索开启 + 登录门禁开启，用户库与审计库均存于临时库（隔离）
+    return Settings(
+        enable_exploration=True,
+        explore_token="",
+        auth_enabled=True,
+        users_db_url=f"sqlite:///{tmp_path}/users.db",
+        audit_db_url=f"sqlite:///{tmp_path}/audit.db",
+    )
+
+
+@pytest.fixture
+def client_auth(settings_auth):
+    return TestClient(create_app(settings_auth))

@@ -5,11 +5,11 @@
 依赖通过 ``request.app.state`` 取用，符合 FastAPI 官方推荐模式。
 """
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, status
 
 from .audit.store import AuditStore
 from .config import Settings
-from .constants import HTTP, ErrorCode
+from .constants import ErrorCode
 from .graph_store import GraphStore
 from .security import SecurityContext
 from .tasks import TaskManager
@@ -45,7 +45,9 @@ def get_audit_store(request: Request) -> AuditStore | None:
 def require_exploration(settings: Settings = Depends(get_settings_dep)) -> None:
     """探索总开关守卫：关闭时所有计算/任务接口返回 403。"""
     if not settings.enable_exploration:
-        raise HTTPException(status_code=HTTP.FORBIDDEN, detail=ErrorCode.EXPLORATION_DISABLED)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=ErrorCode.EXPLORATION_DISABLED
+        )
 
 
 def extract_token(request: Request) -> str:

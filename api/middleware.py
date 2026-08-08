@@ -19,13 +19,15 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 
-from fastapi import Request, Response
+from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 
 from .anomaly import AnomalyDetector
 from .audit.store import AuditStore
+from .auth.session import resolve_session_user
+from .auth.store import UserStore
 from .config import Settings
-from .constants import HTTP, ErrorCode
+from .constants import ErrorCode
 from .logging_config import log_audit_event
 from .rules import AccessRule
 from .security import SecurityContext
@@ -76,6 +78,7 @@ def create_security_audit_middleware(
     audit_store: AuditStore | None,
     anomaly_detector: AnomalyDetector | None,
     access_rules: list[AccessRule] | None = None,
+    user_store: UserStore | None = None,
 ) -> Middleware:
     """构造安全 + 审计中间件。
 
@@ -107,7 +110,7 @@ def create_security_audit_middleware(
             if blocked:
                 log.warning("client=%s method=%s path=%s BLOCKED rule=%s", ip, method, path, reason)
                 response = JSONResponse(
-                    status_code=HTTP.FORBIDDEN,
+                    status_code=status.HTTP_403_FORBIDDEN,
                     content={
                         "error": ErrorCode.BLOCKED,
                         "message": "该请求来源被拒绝，请使用真实浏览器访问。",
@@ -120,7 +123,7 @@ def create_security_audit_middleware(
             if security.blacklist.is_blacklisted(ip):
                 log.warning("client=%s method=%s path=%s BLOCKED blacklisted", ip, method, path)
                 response = JSONResponse(
-                    status_code=HTTP.FORBIDDEN,
+                    status_code=status.HTTP_403_FORBIDDEN,
                     content={
                         "error": ErrorCode.BLACKLISTED,
                         "message": "您的访问已被限制，请联系管理员。",
@@ -142,7 +145,7 @@ def create_security_audit_middleware(
                         banned,
                     )
                     response = JSONResponse(
-                        status_code=HTTP.TOO_MANY_REQUESTS,
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                         headers={"Retry-After": str(retry)},
                         content={
                             "error": ErrorCode.RATE_LIMITED,
@@ -166,7 +169,7 @@ def create_security_audit_middleware(
                             banned,
                         )
                         response = JSONResponse(
-                            status_code=HTTP.TOO_MANY_REQUESTS,
+                            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                             headers={"Retry-After": str(retry2)},
                             content={
                                 "error": ErrorCode.RATE_LIMITED,
@@ -226,7 +229,14 @@ def create_security_audit_middleware(
         #      静态资源（css/js/图片/字体）归为 asset，既不入库也不计 PV，避免噪声。
         #    - 审计 DB 写入为原生 async（await 不阻塞事件循环）。
         if audit_enabled:
-            status = response.status_code
+            resp_status = response.status_code
+            # 已登录用户身份：从会话 Cookie 解析（auth 关闭 / 未登录则为空）
+            user_id = None
+            username = ""
+            if user_store is not None:
+                u = await resolve_session_user(request, user_store, settings.session_cookie_name)
+                if u is not None:
+                    user_id, username = u.id, u.username
             content_type = response.headers.get("content-type", "")
             route_type = _classify_route(path, content_type)
             if route_type != "asset":  # 静态资源不审计、不计访问
@@ -246,7 +256,7 @@ def create_security_audit_middleware(
                     "path": path,
                     "query": request.url.query,
                     "request_body": req_body,
-                    "status_code": status,
+                    "status_code": resp_status,
                     "duration_ms": round(dur_ms, 2),
                     "is_anomaly": bool(anomaly_reasons),
                     "anomaly_reasons": ";".join(anomaly_reasons),
@@ -255,6 +265,9 @@ def create_security_audit_middleware(
                     "visitor_id": _compute_visitor_id(ip, request.headers.get("user-agent", "")),
                     "referer": request.headers.get("referer", ""),
                     "route_type": route_type,
+                    # 已登录用户身份（v1.8.0）：审计可按用户维度追溯
+                    "user_id": user_id,
+                    "username": username,
                 }
                 log_audit_event(record)
                 if audit_store:

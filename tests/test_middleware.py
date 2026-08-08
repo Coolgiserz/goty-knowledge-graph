@@ -30,6 +30,7 @@ def test_middleware_blocks_bot_user_agent():
         block_bot_ua=True,
         audit_enabled=False,
         anomaly_enabled=False,
+        auth_enabled=False,
     )
     client = TestClient(create_app(settings))
     # 爬虫 UA -> 403
@@ -46,6 +47,7 @@ def test_middleware_allows_bot_ua_when_disabled():
         block_bot_ua=False,
         audit_enabled=False,
         anomaly_enabled=False,
+        auth_enabled=False,
     )
     client = TestClient(create_app(settings))
     # 默认关闭，爬虫 UA 也能访问（不影响合法非浏览器客户端 / 测试）

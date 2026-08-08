@@ -113,6 +113,7 @@ def test_middleware_audit_records_to_db(tmp_path):
         audit_db_url=f"sqlite:///{db}",
         audit_log_file="",
         anomaly_enabled=False,
+        auth_enabled=False,
     )
     app = create_app(settings)
     client = TestClient(app)
@@ -142,6 +143,7 @@ def test_middleware_anomaly_bans_after_threshold():
         anomaly_frequency_max=3,
         anomaly_frequency_window=60,
         anomaly_ban_seconds=86400,
+        auth_enabled=False,
     )
     app = create_app(settings)
     client = TestClient(app)
@@ -164,6 +166,7 @@ def test_middleware_audit_disabled_skips_db(tmp_path):
         enable_exploration=False,
         audit_enabled=False,
         audit_db_url=f"sqlite:///{db}",
+        auth_enabled=False,
     )
     app = create_app(settings)
     client = TestClient(app)

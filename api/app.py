@@ -24,7 +24,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -32,12 +32,13 @@ from fastapi.staticfiles import StaticFiles
 from . import tools  # 触发板块注册（导入即注册）  # noqa: F401
 from .anomaly import AnomalyDetector, FrequencyRule
 from .audit.store import AuditStore
+from .auth.middleware import create_auth_guard_middleware
+from .auth.store import UserStore
 from .config import Settings, get_settings
-from .constants import HTTP
 from .graph_store import get_graph_store
 from .logging_config import setup_logging
 from .middleware import create_security_audit_middleware
-from .routers import admin, boards, graph, jobs, meta
+from .routers import admin, auth, boards, graph, jobs, meta
 from .rules import BotUserAgentRule
 from .security import SecurityContext
 from .tasks import TaskManager
@@ -100,9 +101,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         )
 
+    # 用户账号 / 会话存储（仅 auth_enabled 时构建；关闭时探索回退匿名流程）
+    user_store: UserStore | None = None
+    if settings.auth_enabled:
+        try:
+            user_store = UserStore(settings.users_db_url, echo=settings.users_db_echo)
+            user_store.init()
+        except Exception:
+            log.exception("用户存储初始化失败，认证将不可用（探索页门禁失效）")
+
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.7.2",
+        version="1.8.0",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -111,6 +121,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.graph_store = graph_store
     app.state.audit_store = audit_store
     app.state.anomaly_detector = anomaly_detector
+    app.state.user_store = user_store
 
     app.add_middleware(
         CORSMiddleware,
@@ -122,21 +133,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # 安全 + 审计中间件（公共模块工厂，与 app 解耦；详见 api.middleware）
     app.middleware("http")(
         create_security_audit_middleware(
-            security, settings, audit_store, anomaly_detector, access_rules
+            security, settings, audit_store, anomaly_detector, access_rules, user_store
         )
     )
+    # 探索页登录守卫：未登录访问 /explore 跳 /login（仅 auth 开启且需守卫时生效）
+    app.middleware("http")(create_auth_guard_middleware(user_store, settings))
 
     app.include_router(meta.router)
     app.include_router(boards.router)
     app.include_router(jobs.router)
     app.include_router(graph.router)
     app.include_router(admin.router)
+    app.include_router(auth.router)
 
     @app.get("/graph")
     @app.get("/graph/")
     def redirect_graph_to_root():
         """旧书签 /graph/ 直接跳回根（v1 原始页）。"""
-        return RedirectResponse(url="/", status_code=HTTP.TEMPORARY_REDIRECT)
+        return RedirectResponse(url="/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+    @app.get("/login")
+    def login_page():
+        """内置登录 / 注册页。"""
+        return auth.login_page()
 
     # 静态资源：先注册 API 路由，最后按模式挂载静态目录。
     # 无论是否开启探索，根路径 "/" 都默认承载「原始数据页 + 原始洞察页」(v1 只读浏览)；
@@ -145,7 +164,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         @app.get("/explore")
         def redirect_explore():
-            return RedirectResponse(url="/explore/", status_code=HTTP.TEMPORARY_REDIRECT)
+            return RedirectResponse(url="/explore/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
         if os.path.isdir(EXPLORER_DIR):
             app.mount("/explore", StaticFiles(directory=EXPLORER_DIR, html=True), name="explorer")

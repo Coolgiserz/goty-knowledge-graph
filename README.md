@@ -217,6 +217,35 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ---
 
+## 👤 用户认证与探索门禁（v1.8.0）
+
+默认开启一套**服务端账号体系**，让「谁在探索」可审计、可追责，替代轻量令牌的匿名模式：
+
+- **注册 / 登录 / 登出 / 当前用户**：`POST /api/auth/register`（成功即自动登录）、`POST /api/auth/login`、`POST /api/auth/logout`、`GET /api/auth/me`。
+- **服务端会话**（非 JWT、无客户端状态）：登录后下发 **HttpOnly + SameSite=Lax** 的会话 Cookie，Cookie 仅持随机会话 id（`secrets.token_urlsafe(32)`）；会话记录存数据库，支持**过期（默认 7 天）与主动吊销（登出即删行）**。密码用 **bcrypt** 加盐哈希，校验在服务端完成。
+- **探索页登录门禁**：`GOTY_EXPLORE_REQUIRES_AUTH=true`（默认）时，未登录访问 `/explore` 由独立守卫中间件（`api/auth/middleware.py`）307 跳转到内置登录页 `/login?next=...`；登录页与 `/api/auth/*` 永远放行，避免死循环。
+- **计算/提交接口登录门禁**：`POST /api/jobs`、`POST /api/board/{name}` 经 `require_user` 依赖强制登录（未登录 `401 authentication_required`）。登录用户的任务 `owner` 记为其用户名，便于按用户维度追溯。
+- **审计记录用户身份**：安全+审计中间件（`api/middleware.py`）对已登录请求解析会话用户，并把 `user_id` / `username` 写入审计记录（存量审计库自动 ALTER 加列）。
+
+> 设计取舍：认证与「探索总开关 `GOTY_ENABLE_EXPLORATION`」正交——auth 关闭则整站回退匿名流程（守卫与门禁全放行，`/explore` 与计算接口不再要求登录）；auth 开启但 `GOTY_EXPLORE_REQUIRES_AUTH=false` 时，仅计算接口要求登录、探索页导航不拦截。两套存储（`api/auth/store.py` 用户库 vs `api/audit/store.py` 审计库）**独立建库**，请勿共用同一文件。
+
+新增环境变量（叠加在探索/安全节之上）：
+
+| 环境变量 | 含义 | 默认 |
+|----------|------|------|
+| `GOTY_AUTH_ENABLED` | 是否开启账号体系（注册/登录/会话）；关闭则回退匿名流程 | `true` |
+| `GOTY_AUTH_REGISTRATION_OPEN` | 是否开放自助注册；`false` 时注册接口整体 `403`（仅 CLI 建号） | `true` |
+| `GOTY_EXPLORE_REQUIRES_AUTH` | 探索页是否需要登录方可进入（关闭则守卫整体放行） | `true` |
+| `GOTY_USERS_DB_URL` | 用户库 SQLAlchemy URL（SQLite 打通流程；换 MySQL/PostgreSQL 仅改此值） | `sqlite:///./data/users.db` |
+| `GOTY_USERS_DB_ECHO` | 打印用户库 SQL（调试用） | `false` |
+| `GOTY_SESSION_TTL_SECONDS` | 会话有效期（秒） | `604800` |
+| `GOTY_SESSION_COOKIE_NAME` | 会话 Cookie 名（HttpOnly + SameSite=Lax） | `goty_session` |
+| `GOTY_SESSION_COOKIE_SECURE` | Cookie 仅经 HTTPS 下发（生产 https 部署设 `true`；本地 http 开发保持 `false`） | `false` |
+
+> 运维建号（注册关闭时）：用 `SyncUserStore` 脚本直接 `register(username, password)` 写库即可；或临时设 `GOTY_AUTH_REGISTRATION_OPEN=true` 经 `/api/auth/register` 自助注册后再关回。
+
+---
+
 ## 📁 目录结构
 
 ```
