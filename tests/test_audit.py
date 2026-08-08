@@ -12,54 +12,72 @@ from collections import deque
 from api.anomaly import AnomalyDetector, FrequencyRule
 from api.app import create_app
 from api.audit.models import AuditLog
-from api.audit.store import AuditStore
+from api.audit.store import AuditStore, SyncAuditStore, create_audit_store
 from api.config import Settings
 from api.ratelimit import Blacklist
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 
-def test_audit_store_sqlite_records(tmp_path):
+def _sample_audit(client_ip: str = "1.2.3.4") -> dict:
+    return {
+        "request_id": uuid.uuid4().hex,
+        "client_ip": client_ip,
+        "client_device": "Desktop",
+        "user_agent": "test-agent",
+        "method": "GET",
+        "path": "/api/meta",
+        "query": "",
+        "request_body": "",
+        "status_code": 200,
+        "duration_ms": 1.5,
+        "is_anomaly": False,
+        "anomaly_reasons": "",
+        "response_snippet": "{}",
+    }
+
+
+def _sample_anomaly(client_ip: str = "1.2.3.4") -> dict:
+    return {
+        "request_id": uuid.uuid4().hex,
+        "client_ip": client_ip,
+        "rule": "frequency",
+        "detail": "frequency:>3/60s",
+        "action": "blacklist_86400s",
+    }
+
+
+# 异步接口（FastAPI 中间件使用）：在事件循环内直接 await，无需 asyncio.run 包裹。
+async def test_audit_store_async_sqlite_records(tmp_path):
     db = tmp_path / "audit.db"
     store = AuditStore(f"sqlite:///{db}")
+    # init() 在运行中循环内会被跳过，首次写入经 _ensure_schema 惰性建表
+    assert await store.count_audit() == 0
+    await store.record_audit(_sample_audit())
+    assert await store.count_audit() == 1
+    assert await store.count_audit("1.2.3.4") == 1
+    assert await store.count_audit("9.9.9.9") == 0
+    await store.record_anomaly(_sample_anomaly())
+    assert await store.count_anomalies("1.2.3.4") == 1
+
+
+# 同步接口（运维脚本 / 同步测试使用）：纯同步，无 await、无事件循环。
+def test_audit_store_sync_sqlite_records(tmp_path):
+    db = tmp_path / "audit.db"
+    store = SyncAuditStore(f"sqlite:///{db}")
     store.init()
-    assert asyncio.run(store.count_audit()) == 0
+    assert store.count_audit() == 0
+    store.record_audit(_sample_audit())
+    assert store.count_audit() == 1
+    store.record_anomaly(_sample_anomaly())
+    assert store.count_anomalies("1.2.3.4") == 1
 
-    asyncio.run(
-        store.record_audit(
-            {
-                "request_id": uuid.uuid4().hex,
-                "client_ip": "1.2.3.4",
-                "client_device": "Desktop",
-                "user_agent": "test-agent",
-                "method": "GET",
-                "path": "/api/meta",
-                "query": "",
-                "request_body": "",
-                "status_code": 200,
-                "duration_ms": 1.5,
-                "is_anomaly": False,
-                "anomaly_reasons": "",
-                "response_snippet": "{}",
-            }
-        )
-    )
-    assert asyncio.run(store.count_audit()) == 1
-    assert asyncio.run(store.count_audit("1.2.3.4")) == 1
-    assert asyncio.run(store.count_audit("9.9.9.9")) == 0
 
-    asyncio.run(
-        store.record_anomaly(
-            {
-                "request_id": uuid.uuid4().hex,
-                "client_ip": "1.2.3.4",
-                "rule": "frequency",
-                "detail": "frequency:>3/60s",
-                "action": "blacklist_86400s",
-            }
-        )
-    )
-    assert asyncio.run(store.count_anomalies("1.2.3.4")) == 1
+def test_create_audit_store_selects_impl(tmp_path):
+    db = tmp_path / "audit.db"
+    url = f"sqlite:///{db}"
+    assert isinstance(create_audit_store(url, async_=True), AuditStore)
+    assert isinstance(create_audit_store(url, async_=False), SyncAuditStore)
 
 
 def test_frequency_rule_evaluate():
