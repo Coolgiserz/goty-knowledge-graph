@@ -35,16 +35,14 @@ import networkx as nx
 
 from .community import run_detection
 from .graph_loader import EDGES, NODES
+from .schema import GRAPH_SCHEMA, group_of_node, group_predicate
 
 log = logging.getLogger("goty.graph_store")
 
 # 每个 group 取最有代表性的若干 raw 字段，作为前端卡片摘要（避免把整段文案都塞进响应）。
+# 由 schema.GRAPH_SCHEMA 派生：节点类型词汇表现在是单一事实来源，不再硬编码。
 _SUMMARY_FIELDS: dict[str, list[str]] = {
-    "game": ["title_zh", "year", "genre", "developer", "player_rating"],
-    "goty": ["title_zh", "year", "genre", "developer", "player_rating"],
-    "studio": ["name_zh", "country", "founded"],
-    "genre": ["name", "parent", "tier"],
-    "award": ["name", "year", "body"],
+    name: list(spec.summary_fields) for name, spec in GRAPH_SCHEMA.items()
 }
 
 
@@ -572,16 +570,8 @@ class Neo4jStore(GraphStore):
 
     @staticmethod
     def _group_of(node: Any) -> str:
-        labels = set(node.labels)
-        if "Game" in labels:
-            return "goty" if node.get("is_goty") else "game"
-        if "Studio" in labels:
-            return "studio"
-        if "Genre" in labels:
-            return "genre"
-        if "Award" in labels:
-            return "award"
-        return "node"
+        # 节点类型词汇表已外置到 schema.GRAPH_SCHEMA（含 game/goty 共用 Game 标签的区分）。
+        return group_of_node(set(node.labels), dict(node))
 
     @staticmethod
     def _label_of(node: Any) -> str:
@@ -1014,18 +1004,11 @@ class Neo4jStore(GraphStore):
 
 
 def _group_predicate(group: str | None) -> str:
-    """把前端 group 名翻译成 Cypher 的标签/属性谓词（不含 WHERE 关键字）。"""
-    if group == "goty":
-        return "n:Game AND n.is_goty = true"
-    if group == "game":
-        return "n:Game AND (n.is_goty IS NULL OR n.is_goty = false)"
-    if group == "studio":
-        return "n:Studio"
-    if group == "genre":
-        return "n:Genre"
-    if group == "award":
-        return "n:Award"
-    return ""
+    """把前端 group 名翻译成 Cypher 的标签/属性谓词（不含 WHERE 关键字）。
+
+    节点类型 → Cypher 标签/属性的映射已外置到 schema.GRAPH_SCHEMA（单一事实来源）。
+    """
+    return group_predicate(group)
 
 
 def _compute_influence(G, metric: str) -> dict[str, float]:

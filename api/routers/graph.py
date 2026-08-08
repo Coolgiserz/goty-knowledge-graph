@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import get_graph_store_dep
 from ..graph_store import GraphStore
+from ..schema import list_scopes, scope_ids
 
 router = APIRouter(prefix="/api", tags=["graph"])
 
@@ -162,7 +163,7 @@ def graph_communities_meta():
 
     前端据此动态渲染算法下拉、参数表单与分析范围下拉，无需硬编码。
     """
-    from ..community import list_detectors, list_scopes
+    from ..community import list_detectors
 
     return {"algorithms": list_detectors(), "scopes": list_scopes()}
 
@@ -195,10 +196,10 @@ def graph_communities(
 
     未知算法、未知范围或缺依赖会返回 400，并给出可操作的提示（不静默兜底）。
     """
-    if scope not in {"all", "game", "goty", "genre", "studio", "award"}:
+    if scope not in scope_ids():
         raise HTTPException(
             status_code=400,
-            detail=f"未知分析范围：{scope!r}；可选：all / game / goty / genre / studio / award",
+            detail=f"未知分析范围：{scope!r}；可选：{' / '.join(sorted(scope_ids()))}",
         )
     params: dict = {}
     if resolution is not None:
