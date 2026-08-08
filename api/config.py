@@ -52,6 +52,23 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = ""
 
+    # ---- 请求审计日志 ----
+    # 双写：① 时间轮转的审计日志文件（每行一条 JSON，便于 ELK/数仓采集）；
+    #       ② 数据库（SQLAlchemy ORM，默认 sqlite 打通流程，未来换 mysql/OLAP 仅改 URL）。
+    audit_enabled: bool = True
+    audit_log_file: str = ""  # 审计日志文件路径（按时间周期轮转；留空=不写文件，仅入库）
+    audit_rotate_when: str = "midnight"  # TimedRotatingFileHandler 的 when（midnight/hourly…）
+    audit_rotate_backup: int = 14  # 保留备份份数
+    audit_db_url: str = "sqlite:///./data/audit.db"  # SQLAlchemy URL；换库只改这里
+    audit_db_echo: bool = False  # 打印 SQL（调试用）
+    audit_body_max_bytes: int = 8192  # 请求体/响应体截断上限（字节）
+
+    # ---- 请求源异常判定 ----
+    anomaly_enabled: bool = True
+    anomaly_frequency_max: int = 60  # 单 IP 在 anomaly_frequency_window 秒内最多请求数
+    anomaly_frequency_window: int = 60  # 滑动窗口（秒），默认 1 分钟
+    anomaly_ban_seconds: int = 86400  # 命中后封禁时长（秒），默认 24h
+
 
 @lru_cache
 def get_settings() -> Settings:

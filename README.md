@@ -134,11 +134,12 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ## 🛡 安全与限流（云端 demo 防护）
 
-探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。`api/` 内置一层**零依赖**的防护中间件（`api/ratelimit.py` + `api/logging_config.py`）：
+探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。`api/` 内置一层**零依赖**的防护 + 审计中间件（`api/ratelimit.py` + `api/logging_config.py` + `api/audit/*` + `api/anomaly.py`），采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），数据库写入走 `asyncio.to_thread` 不阻塞事件循环：
 
 - **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。
 - **两档限流（429）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。
-- **结构化日志**：每条请求记录 `客户端IP / 方法 / 路径 / 状态 / 耗时`；超限与封禁单独告警（WARNING/ERROR），控制台 + 可选滚动文件（`GOTY_LOG_FILE`）。已关闭 uvicorn 自带 access log，避免重复。
+- **请求审计日志（双写）**：每条 `/api/*` 请求同时写入① **按时间周期轮转**的审计文件（`GOTY_AUDIT_LOG_FILE`，每行一条 JSON，便于 ELK/数仓采集）；② **数据库**（SQLAlchemy ORM，默认 SQLite 打通流程）。记录字段含 `客户端IP / 客户端设备 / User-Agent / 方法 / 接口 / 查询参数 / 请求体 / 状态码 / 耗时 / 是否异常 / 异常原因 / 响应摘要`。
+- **请求源异常判定（可插拔）**：`api/anomaly.py` 默认提供「频率规则」——同一 IP 在 `GOTY_ANOMALY_FREQUENCY_WINDOW` 秒内请求数超过 `GOTY_ANOMALY_FREQUENCY_MAX` 即判异常，命中后委托黑名单封禁 `GOTY_ANOMALY_BAN_SECONDS`（默认 24h）。新增其他策略（UA 异常 / 路径扫描 / 突发分布…）只需实现 `AnomalyRule` 协议并注册，中间件零改动。
 
 **所有阈值通过环境变量配置，无需改代码即可调参（默认值已按云端 demo 取向设定）：**
 
@@ -150,9 +151,18 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 | `GOTY_AUTOBAN_VIOLATIONS` / `GOTY_AUTOBAN_SECONDS` | 自动封禁：累计超限次数 / 封禁秒数（0=永久） | `5` / `3600` |
 | `GOTY_BLACKLIST` | 永久黑名单种子（逗号分隔 IP） | 空 |
 | `GOTY_BLACKLIST_FILE` | 自动封禁持久化文件（JSON，重启仍生效） | 空 |
-| `GOTY_LOG_LEVEL` / `GOTY_LOG_FILE` | 日志级别 / 日志文件（空=仅控制台） | `INFO` / 空 |
+| `GOTY_LOG_LEVEL` / `GOTY_LOG_FILE` | 应用日志级别 / 日志文件（空=仅控制台，按大小滚动） | `INFO` / 空 |
+| `GOTY_AUDIT_ENABLED` | 是否开启请求审计（文件 + 数据库） | `true` |
+| `GOTY_AUDIT_LOG_FILE` | 审计日志文件（按时间周期轮转，每行一条 JSON；空=不写文件，仅入库） | 空 |
+| `GOTY_AUDIT_ROTATE_WHEN` / `GOTY_AUDIT_ROTATE_BACKUP` | 轮转单位（`midnight`/`H`/`D`…）/ 保留备份份数 | `midnight` / `14` |
+| `GOTY_AUDIT_DB_URL` | 审计数据库 SQLAlchemy URL（SQLite 打通流程；换 MySQL/OLAP 仅改此值，如 `mysql+pymysql://user:pwd@host/goty_audit`） | `sqlite:///./data/audit.db` |
+| `GOTY_AUDIT_DB_ECHO` | 打印审计 SQL（调试用） | `false` |
+| `GOTY_AUDIT_BODY_MAX_BYTES` | 请求体 / 响应体截断上限（字节），避免大报文撑爆审计表 | `8192` |
+| `GOTY_ANOMALY_ENABLED` | 是否开启请求源异常判定 | `true` |
+| `GOTY_ANOMALY_FREQUENCY_MAX` / `GOTY_ANOMALY_FREQUENCY_WINDOW` | 频率规则：单 IP 窗口内最多请求数 / 窗口秒（默认 1 分钟） | `60` / `60` |
+| `GOTY_ANOMALY_BAN_SECONDS` | 频率规则命中后的封禁时长（秒，默认 24h） | `86400` |
 
-> 多实例部署提示：当前限流/黑名单为**单进程内存版**，适用于单实例 demo。若横向扩展为多副本，请改用共享存储（如 Redis）或把实例数控制在 1，避免各副本计数独立导致实际阈值被放大。
+> 多实例部署提示：当前限流/黑名单/异常计数为**单进程内存版**，审计库默认也是**单实例 SQLite**，适用于单副本 demo。若横向扩展为多副本，请将限流/异常计数与审计存储改用共享后端（如 Redis 计数 + MySQL/OLAP 审计库，`GOTY_AUDIT_DB_URL` 直接换成对应 DSN 即可，ORM 模型与接口不变），或把副本数控制在 1，避免各副本计数独立导致实际阈值被放大。
 
 ---
 
@@ -248,7 +258,11 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── community.py        # 社区发现策略模式（5 算法 + 教育性动画帧 CommFrame）
 │   ├── tasks.py            # 后台异步任务管理器（有界线程池 + 待处理上限 + 归属）
 │   ├── ratelimit.py        # 限流 + 黑名单（含自动封禁）+ 客户端 IP 识别
-│   ├── logging_config.py   # 结构化请求 / 安全日志
+│   ├── logging_config.py   # goty.api 应用日志 + goty.audit 审计日志（按时间轮转，JSON 行）
+│   ├── anomaly.py          # 请求源异常判定（AnomalyRule 协议 + FrequencyRule 频率拉黑，可插拔）
+│   ├── audit/              # 请求审计存储（SQLAlchemy ORM，后端无关）
+│   │   ├── models.py       # AuditLog / AnomalyEvent ORM 模型
+│   │   └── store.py        # AuditStore：sqlite 默认打通流程，换 mysql/OLAP 仅改 URL
 │   └── tools/              # 各探索板块（@register 自动发现）
 ├── analysis/
 │   ├── run_ml.py           # 统计机器学习流水线入口（瘦 CLI）
@@ -285,6 +299,7 @@ make ci          # 本地跑一遍 CI 等价步骤（lint + test + perf）
 **接口与性能测试**（`tests/`）：
 - `test_meta.py / test_boards.py / test_jobs.py`：元数据、同步板块、异步任务（创建/列表/轮询/取消/排队位次）。
 - `test_security.py`：限流、黑名单自动封禁、探索令牌门禁。
+- `test_audit.py`：AuditStore（SQLAlchemy/sqlite 落库）、FrequencyRule/AnomalyDetector（频率超限拉黑）、中间件审计落库、异常频率命中后后续请求 403。
 - `tests/perf/test_perf.py`：用 `httpx` + `ASGITransport` 在进程内并发打接口，断言 **p95 延迟**与**吞吐量**；`tests/perf/locustfile.py` 供手动大流量压测（`uv run locust -f tests/perf/locustfile.py`）。
 
 **CI/CD**：`.github/workflows/ci.yml` 在 `push`/`PR` 触发，使用 `astral-sh/setup-uv` + Python 3.12，`uv sync --frozen` 后依次执行 ruff 检查、pytest、`-m perf` 性能门禁。推到 GitHub 后即自动生效。

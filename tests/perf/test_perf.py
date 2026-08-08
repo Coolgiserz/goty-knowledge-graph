@@ -22,7 +22,15 @@ TOTAL_REQUESTS = 200
 @pytest.mark.perf
 @pytest.mark.asyncio
 async def test_meta_p95_and_throughput():
-    app = create_app(Settings(enable_exploration=False))
+    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流干扰
+    app = create_app(
+        Settings(
+            enable_exploration=False,
+            anomaly_enabled=False,
+            rate_limit_max=TOTAL_REQUESTS + 50,
+            rate_window=60,
+        )
+    )
     transport = httpx.ASGITransport(app=app)
     latencies: list[float] = []
     sem = asyncio.Semaphore(CONCURRENCY)
@@ -52,7 +60,15 @@ async def test_meta_p95_and_throughput():
 @pytest.mark.perf
 @pytest.mark.asyncio
 async def test_boards_p95_and_throughput():
-    app = create_app(Settings(enable_exploration=False))
+    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流干扰
+    app = create_app(
+        Settings(
+            enable_exploration=False,
+            anomaly_enabled=False,
+            rate_limit_max=TOTAL_REQUESTS + 50,
+            rate_window=60,
+        )
+    )
     transport = httpx.ASGITransport(app=app)
     latencies: list[float] = []
     sem = asyncio.Semaphore(CONCURRENCY)

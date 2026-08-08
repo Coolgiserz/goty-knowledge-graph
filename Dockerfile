@@ -41,6 +41,13 @@ RUN uv pip install --system --no-cache \
     "python-louvain>=0.16" \
     "infomap>=2.0"
 
+# 请求审计日志的 ORM 依赖（SQLAlchemy，默认 sqlite 打通流程）。已列入运行时依赖，
+# 这里显式预装以保证 requirements.lock.txt 未刷新时镜像仍可用；未来换 MySQL/OLAP 时
+# 连接池驱动（如 pymysql）另行安装即可，ORM 模型与接口不变。
+RUN uv pip install --system --no-cache \
+    --index-url ${PIP_INDEX} \
+    "sqlalchemy>=2.0"
+
 # 复制全部源码（api/ 复用 analysis/ml/ 计算模块；data/graph.json 由 .dockerignore 保留）
 COPY . .
 
