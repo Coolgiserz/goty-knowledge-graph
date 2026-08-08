@@ -134,10 +134,11 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 ## 🛡 安全与限流（云端 demo 防护）
 
-探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。`api/` 内置一层**零依赖**的防护 + 审计中间件（`api/ratelimit.py` + `api/logging_config.py` + `api/audit/*` + `api/anomaly.py`），采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），数据库写入走 `asyncio.to_thread` 不阻塞事件循环：
+探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。防护与审计已抽成**独立公共模块** `api/middleware.py`（`create_security_audit_middleware` 工厂，与具体 app 解耦、可被任意 ASGI app 复用），内部按 **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库** 顺序横切；采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），数据库写入走 `asyncio.to_thread` 不阻塞事件循环。底层原语分散在 `api/ratelimit.py`（限流+黑名单）/ `api/ua.py`（UA 解析）/ `api/rules.py`（访问规则协议）/ `api/anomaly.py`（异常判定）/ `api/audit/*`（审计存储）/ `api/logging_config.py`（日志）。
 
+- **访问控制（403，可插拔规则）**：`GOTY_BLOCK_BOT_UA=true` 时，凡 User-Agent 命中 `GOTY_BOT_UA_BLOCKLIST`（默认含 `python`/`java`/`go-http`/`curl`/`httpx`…）的请求直接 403，实现「只放行真实浏览器」。规则实现 `AccessRule` 协议，新增策略（地域封禁、UA 指纹库…）零改中间件。默认关闭，避免误伤 API 服务间调用与测试。
 - **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。
-- **两档限流（429）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。
+- **两档限流（429，可替换后端）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。限流原语抽象为 `RateLimiter` 协议，默认内存 `Limiter`；配置 `GOTY_RATE_LIMIT_REDIS_URL` 即无缝换 Redis（见下），调用方无感知。
 - **请求审计日志（双写）**：每条 `/api/*` 请求同时写入① **按时间周期轮转**的审计文件（`GOTY_AUDIT_LOG_FILE`，每行一条 JSON，便于 ELK/数仓采集）；② **数据库**（SQLAlchemy ORM，默认 SQLite 打通流程）。记录字段含 `客户端IP / 客户端设备 / User-Agent / 方法 / 接口 / 查询参数 / 请求体 / 状态码 / 耗时 / 是否异常 / 异常原因 / 响应摘要`。
 - **请求源异常判定（可插拔）**：`api/anomaly.py` 默认提供「频率规则」——同一 IP 在 `GOTY_ANOMALY_FREQUENCY_WINDOW` 秒内请求数超过 `GOTY_ANOMALY_FREQUENCY_MAX` 即判异常，命中后委托黑名单封禁 `GOTY_ANOMALY_BAN_SECONDS`（默认 24h）。新增其他策略（UA 异常 / 路径扫描 / 突发分布…）只需实现 `AnomalyRule` 协议并注册，中间件零改动。
 
@@ -161,8 +162,11 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 | `GOTY_ANOMALY_ENABLED` | 是否开启请求源异常判定 | `true` |
 | `GOTY_ANOMALY_FREQUENCY_MAX` / `GOTY_ANOMALY_FREQUENCY_WINDOW` | 频率规则：单 IP 窗口内最多请求数 / 窗口秒（默认 1 分钟） | `60` / `60` |
 | `GOTY_ANOMALY_BAN_SECONDS` | 频率规则命中后的封禁时长（秒，默认 24h） | `86400` |
+| `GOTY_BLOCK_BOT_UA` | 是否启用「拦截爬虫 UA」（命中黑名单直接 403；开启会拦截 python/java/go-http 等脚本 UA，仅适合「只放行浏览器」部署） | `false` |
+| `GOTY_BOT_UA_BLOCKLIST` | 禁用的 UA 子串（逗号分隔；命中即 403） | `python,java,go-http,golang,curl,wget,httpx,requests,scrapy,aiohttp,okhttp,guzzle,node,perl,ruby,php,bot,spider,crawl,slurp,headless,scraper,axios,urllib` |
+| `GOTY_RATE_LIMIT_REDIS_URL` | 限流后端：非空则走 Redis（需先 `uv pip install redis`），否则默认内存版 | 空 |
 
-> 多实例部署提示：当前限流/黑名单/异常计数为**单进程内存版**，审计库默认也是**单实例 SQLite**，适用于单副本 demo。若横向扩展为多副本，请将限流/异常计数与审计存储改用共享后端（如 Redis 计数 + MySQL/OLAP 审计库，`GOTY_AUDIT_DB_URL` 直接换成对应 DSN 即可，ORM 模型与接口不变），或把副本数控制在 1，避免各副本计数独立导致实际阈值被放大。
+> 多实例部署提示：当前限流/黑名单/异常计数为**单进程内存版**，审计库默认也是**单实例 SQLite**，适用于单副本 demo。若横向扩展为多副本，可将限流经 `GOTY_RATE_LIMIT_REDIS_URL` 切到 Redis 共享计数，并将审计存储改用共享后端（MySQL/OLAP，`GOTY_AUDIT_DB_URL` 直接换成对应 DSN 即可，ORM 模型与接口不变），或把副本数控制在 1，避免各副本计数独立导致实际阈值被放大。
 
 ---
 
@@ -245,7 +249,10 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── serve_api.sh        # 本地启动 API + 探索 SPA + 原静态站点
 │   └── neo4j_import.sh     # 单独起 Neo4j 并导入
 ├── api/                    # 探索后端（FastAPI，应用工厂 + 路由拆分 + 依赖注入）
-│   ├── app.py              # create_app() 工厂 + lifespan + 同源托管 SPA / 原静态站点 + 安全中间件
+│   ├── app.py              # create_app() 工厂 + lifespan + 同源托管 SPA / 原静态站点；注册解耦的安全/审计中间件
+│   ├── middleware.py       # 公共中间件工厂 create_security_audit_middleware（与 app 解耦，可被任意 ASGI app 复用）
+│   ├── rules.py            # 可插拔访问控制规则（AccessRule 协议 + BotUserAgentRule 拦截爬虫 UA）
+│   ├── ua.py               # User-Agent 解析（derive_device 设备推断 / is_blocked_user_agent 爬虫识别）
 │   ├── config.py           # pydantic-settings 集中 GOTY_* 配置
 │   ├── schemas.py          # 类型化响应模型（response_model）
 │   ├── deps.py             # 依赖注入（settings/security/task_manager/owner/require_exploration）
@@ -257,7 +264,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── graph_store.py      # GraphStore 抽象（networkx / neo4j 双后端，统一图查询）
 │   ├── community.py        # 社区发现策略模式（5 算法 + 教育性动画帧 CommFrame）
 │   ├── tasks.py            # 后台异步任务管理器（有界线程池 + 待处理上限 + 归属）
-│   ├── ratelimit.py        # 限流 + 黑名单（含自动封禁）+ 客户端 IP 识别
+│   ├── ratelimit.py        # 限流 + 黑名单（RateLimiter 协议 + Limiter 内存实现 + create_rate_limiter 工厂 + RedisLimiter 参考实现）+ 客户端 IP 识别
 │   ├── logging_config.py   # goty.api 应用日志 + goty.audit 审计日志（按时间轮转，JSON 行）
 │   ├── anomaly.py          # 请求源异常判定（AnomalyRule 协议 + FrequencyRule 频率拉黑，可插拔）
 │   ├── audit/              # 请求审计存储（SQLAlchemy ORM，后端无关）
@@ -300,6 +307,7 @@ make ci          # 本地跑一遍 CI 等价步骤（lint + test + perf）
 - `test_meta.py / test_boards.py / test_jobs.py`：元数据、同步板块、异步任务（创建/列表/轮询/取消/排队位次）。
 - `test_security.py`：限流、黑名单自动封禁、探索令牌门禁。
 - `test_audit.py`：AuditStore（SQLAlchemy/sqlite 落库）、FrequencyRule/AnomalyDetector（频率超限拉黑）、中间件审计落库、异常频率命中后后续请求 403。
+- `test_middleware.py`：中间件解耦（工厂来自 api.middleware）、BotUserAgentRule 拦截爬虫 UA（默认关/可开）、create_rate_limiter 工厂（内存默认 + Redis 扩展点）。
 - `tests/perf/test_perf.py`：用 `httpx` + `ASGITransport` 在进程内并发打接口，断言 **p95 延迟**与**吞吐量**；`tests/perf/locustfile.py` 供手动大流量压测（`uv run locust -f tests/perf/locustfile.py`）。
 
 **CI/CD**：`.github/workflows/ci.yml` 在 `push`/`PR` 触发，使用 `astral-sh/setup-uv` + Python 3.12，`uv sync --frozen` 后依次执行 ruff 检查、pytest、`-m perf` 性能门禁。推到 GitHub 后即自动生效。

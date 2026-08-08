@@ -15,6 +15,7 @@
 import os
 import time
 from collections import defaultdict
+from typing import Protocol, runtime_checkable
 
 
 def get_client_ip(request, trust_proxy: bool = True) -> str:
@@ -126,3 +127,66 @@ class Blacklist:
             self.add(ip, autoban_seconds)
             return True
         return False
+
+
+@runtime_checkable
+class RateLimiter(Protocol):
+    """限流原语协议：``check`` 问「是否放行」，``hit`` 记「本次消耗配额」。
+
+    替换为 Redis / 集中式实现时，只需提供满足该协议的类，并在
+    :func:`create_rate_limiter` 中返回它，其余代码（SecurityContext / 中间件）零改动。
+    """
+
+    def check(self, key: str) -> tuple[bool, int]:
+        """返回 ``(allowed, retry_after)``；``allowed=False`` 时 ``retry_after`` 为建议重试秒数。"""
+        ...
+
+    def hit(self, key: str) -> None:
+        """记录该 key 的一次请求（消耗一次配额）。"""
+        ...
+
+
+def create_rate_limiter(max_req: int, window: int, *, redis_url: str | None = None) -> RateLimiter:
+    """限流实现工厂：默认内存 :class:`Limiter`；配置 ``redis_url`` 时返回 :class:`RedisLimiter`。
+
+    这是「无缝替换」的扩展点——未来引入 Redis / 集中式限流，只需在此返回对应实现，
+    ``SecurityContext`` 与中间件按协议调用，无需改动。
+    """
+    if redis_url:
+        return RedisLimiter(redis_url, max_req, window)
+    return Limiter(max_req, window)
+
+
+class RedisLimiter:
+    """基于 Redis 的固定窗口限流（**参考实现**，演示无缝替换）。
+
+    需先 ``uv pip install redis`` 并配置 ``GOTY_RATE_LIMIT_REDIS_URL``。用 Lua 脚本做
+    原子自增 + 首次过期，保证并发下窗口边界一致；``check`` / ``hit`` 签名与 :class:`Limiter`
+    完全一致，因此可零改动替换。
+    """
+
+    def __init__(self, redis_url: str, max_req: int, window: int, prefix: str = "goty:rl:") -> None:
+        try:
+            import redis
+        except ImportError as exc:  # 仅在真正启用 Redis 限流时才要求依赖
+            raise RuntimeError("使用 Redis 限流需先安装依赖：uv pip install redis") from exc
+        self._client = redis.Redis.from_url(redis_url, decode_responses=True)
+        self.max = max(1, max_req)
+        self.window = max(1, window)
+        self._prefix = prefix
+        self._script = self._client.register_script(
+            "local cnt = redis.call('incr', KEYS[1])\n"
+            "if cnt == 1 then redis.call('expire', KEYS[1], ARGV[1]) end\n"
+            "return cnt"
+        )
+
+    def check(self, key: str) -> tuple[bool, int]:
+        cnt = int(self._client.get(self._prefix + key) or 0)
+        if cnt >= self.max:
+            ttl = self._client.ttl(self._prefix + key)
+            retry = max(1, ttl if ttl and ttl > 0 else self.window)
+            return False, retry
+        return True, 0
+
+    def hit(self, key: str) -> None:
+        self._script(keys=[self._prefix + key], args=[self.window])

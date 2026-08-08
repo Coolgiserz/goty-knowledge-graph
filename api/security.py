@@ -7,7 +7,7 @@ pydantic-settings 解析后在此组装，便于测试注入、也避免重复�
 """
 
 from .config import Settings
-from .ratelimit import Blacklist, Limiter, get_client_ip
+from .ratelimit import Blacklist, RateLimiter, create_rate_limiter, get_client_ip
 
 
 class SecurityContext:
@@ -15,8 +15,14 @@ class SecurityContext:
 
     def __init__(self, settings: Settings):
         self.trust_proxy = settings.trust_proxy
-        self.general_limiter = Limiter(settings.rate_limit_max, settings.rate_window)
-        self.board_limiter = Limiter(settings.board_limit_max, settings.board_window)
+        # 限流后端经工厂选择（默认内存 Limiter；配 GOTY_RATE_LIMIT_REDIS_URL 可换 Redis），
+        # 类型统一为 RateLimiter 协议，调用方无感知。
+        self.general_limiter: RateLimiter = create_rate_limiter(
+            settings.rate_limit_max, settings.rate_window, redis_url=settings.rate_limit_redis_url
+        )
+        self.board_limiter: RateLimiter = create_rate_limiter(
+            settings.board_limit_max, settings.board_window, redis_url=settings.rate_limit_redis_url
+        )
         seed = (
             [ip.strip() for ip in settings.blacklist.split(",") if ip.strip()]
             if settings.blacklist

@@ -9,24 +9,24 @@
   统一 ``prefix="/api"`` 与强类型 ``response_model``。
 - 配置收敛到 :mod:`api.config` 的 pydantic-settings；安全原语组装在 :mod:`api.security`；
   跨切面依赖在 :mod:`api.deps`。
-- 单入口中间件（原生 ``@app.middleware("http")`` 函数中间件，而非 ``BaseHTTPMiddleware``）：
-  负责 **黑名单 → 限流 → 异常判定 → 审计落库**，且审计的数据库写入走 ``asyncio.to_thread``，
-  不阻塞事件循环（对齐 FastAPI 官方 async 文档：阻塞 I/O 不应留在主循环）。
+- **横切中间件独立成公共模块** :mod:`api.middleware`（工厂 ``create_security_audit_middleware``），
+  与具体 app 解耦，可被其他 ASGI app 复用；其内顺序为
+  **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库**，审计 DB 写入走
+  ``asyncio.to_thread`` 不阻塞事件循环（对齐 FastAPI 官方 async 文档）。
+- 限流后端可替换：默认内存 :class:`api.ratelimit.Limiter`，配置 ``GOTY_RATE_LIMIT_REDIS_URL``
+  即换 Redis（经 :func:`api.ratelimit.create_rate_limiter` 工厂，调用方无感知）。
 - 静态托管：``/`` 永远承载「原始数据页 + 原始洞察页」（v1 只读）；探索 SPA 仅在开启时
   挂到 ``/explore``，需用户主动进入，绝不作为默认落地页。旧 ``/graph`` 书签 307 回根。
 
 运行：``uvicorn api.app:app --host 0.0.0.0 --port 8000``
 """
 
-import asyncio
 import os
-import time
-import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import tools  # 触发板块注册（导入即注册）  # noqa: F401
@@ -34,30 +34,16 @@ from .anomaly import AnomalyDetector, FrequencyRule
 from .audit.store import AuditStore
 from .config import Settings, get_settings
 from .graph_store import get_graph_store
-from .logging_config import log_audit_event, setup_logging
+from .logging_config import setup_logging
+from .middleware import create_security_audit_middleware
 from .routers import boards, graph, jobs, meta
+from .rules import BotUserAgentRule
 from .security import SecurityContext
 from .tasks import TaskManager
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXPLORER_DIR = os.path.join(ROOT, "site", "explorer-graph")
 SITE_DIR = os.path.join(ROOT, "site")
-
-
-def derive_device(ua: str) -> str:
-    """从 User-Agent 轻量推断客户端设备类别（无第三方依赖）。"""
-    u = (ua or "").lower()
-    if not u:
-        return "Unknown"
-    if "iphone" in u or "ipad" in u or "ipod" in u:
-        return "iOS"
-    if "android" in u:
-        return "Android"
-    if "mobile" in u or "windows phone" in u or "blackberry" in u:
-        return "Mobile"
-    if "bot" in u or "spider" in u or "crawl" in u:
-        return "Bot"
-    return "Desktop"
 
 
 @asynccontextmanager
@@ -101,9 +87,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             security.blacklist,
         )
 
+    # 访问控制规则（默认关闭；开启后拦截明显爬虫 UA，仅放行真实浏览器）
+    access_rules = []
+    if settings.block_bot_ua:
+        blocked = [s.strip() for s in settings.bot_ua_blocklist.split(",") if s.strip()]
+        access_rules.append(BotUserAgentRule(blocked))
+
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.4.0",
+        version="1.5.0",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -120,161 +112,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    @app.middleware("http")
-    async def security_audit_middleware(request: Request, call_next):
-        """单入口安全 + 审计中间件（原生函数中间件，对齐 FastAPI async 最佳实践）。
-
-        顺序：黑名单 → 限流（一般 / 板块）→ 异常判定 → 处理请求 → 审计落库。
-        审计的数据库写入经 ``asyncio.to_thread``，不阻塞事件循环。
-        """
-        sec = request.app.state.security
-        st = request.app.state.settings
-        astore = getattr(request.app.state, "audit_store", None)
-        detector = getattr(request.app.state, "anomaly_detector", None)
-
-        ip = sec.client_ip(request)
-        path = request.url.path
-        method = request.method
-        is_api = path.startswith("/api/")
-        is_board = path.startswith("/api/board/") and method == "POST"
-        audit_enabled = getattr(st, "audit_enabled", False)
-        anomaly_enabled = getattr(st, "anomaly_enabled", False)
-
-        response = None
-        anomaly_reasons: list[str] = []
-        req_body = ""
-        dur_ms = 0.0
-
-        # 1) 黑名单
-        if sec.blacklist.is_blacklisted(ip):
-            log.warning("client=%s method=%s path=%s BLOCKED blacklisted", ip, method, path)
-            response = JSONResponse(
-                status_code=403,
-                content={"error": "blacklisted", "message": "您的访问已被限制，请联系管理员。"},
-            )
-        else:
-            # 2) 一般限流
-            ok, retry = sec.general_limiter.check(ip)
-            if not ok:
-                banned = sec.blacklist.register_violation(
-                    ip, sec.autoban_violations, sec.autoban_seconds
-                )
-                log.warning(
-                    "client=%s method=%s path=%s ratelimit=general retry_after=%d autoban=%s",
-                    ip,
-                    method,
-                    path,
-                    retry,
-                    banned,
-                )
-                response = JSONResponse(
-                    status_code=429,
-                    headers={"Retry-After": str(retry)},
-                    content={
-                        "error": "rate_limited",
-                        "retry_after": retry,
-                        "message": "请求过于频繁，请稍后再试。",
-                    },
-                )
-            # 3) 板块级限流（仅探索计算 POST /api/board/*）
-            elif is_board:
-                ok2, retry2 = sec.board_limiter.check(ip)
-                if not ok2:
-                    banned = sec.blacklist.register_violation(
-                        ip, sec.autoban_violations, sec.autoban_seconds
-                    )
-                    log.warning(
-                        "client=%s method=%s path=%s ratelimit=board retry_after=%d autoban=%s",
-                        ip,
-                        method,
-                        path,
-                        retry2,
-                        banned,
-                    )
-                    response = JSONResponse(
-                        status_code=429,
-                        headers={"Retry-After": str(retry2)},
-                        content={
-                            "error": "rate_limited",
-                            "retry_after": retry2,
-                            "message": "探索计算请求过于频繁，请稍后再试。",
-                        },
-                    )
-
-        if response is None:
-            # 4) 异常判定（频率规则）：对每个未被拉黑的 api 请求计数
-            if anomaly_enabled and detector and is_api:
-                hit, reasons = detector.observe(ip)
-                if hit:
-                    anomaly_reasons = reasons
-                    log.warning(
-                        "client=%s method=%s path=%s ANOMALY freq ban ip for %ds",
-                        ip,
-                        method,
-                        path,
-                        st.anomaly_ban_seconds,
-                    )
-                    if astore:
-                        await asyncio.to_thread(
-                            astore.record_anomaly,
-                            {
-                                "request_id": uuid.uuid4().hex,
-                                "client_ip": ip,
-                                "rule": "frequency",
-                                "detail": ";".join(reasons),
-                                "action": f"blacklist_{st.anomaly_ban_seconds}s",
-                            },
-                        )
-            # 5) 计数（通过后）
-            sec.general_limiter.hit(ip)
-            if is_board:
-                sec.board_limiter.hit(ip)
-
-            # 6) 读取请求体用于审计（仅写操作；Starlette 会缓存 body，下游仍可正常解析）
-            if is_api and method in ("POST", "PUT", "PATCH"):
-                try:
-                    raw = await request.body()
-                    if raw:
-                        req_body = raw[: st.audit_body_max_bytes].decode("utf-8", "replace")
-                except Exception:
-                    req_body = ""
-
-            # 7) 处理请求
-            start = time.time()
-            response = await call_next(request)
-            dur_ms = (time.time() - start) * 1000
-        # else: 被拦截（黑名单 / 限流）——仍纳入审计，但无响应体 / 耗时
-
-        # 8) 审计日志：文件（时间轮转，同步、轻量）+ 数据库（SQLAlchemy，to_thread 不阻塞）
-        if audit_enabled and is_api:
-            status = response.status_code
-            snippet = ""
-            try:
-                body = getattr(response, "body", None)
-                if body and len(body) <= st.audit_body_max_bytes:
-                    snippet = body.decode("utf-8", "replace")
-            except Exception:
-                snippet = ""
-            record = {
-                "request_id": uuid.uuid4().hex,
-                "client_ip": ip,
-                "client_device": derive_device(request.headers.get("user-agent", "")),
-                "user_agent": request.headers.get("user-agent", ""),
-                "method": method,
-                "path": path,
-                "query": request.url.query,
-                "request_body": req_body,
-                "status_code": status,
-                "duration_ms": round(dur_ms, 2),
-                "is_anomaly": bool(anomaly_reasons),
-                "anomaly_reasons": ";".join(anomaly_reasons),
-                "response_snippet": snippet,
-            }
-            log_audit_event(record)
-            if astore:
-                await asyncio.to_thread(astore.record_audit, record)
-
-        return response
+    # 安全 + 审计中间件（公共模块工厂，与 app 解耦；详见 api.middleware）
+    app.middleware("http")(
+        create_security_audit_middleware(
+            security, settings, audit_store, anomaly_detector, access_rules
+        )
+    )
 
     app.include_router(meta.router)
     app.include_router(boards.router)

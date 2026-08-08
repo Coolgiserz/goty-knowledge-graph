@@ -69,6 +69,19 @@ class Settings(BaseSettings):
     anomaly_frequency_window: int = 60  # 滑动窗口（秒），默认 1 分钟
     anomaly_ban_seconds: int = 86400  # 命中后封禁时长（秒），默认 24h
 
+    # ---- 访问控制：UA 策略（拦截明显爬虫，仅放行真实浏览器）----
+    # 默认关闭：开启后凡 UA 命中 bot_ua_blocklist 的请求直接 403；避免误伤合法非浏览器
+    # 客户端与测试（TestClient 默认 UA 即 python-httpx）。需要「只放行浏览器」时设为 true。
+    block_bot_ua: bool = False
+    bot_ua_blocklist: str = (
+        "python,java,go-http,golang,curl,wget,httpx,requests,scrapy,aiohttp,"
+        "okhttp,guzzle,node,perl,ruby,php,bot,spider,crawl,slurp,headless,scraper,axios,urllib"
+    )
+
+    # ---- 限流后端可替换（未来接 Redis 等共享限流）----
+    # 非空则走 RedisLimiter（需安装 redis），否则默认内存 Limiter。
+    rate_limit_redis_url: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
