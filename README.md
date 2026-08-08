@@ -139,7 +139,8 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 - **访问控制（403，可插拔规则）**：`GOTY_BLOCK_BOT_UA=true` 时，凡 User-Agent 命中 `GOTY_BOT_UA_BLOCKLIST`（默认含 `python`/`java`/`go-http`/`curl`/`httpx`…）的请求直接 403，实现「只放行真实浏览器」。规则实现 `AccessRule` 协议，新增策略（地域封禁、UA 指纹库…）零改中间件。默认关闭，避免误伤 API 服务间调用与测试。
 - **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。
 - **两档限流（429，可替换后端）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。限流原语抽象为 `RateLimiter` 协议，默认内存 `Limiter`；配置 `GOTY_RATE_LIMIT_REDIS_URL` 即无缝换 Redis（见下），调用方无感知。
-- **请求审计日志（双写）**：每条 `/api/*` 请求同时写入① **按时间周期轮转**的审计文件（`GOTY_AUDIT_LOG_FILE`，每行一条 JSON，便于 ELK/数仓采集）；② **数据库**（SQLAlchemy ORM，默认 SQLite 打通流程）。记录字段含 `客户端IP / 客户端设备 / User-Agent / 方法 / 接口 / 查询参数 / 请求体 / 状态码 / 耗时 / 是否异常 / 异常原因 / 响应摘要`。审计存储模块（`api/audit/store.py`）**同时提供同步与异步两套接口**：`AuditStore`（异步 `AsyncSession`，FastAPI 中间件 `await` 调用）与 `SyncAuditStore`（同步 `Session`，运维脚本/CLI 使用），二者共享同一套 ORM 模型，经工厂 `create_audit_store(url, async_=...)` 按运行环境选型。
+- **请求审计日志（双写）**：每条 `/api/*` 请求同时写入① **按时间周期轮转**的审计文件（`GOTY_AUDIT_LOG_FILE`，每行一条 JSON，便于 ELK/数仓采集）；② **数据库**（SQLAlchemy ORM，默认 SQLite 打通流程）。记录字段含 `客户端IP / 客户端设备 / User-Agent / 方法 / 接口 / 查询参数 / 请求体 / 状态码 / 耗时 / 是否异常 / 异常原因 / 响应摘要`，以及**访问统计维度** `visitor_id（访客指纹 sha256(ip|UA)[:16]）/ referer（来源页）/ route_type（page|api|asset）`。审计存储模块（`api/audit/store.py`）**同时提供同步与异步两套接口**：`AuditStore`（异步 `AsyncSession`，FastAPI 中间件 `await` 调用）与 `SyncAuditStore`（同步 `Session`，运维脚本/CLI 使用），二者共享同一套 ORM 模型，经工厂 `create_audit_store(url, async_=...)` 按运行环境选型。
+- **站点访问统计（内部，不面向用户）**：审计埋点从「仅接口」放宽为「页面 + 接口」——按响应 `Content-Type` 判定 `route_type`，HTML 页面计为 `page`（即 **PV**）、`/api/*` 计为 `api`，静态资源（css/js/图片/字体）计为 `asset` 且**不入审计库、不计 PV**，避免噪声。**访客标识用 `sha256(ip|UA)[:16]` 指纹，不下发 Cookie**；UV 按指纹去重。聚合报表由 `api/audit/report.py` 提供，仅经①内部接口 `GET /api/admin/report`（`GOTY_ADMIN_TOKEN` 鉴权，未配置则整体禁用）②运维 CLI `python scripts/audit_report.py`（直连 `GOTY_AUDIT_DB_URL`）两种方式查看，用于了解站点活跃度。
 - **请求源异常判定（可插拔）**：`api/anomaly.py` 默认提供「频率规则」——同一 IP 在 `GOTY_ANOMALY_FREQUENCY_WINDOW` 秒内请求数超过 `GOTY_ANOMALY_FREQUENCY_MAX` 即判异常，命中后委托黑名单封禁 `GOTY_ANOMALY_BAN_SECONDS`（默认 24h）。新增其他策略（UA 异常 / 路径扫描 / 突发分布…）只需实现 `AnomalyRule` 协议并注册，中间件零改动。
 
 **所有阈值通过环境变量配置，无需改代码即可调参（默认值已按云端 demo 取向设定）：**
@@ -165,6 +166,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 | `GOTY_BLOCK_BOT_UA` | 是否启用「拦截爬虫 UA」（命中黑名单直接 403；开启会拦截 python/java/go-http 等脚本 UA，仅适合「只放行浏览器」部署） | `false` |
 | `GOTY_BOT_UA_BLOCKLIST` | 禁用的 UA 子串（逗号分隔；命中即 403） | `python,java,go-http,golang,curl,wget,httpx,requests,scrapy,aiohttp,okhttp,guzzle,node,perl,ruby,php,bot,spider,crawl,slurp,headless,scraper,axios,urllib` |
 | `GOTY_RATE_LIMIT_REDIS_URL` | 限流后端：非空则走 Redis（需先 `uv pip install redis`），否则默认内存版 | 空 |
+| `GOTY_ADMIN_TOKEN` | 内部管理接口 `GET /api/admin/report` 的访问令牌；留空 = 接口整体禁用（返回 403），不下发前端，仅供运维/CLI 调用 | 空 |
 
 > 多实例部署提示：当前限流/黑名单/异常计数为**单进程内存版**，审计库默认也是**单实例 SQLite**，适用于单副本 demo。若横向扩展为多副本，可将限流经 `GOTY_RATE_LIMIT_REDIS_URL` 切到 Redis 共享计数，并将审计存储改用共享后端（MySQL/OLAP，`GOTY_AUDIT_DB_URL` 直接换成对应 DSN 即可，ORM 模型与接口不变），或把副本数控制在 1，避免各副本计数独立导致实际阈值被放大。
 
@@ -257,7 +259,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── schemas.py          # 类型化响应模型（response_model）
 │   ├── deps.py             # 依赖注入（settings/security/task_manager/owner/require_exploration）
 │   ├── security.py         # 安全上下文（限流/黑名单/令牌）
-│   ├── routers/            # APIRouter 拆分：meta / boards / jobs / graph
+│   ├── routers/            # APIRouter 拆分：meta / boards / jobs / graph / admin(内部报表)
 │   ├── models.py           # ParamSpec（参数 schema）+ 校验
 │   ├── registry.py         # ExplorationTool 基类 + 注册表 + 双有效性判定
 │   ├── graph_loader.py      # 图谱加载 + sha 守卫（数据有效性）
@@ -267,9 +269,10 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 │   ├── ratelimit.py        # 限流 + 黑名单（RateLimiter 协议 + Limiter 内存实现 + create_rate_limiter 工厂 + RedisLimiter 参考实现）+ 客户端 IP 识别
 │   ├── logging_config.py   # goty.api 应用日志 + goty.audit 审计日志（按时间轮转，JSON 行）
 │   ├── anomaly.py          # 请求源异常判定（AnomalyRule 协议 + FrequencyRule 频率拉黑，可插拔）
-│   ├── audit/              # 请求审计存储（SQLAlchemy ORM，后端无关；同步+异步双接口）
+│   ├── audit/              # 请求审计 + 站点访问统计（SQLAlchemy ORM，后端无关；同步+异步双接口）
 │   │   ├── models.py       # AuditLog / AnomalyEvent ORM 模型
-│   │   └── store.py        # AuditStore(异步)/SyncAuditStore(同步)/create_audit_store 工厂：换 mysql/OLAP 仅改 URL
+│   │   ├── store.py        # AuditStore(异步)/SyncAuditStore(同步)/create_audit_store 工厂：换 mysql/OLAP 仅改 URL
+│   │   └── report.py       # 访问统计聚合（PV/UV/活跃访客/设备分布），供内部接口与 CLI 使用
 │   └── tools/              # 各探索板块（@register 自动发现）
 ├── analysis/
 │   ├── run_ml.py           # 统计机器学习流水线入口（瘦 CLI）

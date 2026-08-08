@@ -13,6 +13,7 @@ app 解耦：任何 ASGI app 都能通过 ``app.middleware("http")(create_securi
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import time
 import uuid
@@ -35,6 +36,37 @@ Middleware = Callable[
     [Request, Callable[[Request], Awaitable[Response]]],
     Awaitable[Response],
 ]
+
+
+# 静态资源 Content-Type 前缀：命中即归为 asset，不计入审计/PV，避免噪声。
+_ASSET_CT_PREFIXES = (
+    "text/css",
+    "application/javascript",
+    "image/",
+    "font/",
+    "application/font",
+    "application/octet-stream",
+)
+
+
+def _compute_visitor_id(ip: str, user_agent: str) -> str:
+    """访客指纹：``sha256(ip|UA)[:16]``，不下发 Cookie，仅用于 UV 去重与活跃度统计。"""
+    return hashlib.sha256(f"{ip}|{user_agent}".encode()).hexdigest()[:16]
+
+
+def _classify_route(path: str, content_type: str) -> str:
+    """按路径与响应 Content-Type 判定 ``route_type``。
+
+    - ``/api/*`` 一律视为 ``api``（接口调用）。
+    - 其余按 Content-Type：HTML/页面类为 ``page``（计入 PV），css/js/图片/字体等为 ``asset``
+      （静态资源，不审计、不计 PV）。
+    """
+    ct = (content_type or "").lower()
+    if path.startswith("/api/"):
+        return "api"
+    if any(ct.startswith(p) for p in _ASSET_CT_PREFIXES):
+        return "asset"
+    return "page"
 
 
 def create_security_audit_middleware(
@@ -182,34 +214,44 @@ def create_security_audit_middleware(
             dur_ms = (time.time() - start) * 1000
         # else: 被拦截（访问规则/黑名单/限流）——仍纳入审计，但无响应体 / 耗时
 
-        # 8) 审计日志：文件（时间轮转，同步、轻量）+ 数据库（SQLAlchemy 异步原生，await 不阻塞）
-        if audit_enabled and is_api:
+        # 8) 审计 + 访问统计埋点
+        #    - 触发条件由「仅 api」放宽为「page + api」，从而统计页面级 PV；
+        #      静态资源（css/js/图片/字体）归为 asset，既不入库也不计 PV，避免噪声。
+        #    - 审计 DB 写入为原生 async（await 不阻塞事件循环）。
+        if audit_enabled:
             status = response.status_code
-            snippet = ""
-            try:
-                body = getattr(response, "body", None)
-                if body and len(body) <= settings.audit_body_max_bytes:
-                    snippet = body.decode("utf-8", "replace")
-            except Exception:
+            content_type = response.headers.get("content-type", "")
+            route_type = _classify_route(path, content_type)
+            if route_type != "asset":  # 静态资源不审计、不计访问
                 snippet = ""
-            record = {
-                "request_id": uuid.uuid4().hex,
-                "client_ip": ip,
-                "client_device": derive_device(request.headers.get("user-agent", "")),
-                "user_agent": request.headers.get("user-agent", ""),
-                "method": method,
-                "path": path,
-                "query": request.url.query,
-                "request_body": req_body,
-                "status_code": status,
-                "duration_ms": round(dur_ms, 2),
-                "is_anomaly": bool(anomaly_reasons),
-                "anomaly_reasons": ";".join(anomaly_reasons),
-                "response_snippet": snippet,
-            }
-            log_audit_event(record)
-            if audit_store:
-                await audit_store.record_audit(record)
+                try:
+                    body = getattr(response, "body", None)
+                    if body and len(body) <= settings.audit_body_max_bytes:
+                        snippet = body.decode("utf-8", "replace")
+                except Exception:
+                    snippet = ""
+                record = {
+                    "request_id": uuid.uuid4().hex,
+                    "client_ip": ip,
+                    "client_device": derive_device(request.headers.get("user-agent", "")),
+                    "user_agent": request.headers.get("user-agent", ""),
+                    "method": method,
+                    "path": path,
+                    "query": request.url.query,
+                    "request_body": req_body,
+                    "status_code": status,
+                    "duration_ms": round(dur_ms, 2),
+                    "is_anomaly": bool(anomaly_reasons),
+                    "anomaly_reasons": ";".join(anomaly_reasons),
+                    "response_snippet": snippet,
+                    # 访问统计维度（v1.7.0）：访客指纹 / 来源页 / 路由类型
+                    "visitor_id": _compute_visitor_id(ip, request.headers.get("user-agent", "")),
+                    "referer": request.headers.get("referer", ""),
+                    "route_type": route_type,
+                }
+                log_audit_event(record)
+                if audit_store:
+                    await audit_store.record_audit(record)
 
         return response
 

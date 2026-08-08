@@ -137,7 +137,9 @@ class GreedyModularityDetector(CommunityDetector):
 
     name = "modularity"
     display_name = "模块度最大化（贪心）"
-    description = "从「每个节点各自一团」出发，每一步合并能让模块度 Q 增长最多的两个社团，直到无法提升。"
+    description = (
+        "从「每个节点各自一团」出发，每一步合并能让模块度 Q 增长最多的两个社团，直到无法提升。"
+    )
     blurb = "最经典的凝聚式算法：直观展示「小团如何一步步并成大社区」，Q 值单调递增。"
     supports_animation = True
     params_schema = [
@@ -200,7 +202,9 @@ class LabelPropagationDetector(CommunityDetector):
 
     name = "label_propagation"
     display_name = "标签传播（LPA）"
-    description = "每个节点不断改为邻居中出现最多的标签；标签在图上扩散、碰撞，最终同色区域即为一个社团。"
+    description = (
+        "每个节点不断改为邻居中出现最多的标签；标签在图上扩散、碰撞，最终同色区域即为一个社团。"
+    )
     blurb = "近乎线性的高效算法：动画能直观看到「颜色（标签）如何一层层淹没整张图」。"
     supports_animation = True
     params_schema = [
@@ -233,10 +237,7 @@ class LabelPropagationDetector(CommunityDetector):
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
         rng = _make_rng(params.get("seed"))
-        seq = [
-            (step, _compact_ids(_pad_isolated(G, a)))
-            for step, a in _lpa_run(G, rng)
-        ]
+        seq = [(step, _compact_ids(_pad_isolated(G, a))) for step, a in _lpa_run(G, rng)]
         total = len(seq)
         stride = max(1, total // 20)  # 控制帧数在 ~20 以内（动画流畅）
         keep = set(range(0, total, stride)) | {0, total - 1}
@@ -256,7 +257,9 @@ class LouvainDetector(CommunityDetector):
 
     name = "louvain"
     display_name = "Louvain（多级模块度）"
-    description = "先让每个节点的局部模块度最优，再把整个社团压缩成一个「超级节点」继续优化，多级递归。"
+    description = (
+        "先让每个节点的局部模块度最优，再把整个社团压缩成一个「超级节点」继续优化，多级递归。"
+    )
     blurb = "工业界最常用的算法：动画展示「社团被层层折叠成超级节点」的多级思想。"
     supports_animation = True
     optional_dependency = "community"
@@ -325,7 +328,9 @@ class InfomapDetector(CommunityDetector):
 
     name = "infomap"
     display_name = "Infomap（信息流）"
-    description = "把图上的随机游走看成信息流，寻找能让「描述一条随机路径所需比特数（码长 L）」最小的划分。"
+    description = (
+        "把图上的随机游走看成信息流，寻找能让「描述一条随机路径所需比特数（码长 L）」最小的划分。"
+    )
     blurb = "信息论视角：社团 = 内部随机游走停留久、跨社团跳转少的高密度区域。"
     supports_animation = False  # infomap 包不暴露逐迭代状态，故不提供逐步动画
     optional_dependency = "infomap"
@@ -389,7 +394,9 @@ class GirvanNewmanDetector(CommunityDetector):
 
     name = "girvan_newman"
     display_name = "Girvan-Newman（边中介度分裂）"
-    description = "反复计算边的中介中心性、删掉「最像桥梁」的边，图被一步步切断，直到达到目标社团数。"
+    description = (
+        "反复计算边的中介中心性、删掉「最像桥梁」的边，图被一步步切断，直到达到目标社团数。"
+    )
     blurb = "与凝聚式相反的自顶向下思路：直观看到「先断哪座桥，整张图才裂开」。高亮边即被切断的桥。"
     supports_animation = True
     params_schema = [
@@ -439,9 +446,7 @@ class GirvanNewmanDetector(CommunityDetector):
             assign = _pad_isolated(G, _assignment_from_partitions(partitions))
             compact = _compact_ids(assign)
             # 高亮：跨社团的「桥边」（即被切断的边）
-            cut_edges = [
-                (u, v) for u, v in G.edges() if compact.get(u) != compact.get(v)
-            ]
+            cut_edges = [(u, v) for u, v in G.edges() if compact.get(u) != compact.get(v)]
             q = _safe_modularity(G, partitions)
             yield CommFrame(
                 step=step,
@@ -472,9 +477,7 @@ def get_detector(name: str) -> CommunityDetector:
     """按名称取策略实例；未知算法抛 ValueError（由路由转 400）。"""
     cls = DETECTORS.get(name)
     if cls is None:
-        raise ValueError(
-            f"未知社区分析算法：{name!r}；可选：{', '.join(sorted(DETECTORS))}"
-        )
+        raise ValueError(f"未知社区分析算法：{name!r}；可选：{', '.join(sorted(DETECTORS))}")
     return cls()
 
 
@@ -508,9 +511,7 @@ def run_detection(
     detector = get_detector(algorithm)
     if not detector.available():
         dep = detector.optional_dependency
-        raise RuntimeError(
-            f"算法「{detector.display_name}」需要可选依赖：pip install {dep}"
-        )
+        raise RuntimeError(f"算法「{detector.display_name}」需要可选依赖：pip install {dep}")
     params = params or {}
     res = detector.detect(G, params)
     if animate and detector.supports_animation:
@@ -587,7 +588,7 @@ def _greedy_merge_sequence(
         T[c] += T[d]
         members[c] |= members[d]
         # 把 d 的其余社区间边并入 c
-        for (x, y) in list(E.keys()):
+        for x, y in list(E.keys()):
             if x != d and y != d:
                 continue
             if x == d and y == d:  # d 内部自环，忽略
@@ -641,7 +642,9 @@ def _snap(
     return {
         "step": step,
         "assignment": assign,
-        "modularity": _safe_modularity(G, list(by_comm.values()), resolution=resolution, weight=weight),
+        "modularity": _safe_modularity(
+            G, list(by_comm.values()), resolution=resolution, weight=weight
+        ),
     }
 
 

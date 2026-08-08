@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     # 非空则走 RedisLimiter（需安装 redis），否则默认内存 Limiter。
     rate_limit_redis_url: str = ""
 
+    # ---- 内部管理接口（站点访问统计报表）----
+    # ``GET /api/admin/report`` 的访问令牌；留空 = 接口整体禁用（返回 403）。
+    # 不下发到前端，仅供运维 / CLI 经 ``Authorization: Bearer <token>`` 或 ``?token=`` 调用。
+    admin_token: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

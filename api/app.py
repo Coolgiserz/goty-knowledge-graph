@@ -36,7 +36,7 @@ from .config import Settings, get_settings
 from .graph_store import get_graph_store
 from .logging_config import setup_logging
 from .middleware import create_security_audit_middleware
-from .routers import boards, graph, jobs, meta
+from .routers import admin, boards, graph, jobs, meta
 from .rules import BotUserAgentRule
 from .security import SecurityContext
 from .tasks import TaskManager
@@ -95,7 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.6.1",
+        version="1.7.0",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -123,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(boards.router)
     app.include_router(jobs.router)
     app.include_router(graph.router)
+    app.include_router(admin.router)
 
     @app.get("/graph")
     @app.get("/graph/")

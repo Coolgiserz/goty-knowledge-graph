@@ -7,6 +7,7 @@
 
 from fastapi import Depends, HTTPException, Request
 
+from .audit.store import AuditStore
 from .config import Settings
 from .graph_store import GraphStore
 from .security import SecurityContext
@@ -33,6 +34,11 @@ def get_tasks(request: Request) -> TaskManager:
 def get_graph_store_dep(request: Request) -> GraphStore:
     """返回本应用实例的图存储后端（来自 ``app.state.graph_store``，工厂注入）。"""
     return request.app.state.graph_store
+
+
+def get_audit_store(request: Request) -> AuditStore | None:
+    """返回本应用实例的审计存储（来自 ``app.state.audit_store``，可能为 None）。"""
+    return request.app.state.audit_store
 
 
 def require_exploration(settings: Settings = Depends(get_settings_dep)) -> None:

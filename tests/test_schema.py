@@ -4,6 +4,7 @@
 这一张表。本文件守住「改表即改全行为」的契约：scope 目录、路由校验、Cypher 谓词、
 Neo4j 标签反查都从这里派生，不得回潮成字面量。
 """
+
 from api.schema import (
     GRAPH_SCHEMA,
     group_of_node,

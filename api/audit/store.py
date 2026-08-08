@@ -45,6 +45,14 @@ _ASYNC_TO_SYNC = {
     "postgresql+asyncpg": "postgresql+psycopg2",
 }
 
+# v1.7.0 访问统计新增列：对存量 audit_log 表做 ALTER 补齐（见 :func:`_migrate_audit_columns_sync`）。
+# 顺序与 ``api.audit.models.AuditLog`` 中新增列一一对应；DDL 类型需与模型一致。
+_NEW_AUDIT_COLUMNS = [
+    ("visitor_id", "VARCHAR(32)"),
+    ("referer", "TEXT"),
+    ("route_type", "VARCHAR(8)"),
+]
+
 
 def _to_async_url(url: str) -> str:
     """把常见同步 SQLAlchemy URL 改写为异步驱动 URL；已是异步则原样返回。"""
@@ -85,6 +93,28 @@ def _audit_from_dict(data: dict[str, Any]) -> AuditLog:
     return AuditLog(**{k: v for k, v in data.items() if k in allowed})
 
 
+def _migrate_audit_columns_sync(conn) -> None:
+    """对存量 ``audit_log`` 表增补访问统计列（兼容未迁移的旧库）。
+
+    旧部署的 ``audit_log`` 可能已存在但不含 ``visitor_id`` / ``referer`` / ``route_type``。
+    SQLite 在 3.35 之前不支持 ``ADD COLUMN IF NOT EXISTS``，故改用 ``inspect`` 探明已有列后
+    按需 ALTER，跨驱动稳健。新增列带默认值：``route_type`` 默认 ``'api'``（旧行皆为 api 行为），
+    其余默认空串。迁移失败不应阻断建表/启动——缺失列仅影响统计维度，审计本身仍可用。
+    """
+    try:
+        from sqlalchemy import inspect as _sa_inspect
+        from sqlalchemy import text as _sa_text
+
+        existing = {c["name"] for c in _sa_inspect(conn).get_columns("audit_log")}
+        for name, ddl in _NEW_AUDIT_COLUMNS:
+            if name not in existing:
+                default = "DEFAULT 'api'" if name == "route_type" else "DEFAULT ''"
+                conn.execute(_sa_text(f"ALTER TABLE audit_log ADD COLUMN {name} {ddl} {default}"))
+    except Exception:
+        # 迁移异常（如驱动不支持）静默放过：建表/启动不受影响，统计维度可能缺失。
+        pass
+
+
 # ---------------------------------------------------------------------------
 # 异步接口：AuditStore（FastAPI 中间件使用）
 # ---------------------------------------------------------------------------
@@ -96,8 +126,8 @@ class AuditStore:
     用法::
 
         store = AuditStore("sqlite:///./data/audit.db")  # 自动规范为 sqlite+aiosqlite
-        store.init()                             # 建表（幂等，同步入口；app 构造期调用）
-        await store.record_audit({...})          # 由中间件直接 await 调用
+        store.init()  # 建表（幂等，同步入口；app 构造期调用）
+        await store.record_audit({...})  # 由中间件直接 await 调用
         await store.record_anomaly({...})
     """
 
@@ -116,6 +146,7 @@ class AuditStore:
         """在运行中的事件循环里幂等建表，并标记已就绪。"""
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_migrate_audit_columns_sync)
         self._schema_ready = True
 
     def init(self) -> None:
@@ -190,8 +221,8 @@ class SyncAuditStore:
     用法::
 
         store = SyncAuditStore("sqlite:///./data/audit.db")  # 同步驱动，无需 aiosqlite 事件循环
-        store.init()                          # 建表（幂等，纯同步）
-        store.record_audit({...})             # 直接调用，无 await
+        store.init()  # 建表（幂等，纯同步）
+        store.record_audit({...})  # 直接调用，无 await
         store.record_anomaly({...})
         n = store.count_audit("1.2.3.4")
     """
@@ -202,15 +233,14 @@ class SyncAuditStore:
         self.sync_url = sync_url
         _ensure_db_dir(sync_url)
         self.engine = create_engine(sync_url, echo=echo, future=True)
-        self._session_factory = sessionmaker(
-            bind=self.engine, expire_on_commit=False, future=True
-        )
+        self._session_factory = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
         self._schema_ready = False
 
     def init(self) -> None:
         """建表（幂等，纯同步）。"""
         with self.engine.begin() as conn:
             Base.metadata.create_all(conn)
+            _migrate_audit_columns_sync(conn)
         self._schema_ready = True
 
     def _ensure_schema(self) -> None:

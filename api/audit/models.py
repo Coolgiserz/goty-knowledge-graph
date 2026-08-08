@@ -39,6 +39,15 @@ class AuditLog(Base):
     anomaly_reasons: Mapped[str] = mapped_column(Text, default="")
     response_snippet: Mapped[str] = mapped_column(Text, default="")
 
+    # ---- 访问统计维度（v1.7.0 新增；存量库经 ALTER TABLE 迁移补齐）----
+    # visitor_id：sha256(ip|UA)[:16] 指纹，不下发 Cookie；UV 去重依据。
+    visitor_id: Mapped[str] = mapped_column(String(32), index=True, default="")
+    # referer：来源页（直接访问为空），用于「从哪来」归因。
+    referer: Mapped[str] = mapped_column(Text, default="")
+    # route_type：page / api / asset，由中间件按响应 Content-Type 判定；
+    # 默认 'api' 以便迁移前旧行（皆为 api 行为）仍能正确归类。
+    route_type: Mapped[str] = mapped_column(String(8), index=True, default="api")
+
 
 class AnomalyEvent(Base):
     __tablename__ = "anomaly_event"
