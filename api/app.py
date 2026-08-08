@@ -87,15 +87,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             security.blacklist,
         )
 
-    # 访问控制规则（默认关闭；开启后拦截明显爬虫 UA，仅放行真实浏览器）
+    # 访问控制规则（默认开启：拦截爬虫/脚本 UA + 空 UA；/api/admin 内部报表豁免）
     access_rules = []
     if settings.block_bot_ua:
         blocked = [s.strip() for s in settings.bot_ua_blocklist.split(",") if s.strip()]
-        access_rules.append(BotUserAgentRule(blocked))
+        access_rules.append(
+            BotUserAgentRule(
+                blocked,
+                block_empty_ua=True,
+                exempt_prefixes=["/api/admin"],
+            )
+        )
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.7.0",
+        version="1.7.1",
         lifespan=lifespan,
     )
     app.state.settings = settings

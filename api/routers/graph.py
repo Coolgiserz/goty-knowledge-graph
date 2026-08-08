@@ -101,6 +101,9 @@ def graph_list(
     """浏览节点：按 group 过滤 + 关键词检索 + 分页。前端表格面板用。"""
     if group in (None, "", "all"):
         group = None
+    # 请求校验：分页参数上界裁剪（store 层另有兜底，此处让响应 limit/offset 与请求意图一致）
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
     try:
         res = store.list_nodes(group=group, query=q, limit=limit, offset=offset)
     except RuntimeError as exc:

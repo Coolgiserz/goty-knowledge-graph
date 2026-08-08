@@ -185,15 +185,18 @@ def create_security_audit_middleware(
                         settings.anomaly_ban_seconds,
                     )
                     if audit_store:
-                        await audit_store.record_anomaly(
-                            {
-                                "request_id": uuid.uuid4().hex,
-                                "client_ip": ip,
-                                "rule": "frequency",
-                                "detail": ";".join(reasons),
-                                "action": f"blacklist_{settings.anomaly_ban_seconds}s",
-                            }
-                        )
+                        try:
+                            await audit_store.record_anomaly(
+                                {
+                                    "request_id": uuid.uuid4().hex,
+                                    "client_ip": ip,
+                                    "rule": "frequency",
+                                    "detail": ";".join(reasons),
+                                    "action": f"blacklist_{settings.anomaly_ban_seconds}s",
+                                }
+                            )
+                        except Exception:
+                            log.warning("异常事件入库失败（已忽略）", exc_info=True)
             # 5) 计数（通过后）
             security.general_limiter.hit(ip)
             if is_board:
@@ -251,7 +254,12 @@ def create_security_audit_middleware(
                 }
                 log_audit_event(record)
                 if audit_store:
-                    await audit_store.record_audit(record)
+                    # best-effort：审计入库失败（如瞬时锁/磁盘满）绝不能把已确定的
+                    # 403/200 响应变成 500。异常仅记录，不影响主响应返回。
+                    try:
+                        await audit_store.record_audit(record)
+                    except Exception:
+                        log.warning("审计入库失败（已忽略，不影响主响应）", exc_info=True)
 
         return response
 

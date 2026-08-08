@@ -22,7 +22,7 @@ from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import create_engine, func, make_url, select
+from sqlalchemy import create_engine, event, func, make_url, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -87,6 +87,44 @@ def _ensure_db_dir(url: str) -> None:
         pass
 
 
+def _with_busy_timeout(url: str) -> str:
+    """对文件型 SQLite 追加 ``busy_timeout=30s``，降低并发写 ``database is locked``。
+
+    通过 sqlite3 的 ``timeout`` 连接参数实现（映射为 busy_timeout），sync 与 aiosqlite
+    通用；内存库（``:memory:``）不追加。已含 timeout 则不重复追加。
+    """
+    try:
+        parsed = make_url(url)
+    except Exception:
+        return url
+    if parsed.drivername.split("+")[0] != "sqlite":
+        return url
+    db = parsed.database
+    if not db or db == ":memory:":
+        return url
+    if "timeout" in (parsed.query or {}):
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}timeout=30"
+
+
+def _set_sync_sqlite_pragmas(dbapi_conn, _conn_record) -> None:
+    """同步引擎连接建立时启用 WAL（仅对真正的 sqlite3 连接生效，aiosqlite 跳过）。
+
+    WAL 下读写可并发，配合 ``busy_timeout`` 进一步消解锁竞争。异步引擎（aiosqlite）的连接
+    需要 await 执行 PRAGMA，无法在同步 connect 事件里设置，故异步路径仅靠 ``busy_timeout``；
+    文件型 SQLite 的并发写已足够稳健。
+    """
+    try:
+        cur = dbapi_conn.cursor()
+        if hasattr(cur, "__await__"):  # aiosqlite 连接：cursor() 是协程，跳过
+            return
+        cur.execute("PRAGMA journal_mode=WAL")
+        cur.close()
+    except Exception:
+        pass
+
+
 def _audit_from_dict(data: dict[str, Any]) -> AuditLog:
     """从审计字典构造 ``AuditLog`` 行，忽略模型不存在的字段。"""
     allowed = {c.name for c in AuditLog.__table__.columns}
@@ -133,7 +171,8 @@ class AuditStore:
 
     def __init__(self, url: str, echo: bool = False) -> None:
         self.url = url
-        async_url = _to_async_url(url)
+        # 文件型 sqlite 追加 busy_timeout=30s，降低并发写 database is locked
+        async_url = _with_busy_timeout(_to_async_url(url))
         self.async_url = async_url
         _ensure_db_dir(async_url)
         self.engine = create_async_engine(async_url, echo=echo, future=True)
@@ -229,10 +268,12 @@ class SyncAuditStore:
 
     def __init__(self, url: str, echo: bool = False) -> None:
         self.url = url
-        sync_url = _to_sync_url(url)
+        # 文件型 sqlite 追加 busy_timeout=30s；同步引擎额外启 WAL（见 _set_sync_sqlite_pragmas）
+        sync_url = _with_busy_timeout(_to_sync_url(url))
         self.sync_url = sync_url
         _ensure_db_dir(sync_url)
         self.engine = create_engine(sync_url, echo=echo, future=True)
+        event.listen(self.engine, "connect", _set_sync_sqlite_pragmas)
         self._session_factory = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
         self._schema_ready = False
 

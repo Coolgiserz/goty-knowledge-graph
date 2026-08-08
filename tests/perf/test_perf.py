@@ -21,14 +21,18 @@ TOTAL_REQUESTS = 200
 
 @pytest.mark.perf
 @pytest.mark.asyncio
-async def test_meta_p95_and_throughput():
-    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流干扰
+async def test_meta_p95_and_throughput(tmp_path):
+    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流/UA 拦截干扰
+    db = tmp_path / "perf_meta.db"
     app = create_app(
         Settings(
             enable_exploration=False,
             anomaly_enabled=False,
             rate_limit_max=TOTAL_REQUESTS + 50,
             rate_window=60,
+            block_bot_ua=False,  # httpx 默认 UA 为 python-httpx，关拦截以测纯吞吐
+            audit_enabled=True,
+            audit_db_url=f"sqlite:///{db}",  # 独立临时库，避免与共享库并发锁竞争
         )
     )
     transport = httpx.ASGITransport(app=app)
@@ -59,14 +63,18 @@ async def test_meta_p95_and_throughput():
 
 @pytest.mark.perf
 @pytest.mark.asyncio
-async def test_boards_p95_and_throughput():
-    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流干扰
+async def test_boards_p95_and_throughput(tmp_path):
+    # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流/UA 拦截干扰
+    db = tmp_path / "perf_boards.db"
     app = create_app(
         Settings(
             enable_exploration=False,
             anomaly_enabled=False,
             rate_limit_max=TOTAL_REQUESTS + 50,
             rate_window=60,
+            block_bot_ua=False,  # httpx 默认 UA 为 python-httpx，关拦截以测纯吞吐
+            audit_enabled=True,
+            audit_db_url=f"sqlite:///{db}",  # 独立临时库，避免与共享库并发锁竞争
         )
     )
     transport = httpx.ASGITransport(app=app)

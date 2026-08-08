@@ -136,7 +136,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 
 探索计算（社区发现 / 嵌入 / PageRank / 聚类）较耗资源，对外提供 demo 时必须防止单个客户端把服务器拖垮。防护与审计已抽成**独立公共模块** `api/middleware.py`（`create_security_audit_middleware` 工厂，与具体 app 解耦、可被任意 ASGI app 复用），内部按 **访问规则(如拦截爬虫UA) → 黑名单 → 限流 → 异常判定 → 审计落库** 顺序横切；采用 FastAPI 原生 `@app.middleware("http")` 函数中间件（非 `BaseHTTPMiddleware`），审计数据库写入为**原生 async**（`await audit_store.record_audit`，SQLAlchemy 异步引擎，不占用线程、不阻塞事件循环），对齐 FastAPI 官方「有异步库就用 async def + await」的 async 文档。底层原语分散在 `api/ratelimit.py`（限流+黑名单）/ `api/ua.py`（UA 解析）/ `api/rules.py`（访问规则协议）/ `api/anomaly.py`（异常判定）/ `api/audit/*`（审计存储）/ `api/logging_config.py`（日志）。
 
-- **访问控制（403，可插拔规则）**：`GOTY_BLOCK_BOT_UA=true` 时，凡 User-Agent 命中 `GOTY_BOT_UA_BLOCKLIST`（默认含 `python`/`java`/`go-http`/`curl`/`httpx`…）的请求直接 403，实现「只放行真实浏览器」。规则实现 `AccessRule` 协议，新增策略（地域封禁、UA 指纹库…）零改中间件。默认关闭，避免误伤 API 服务间调用与测试。
+- **访问控制（403，可插拔规则）**：`GOTY_BLOCK_BOT_UA=true`（**默认开启**）时，凡 User-Agent 命中 `GOTY_BOT_UA_BLOCKLIST`（默认含 `python`/`java`/`go-http`/`curl`/`httpx`…）或**为空**（扫描器特征）的请求直接 403，实现「只放行真实浏览器」。内部报表接口 `/api/admin` 前缀**豁免** UA 拦截，由令牌守卫独立鉴权，避免运维 `curl`/脚本被误伤。规则实现 `AccessRule` 协议，新增策略（地域封禁、UA 指纹库…）零改中间件；调用方都是非浏览器脚本（服务间 API 调用）时可设 `false` 关闭。
 - **黑名单（403）**：`GOTY_BLACKLIST` 环境变量种子（逗号分隔，永久封禁）+ 自动封禁（短时内多次超限制即临时封禁）。
 - **两档限流（429，可替换后端）**：「一般请求」宽松；「探索计算 `POST /api/board/*`」严格（这是真正耗资源的入口）。超限返回 JSON `{error, message, retry_after}` 并带 `Retry-After` 头。限流原语抽象为 `RateLimiter` 协议，默认内存 `Limiter`；配置 `GOTY_RATE_LIMIT_REDIS_URL` 即无缝换 Redis（见下），调用方无感知。
 - **请求审计日志（双写）**：每条 `/api/*` 请求同时写入① **按时间周期轮转**的审计文件（`GOTY_AUDIT_LOG_FILE`，每行一条 JSON，便于 ELK/数仓采集）；② **数据库**（SQLAlchemy ORM，默认 SQLite 打通流程）。记录字段含 `客户端IP / 客户端设备 / User-Agent / 方法 / 接口 / 查询参数 / 请求体 / 状态码 / 耗时 / 是否异常 / 异常原因 / 响应摘要`，以及**访问统计维度** `visitor_id（访客指纹 sha256(ip|UA)[:16]）/ referer（来源页）/ route_type（page|api|asset）`。审计存储模块（`api/audit/store.py`）**同时提供同步与异步两套接口**：`AuditStore`（异步 `AsyncSession`，FastAPI 中间件 `await` 调用）与 `SyncAuditStore`（同步 `Session`，运维脚本/CLI 使用），二者共享同一套 ORM 模型，经工厂 `create_audit_store(url, async_=...)` 按运行环境选型。
@@ -163,7 +163,7 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 | `GOTY_ANOMALY_ENABLED` | 是否开启请求源异常判定 | `true` |
 | `GOTY_ANOMALY_FREQUENCY_MAX` / `GOTY_ANOMALY_FREQUENCY_WINDOW` | 频率规则：单 IP 窗口内最多请求数 / 窗口秒（默认 1 分钟） | `60` / `60` |
 | `GOTY_ANOMALY_BAN_SECONDS` | 频率规则命中后的封禁时长（秒，默认 24h） | `86400` |
-| `GOTY_BLOCK_BOT_UA` | 是否启用「拦截爬虫 UA」（命中黑名单直接 403；开启会拦截 python/java/go-http 等脚本 UA，仅适合「只放行浏览器」部署） | `false` |
+| `GOTY_BLOCK_BOT_UA` | 是否启用「拦截爬虫 UA」（命中黑名单或空 UA 直接 403；默认开启，仅放行真实浏览器；`/api/admin` 前缀豁免；服务间调用可设 `false`） | `true` |
 | `GOTY_BOT_UA_BLOCKLIST` | 禁用的 UA 子串（逗号分隔；命中即 403） | `python,java,go-http,golang,curl,wget,httpx,requests,scrapy,aiohttp,okhttp,guzzle,node,perl,ruby,php,bot,spider,crawl,slurp,headless,scraper,axios,urllib` |
 | `GOTY_RATE_LIMIT_REDIS_URL` | 限流后端：非空则走 Redis（需先 `uv pip install redis`），否则默认内存版 | 空 |
 | `GOTY_ADMIN_TOKEN` | 内部管理接口 `GET /api/admin/report` 的访问令牌；留空 = 接口整体禁用（返回 403），不下发前端，仅供运维/CLI 调用 | 空 |

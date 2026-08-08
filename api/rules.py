@@ -30,17 +30,35 @@ class AccessRule(Protocol):
 class BotUserAgentRule:
     """拦截明显爬虫 / 脚本 User-Agent（如 python / java / go-http）。
 
-    仅做子串黑名单匹配，零依赖、O(1) 开销；默认不拦截空 UA。开启 ``block_bot_ua``
-    后由中间件工厂装配，用于「只放行真实浏览器」的部署场景。
+    仅做子串黑名单匹配，零依赖、O(1) 开销。开启 ``block_bot_ua`` 后由中间件工厂装配，
+    用于「只放行真实浏览器」的部署场景。
+
+    - ``block_empty_ua``（默认 True）：空 UA（扫描器 / 恶意工具常见特征）也拦截。
+    - ``exempt_prefixes``：命中这些路径前缀的请求**不**受 UA 拦截（如 ``/api/admin``
+      内部报表接口，由令牌守卫独立鉴权，避免运维 curl / 脚本被误伤）。
     """
 
     name = "bot_user_agent"
 
-    def __init__(self, blocked_substrings: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        blocked_substrings: list[str] | None = None,
+        *,
+        block_empty_ua: bool = True,
+        exempt_prefixes: list[str] | None = None,
+    ) -> None:
         self.blocked = [s.lower() for s in (blocked_substrings or [])]
+        self.block_empty_ua = block_empty_ua
+        self.exempt_prefixes = list(exempt_prefixes or [])
 
     def should_block(self, request: Request) -> tuple[bool, str]:
+        path = request.url.path
+        # 豁免路径（如运维内部报表）不走 UA 拦截，令牌守卫随后生效
+        if any(path.startswith(p) for p in self.exempt_prefixes):
+            return False, ""
         ua = request.headers.get("user-agent", "") or ""
+        if not ua and self.block_empty_ua:
+            return True, "blocked_empty_user_agent"
         if is_blocked_user_agent(ua, self.blocked):
             return True, "blocked_user_agent"
         return False, ""

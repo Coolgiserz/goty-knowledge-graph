@@ -344,6 +344,10 @@ class NetworkXStore(GraphStore):
         limit: int = 50,
         offset: int = 0,
     ) -> dict[str, Any]:
+        # 请求校验：对分页参数做上界裁剪，避免超大 limit/offset 触发巨量响应（DoS 面）。
+        # 与 Neo4jStore.list_nodes 保持一致（上限 200）。
+        limit = max(1, min(limit, 200))
+        offset = max(0, offset)
         q = (query or "").strip().lower()
         matched: list[dict[str, Any]] = []
         for n in NODES:

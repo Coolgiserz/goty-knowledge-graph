@@ -205,7 +205,8 @@ def test_report_visits_over_time_buckets(tmp_path):
 
 
 def test_admin_report_disabled_without_token(tmp_path):
-    app = _make_app(tmp_path)  # admin_token 默认空
+    # 显式 admin_token="" 覆盖本地 .env 可能存在的 GOTY_ADMIN_TOKEN，确保「未配置即禁用」
+    app = _make_app(tmp_path, admin_token="")
     client = TestClient(app)
     assert client.get("/api/admin/report").status_code == 403
 
@@ -240,3 +241,52 @@ def test_admin_report_aggregates_through_endpoint(tmp_path):
     assert body["totals"]["page_views"] >= 1
     assert body["totals"]["api_calls"] >= 1
     assert body["totals"]["unique_visitors"] >= 1
+
+
+# ---------------------------------------------------------------------------
+# UA 拦截（默认开启）：爬虫/脚本 UA + 空 UA 拒拦；浏览器放行；/api/admin 豁免
+# ---------------------------------------------------------------------------
+
+
+def test_bot_user_agent_is_blocked(tmp_path):
+    app = _make_app(tmp_path, block_bot_ua=True)
+    client = TestClient(app)
+    r = client.get("/api/meta", headers={"User-Agent": "python-requests/2.31"})
+    assert r.status_code == 403
+    assert r.json()["error"] == "blocked"  # 由 UA 规则拦截，而非接口禁用
+
+
+def test_empty_user_agent_is_blocked(tmp_path):
+    app = _make_app(tmp_path, block_bot_ua=True)
+    client = TestClient(app)
+    r = client.get("/api/meta", headers={"User-Agent": ""})
+    assert r.status_code == 403
+    assert r.json()["error"] == "blocked"
+
+
+def test_browser_user_agent_is_allowed(tmp_path):
+    app = _make_app(tmp_path, block_bot_ua=True)
+    client = TestClient(app)
+    r = client.get(
+        "/api/meta",
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+    )
+    assert r.status_code == 200
+
+
+def test_admin_endpoint_exempt_from_ua_block(tmp_path):
+    # /api/admin 前缀豁免 UA 拦截：即使带爬虫 UA，也应到达令牌守卫而非被 UA 规则 403。
+    app = _make_app(tmp_path, block_bot_ua=True, admin_token="secret")
+    client = TestClient(app)
+    r = client.get("/api/admin/report", headers={"User-Agent": "python-requests/2.31"})
+    # 未被 UA 拦截（否则 error=="blocked" 的 403），到达令牌守卫：无令牌 -> 401
+    assert r.status_code == 401
+    assert r.json()["detail"] == "invalid_admin_token"
+
+
+def test_ua_block_disabled_when_flag_off(tmp_path):
+    # 关闭 block_bot_ua 后，爬虫 UA 不再被拦截（服务间 API 调用场景）。
+    app = _make_app(tmp_path, block_bot_ua=False)
+    client = TestClient(app)
+    r = client.get("/api/meta", headers={"User-Agent": "python-requests/2.31"})
+    assert r.status_code == 200
