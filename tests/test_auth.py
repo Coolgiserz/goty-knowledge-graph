@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import os
 
 import pytest
 from api.app import create_app
@@ -127,6 +128,32 @@ def test_login_page_shows_validation_hints(tmp_path):
     assert "邮箱格式不正确" in text
     assert "该用户名已被注册" in text  # username_taken 中文映射
     assert "doRegister" in text and "doLogin" in text  # 表单逻辑在位
+    # 已登录分支（直接访问 /login 时展示个人信息 + 退出登录）
+    assert "你已登录" in text and "checkLoggedIn" in text and "logout-now" in text
+
+
+def test_explore_spa_has_user_ui(tmp_path):
+    # 探索 SPA 必须内置「退出登录 / 个人信息」入口（解决「没有地方登出/查看信息」）。
+    base = os.path.join(os.path.dirname(__file__), "..", "site", "explorer-graph")
+    with open(os.path.join(base, "index.html"), encoding="utf-8") as f:
+        html = f.read()
+    with open(os.path.join(base, "app.js"), encoding="utf-8") as f:
+        js = f.read()
+    assert 'id="logout-btn"' in html
+    assert 'id="profile-btn"' in html
+    assert "个人信息" in html
+    assert "loadUser" in js and "/auth/me" in js
+    assert "/auth/logout" in js  # 退出登录调用
+
+
+def test_login_page_hidden_when_auth_disabled(tmp_path):
+    # 全部免登录调试模式：/login 不渲染登录/注册表单
+    c = _auth_client(tmp_path, auth_enabled=False)
+    r = c.get("/login")
+    assert r.status_code == 200
+    assert "登录已关闭" in r.text
+    assert "doLogin" not in r.text
+    assert "doRegister" not in r.text
 
 
 def test_registration_closed(tmp_path):
@@ -226,16 +253,6 @@ def test_password_redacted_in_audit(tmp_path):
         body = r.request_body or ""
         assert plain not in body, "明文密码不应进入审计日志（文件/库）"
         assert '"password": "***"' in body, "密码字段应被脱敏为 ***"
-
-
-def test_login_page_hidden_when_auth_disabled(tmp_path):
-    # 全部免登录调试模式：/login 不渲染登录/注册表单
-    c = _auth_client(tmp_path, auth_enabled=False)
-    r = c.get("/login")
-    assert r.status_code == 200
-    assert "登录已关闭" in r.text
-    assert "doLogin" not in r.text
-    assert "doRegister" not in r.text
 
 
 def test_meta_exposes_auth_enabled(tmp_path):

@@ -19,7 +19,19 @@
       <div id="search-results" class="search-dropdown"></div>
     </div>
     <a id="home-btn" class="home-btn" href="/">返回首页</a>
+    <!-- 登录用户区：显示问候语 + 个人信息 + 退出登录（未登录时由守卫跳 /login，此处自动隐藏）-->
+    <div id="user-area" class="user-area" hidden>
+      <span id="user-greeting" class="user-greeting"></span>
+      <button id="profile-btn" type="button" class="user-btn">个人信息</button>
+      <button id="logout-btn" type="button" class="user-btn">退出登录</button>
+    </div>
   </header>
+  <!-- 个人信息浮层（点「个人信息」切换显示）-->
+  <div id="profile-panel" class="profile-panel" hidden>
+    <div class="profile-row"><span>用户名</span><b id="pf-username">—</b></div>
+    <div class="profile-row"><span>邮箱</span><b id="pf-email">—</b></div>
+    <div class="profile-row"><span>会话状态</span><b class="ok">已登录</b></div>
+  </div>
 
   <main class="layout">
     <aside class="sidebar">

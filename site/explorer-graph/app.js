@@ -1245,6 +1245,54 @@ function bind() {
   });
 }
 
+/* ---------------- 用户会话（退出登录 / 查看个人信息） ---------------- */
+let currentUser = null;
+
+// 拉取当前登录用户；未登录（理论上守卫已跳 /login，这里兜底隐藏用户区）。
+async function loadUser() {
+  try {
+    const r = await fetch(`${API}/auth/me`, { credentials: "same-origin" });
+    const ua = document.getElementById("user-area");
+    if (!r.ok) { if (ua) ua.hidden = true; return; }
+    const u = await r.json();
+    currentUser = u;
+    if (ua) ua.hidden = false;
+    const greet = document.getElementById("user-greeting");
+    if (greet) greet.textContent = "你好，" + (u.username || "");
+    fillProfile(u);
+  } catch (e) { /* 后端不可达时交由 probeBackend 提示，这里静默 */ }
+}
+
+function fillProfile(u) {
+  const pu = document.getElementById("pf-username");
+  const pe = document.getElementById("pf-email");
+  if (pu) pu.textContent = u && u.username ? u.username : "—";
+  if (pe) pe.textContent = u && u.email ? u.email : "（未填写）";
+}
+
+function bindUser() {
+  const logout = document.getElementById("logout-btn");
+  if (logout) logout.addEventListener("click", async () => {
+    try {
+      await fetch(`${API}/auth/logout`, { method: "POST", credentials: "same-origin" });
+    } catch (e) { /* 忽略网络错误，仍跳转 */ }
+    // 退出后回登录页（守卫会把未登录的 /explore 跳回 /login?next=/explore/）
+    location.href = "/login?next=/explore/";
+  });
+  const prof = document.getElementById("profile-btn");
+  if (prof) prof.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const p = document.getElementById("profile-panel");
+    if (p) p.hidden = !p.hidden;
+  });
+  // 点页面其它区域时关闭个人信息浮层
+  document.addEventListener("click", (e) => {
+    const p = document.getElementById("profile-panel");
+    const btn = document.getElementById("profile-btn");
+    if (p && !p.hidden && btn && !btn.contains(e.target) && !p.contains(e.target)) p.hidden = true;
+  });
+}
+
 /* ---------------- 启动 ---------------- */
 // 全局错误兜底：任何未捕获异常都显式暴露，避免「静默失败 → 误以为功能无效」。
 window.addEventListener("error", (ev) => {
@@ -1259,6 +1307,8 @@ window.addEventListener("unhandledrejection", (ev) => {
 
 initNetwork();
 bind();
+bindUser();       // 绑定退出登录 / 个人信息
+loadUser();       // 拉取当前登录用户，显示用户区与个人信息
 probeBackend();   // 后台探测后端可达性；不可达时弹出醒目横幅 + 修复指引
 loadTagOptions();  // 填充「渲染种子」的标签多选框（类型节点）
 loadTable(true);   // 进入即填充表格，方便从任意节点开始探索

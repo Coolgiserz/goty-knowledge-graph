@@ -187,6 +187,12 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   .msg { margin-top: 14px; font-size: 13px; min-height: 18px; }
   .msg.err { color: #f87171; }
   .msg.ok { color: #4ade80; }
+  .profile-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px;
+    padding: 9px 0; border-bottom: 1px solid #334155; }
+  .profile-row:last-of-type { border-bottom: 0; }
+  .profile-row span { color: #94a3b8; }
+  .profile-row b { font-weight: 600; word-break: break-all; }
+  .profile-row b.ok { color: #4ade80; }
   .panel { display: none; }
   .panel.active { display: block; }
 </style>
@@ -321,6 +327,36 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       });
     }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
   }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  // 已登录用户直接访问 /login：展示个人信息 + 退出登录，而非登录表单
+  function checkLoggedIn() {
+    fetch("/api/auth/me", { credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) return;
+      return r.json().then(function (u) {
+        var card = document.querySelector(".card");
+        if (!card) return;
+        card.innerHTML =
+          '<h1>GOTY 知识图谱</h1>' +
+          '<p class="sub">你已登录</p>' +
+          '<div class="profile-row"><span>用户名</span><b>' + escapeHtml(u.username) + '</b></div>' +
+          '<div class="profile-row"><span>邮箱</span><b>' + escapeHtml(u.email || "（未填写）") + '</b></div>' +
+          '<div class="profile-row"><span>会话状态</span><b class="ok">已登录</b></div>' +
+          '<button class="submit" id="logout-now">退出登录</button>';
+        var lb = document.getElementById("logout-now");
+        if (lb) lb.addEventListener("click", function () {
+          fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
+            .then(function () { location.href = "/login"; })
+            .catch(function () { location.href = "/login"; });
+        });
+      });
+    }).catch(function () {});
+  }
+  checkLoggedIn();
 </script>
 </body>
 </html>
