@@ -28,7 +28,11 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # 用户名规则：3-32 位，字母/数字/._-/，避免空白与特殊字符注入。
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
+# 邮箱规则（基础格式校验：含 @ 且 @ 前后及域名含点；非 RFC 全量，足够挡住明显错误）。
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# 密码规则：至少 8 位，且同时包含字母与数字（基本强度要求，挡住弱口令）。
 PASSWORD_MIN_LEN = 8
+PASSWORD_RE = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).+$")
 
 
 class RegisterRequest(BaseModel):
@@ -64,8 +68,14 @@ async def register(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="registration_closed")
     if not USERNAME_RE.match(req.username):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_username")
-    if not req.password or len(req.password) < PASSWORD_MIN_LEN:
+    if (
+        not req.password
+        or len(req.password) < PASSWORD_MIN_LEN
+        or not PASSWORD_RE.match(req.password)
+    ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="weak_password")
+    if req.email and not EMAIL_RE.match(req.email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_email")
     if store is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="auth_store_unavailable"
@@ -156,7 +166,7 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     background: #0f172a; color: #e2e8f0;
   }
   .card {
-    width: 360px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
+    width: 380px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
     background: #1e293b; box-shadow: 0 10px 40px rgba(0,0,0,.35);
   }
   h1 { font-size: 19px; margin: 0 0 4px; }
@@ -168,6 +178,9 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   label { display: block; font-size: 13px; margin: 12px 0 6px; color: #cbd5e1; }
   input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #475569;
     background: #0f172a; color: #e2e8f0; font-size: 14px; }
+  input:focus { outline: none; border-color: #2563eb; }
+  .hint { font-size: 12px; color: #64748b; margin-top: 5px; line-height: 1.4; }
+  .field-err { font-size: 12px; color: #f87171; margin-top: 5px; min-height: 16px; }
   button.submit { margin-top: 18px; width: 100%; padding: 11px; border: 0; border-radius: 8px;
     background: #2563eb; color: #fff; font-size: 15px; cursor: pointer; }
   button.submit:hover { background: #1d4ed8; }
@@ -190,18 +203,24 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     <div class="panel active" id="panel-login">
       <label for="l-user">用户名</label>
       <input id="l-user" autocomplete="username" placeholder="用户名" />
+      <div class="field-err" id="err-l-user"></div>
       <label for="l-pass">密码</label>
       <input id="l-pass" type="password" autocomplete="current-password" placeholder="密码" />
+      <div class="field-err" id="err-l-pass"></div>
       <button class="submit" onclick="doLogin()">登录</button>
     </div>
 
     <div class="panel" id="panel-register">
-      <label for="r-user">用户名（3-32 位字母/数字/._-）</label>
+      <label for="r-user">用户名</label>
       <input id="r-user" autocomplete="username" placeholder="用户名" />
+      <div class="field-err" id="err-r-user"></div>
       <label for="r-email">邮箱（可选）</label>
       <input id="r-email" autocomplete="email" placeholder="you@example.com" />
-      <label for="r-pass">密码（至少 8 位）</label>
+      <div class="field-err" id="err-r-email"></div>
+      <label for="r-pass">密码</label>
       <input id="r-pass" type="password" autocomplete="new-password" placeholder="密码" />
+      <div class="field-err" id="err-r-pass"></div>
+      <div class="hint">密码至少 8 位，且需同时包含字母和数字。</div>
       <button class="submit" onclick="doRegister()">注册并登录</button>
     </div>
 
@@ -209,56 +228,98 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   </div>
 
 <script>
+  // 与后端一致的校验规则（仅前端体验层，最终以服务端为准）
+  var USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
+  var EMAIL_RE = /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/;
+  var PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\\d).+$/;
+
   function switchTab(name) {
     document.getElementById("tab-login").classList.toggle("active", name === "login");
     document.getElementById("tab-register").classList.toggle("active", name === "register");
     document.getElementById("panel-login").classList.toggle("active", name === "login");
     document.getElementById("panel-register").classList.toggle("active", name === "register");
-    setMsg("");
+    clearAllErrors();
   }
   function setMsg(text, kind) {
-    const el = document.getElementById("msg");
+    var el = document.getElementById("msg");
     el.textContent = text || "";
     el.className = "msg" + (kind ? " " + kind : "");
   }
+  function setFieldErr(id, text) {
+    document.getElementById(id).textContent = text || "";
+  }
+  function clearAllErrors() {
+    ["err-l-user","err-l-pass","err-r-user","err-r-email","err-r-pass"].forEach(function (id) {
+      setFieldErr(id, "");
+    });
+    setMsg("");
+  }
+  // 服务端错误码 -> 中文提示
+  function zhError(detail) {
+    var map = {
+      "username_taken": "该用户名已被注册，请更换一个",
+      "weak_password": "密码至少 8 位，且需同时包含字母和数字",
+      "invalid_username": "用户名格式不正确（3-32 位，仅含字母、数字、. _ -）",
+      "invalid_email": "邮箱格式不正确",
+      "invalid_credentials": "用户名或密码错误",
+      "registration_closed": "注册已关闭，暂不支持自助注册",
+      "auth_store_unavailable": "认证服务暂时不可用，请稍后再试"
+    };
+    return map[detail] || ("操作失败：" + (detail || "请重试"));
+  }
   function nextUrl() {
-    const p = new URLSearchParams(location.search).get("next");
+    var p = new URLSearchParams(location.search).get("next");
     return (p && p.startsWith("/")) ? p : "/explore/";
   }
-  async function doLogin() {
-    setMsg("");
-    const body = { username: document.getElementById("l-user").value.trim(),
-                   password: document.getElementById("l-pass").value };
-    if (!body.username || !body.password) { setMsg("请输入用户名和密码", "err"); return; }
-    try {
-      const r = await fetch("/api/auth/login", {
-        method: "POST", headers: {"Content-Type": "application/json"},
-        credentials: "same-origin", body: JSON.stringify(body)
-      });
-      if (!r.ok) { setMsg((await r.json()).detail || "登录失败", "err"); return; }
-      location.href = nextUrl();
-    } catch (e) { setMsg("网络错误", "err"); }
+  function doLogin() {
+    clearAllErrors();
+    var username = document.getElementById("l-user").value.trim();
+    var password = document.getElementById("l-pass").value;
+    if (!username) { setFieldErr("err-l-user", "请输入用户名"); return; }
+    if (!password) { setFieldErr("err-l-pass", "请输入密码"); return; }
+    fetch("/api/auth/login", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({ username: username, password: password })
+    }).then(function (r) {
+      if (r.ok) { location.href = nextUrl(); return; }
+      return r.json().then(function (j) { setMsg(zhError(j.detail), "err"); });
+    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
   }
-  async function doRegister() {
-    setMsg("");
-    const body = { username: document.getElementById("r-user").value.trim(),
-                   email: document.getElementById("r-email").value.trim(),
-                   password: document.getElementById("r-pass").value };
-    if (!body.username || !body.password) { setMsg("请输入用户名和密码", "err"); return; }
-    try {
-      let r = await fetch("/api/auth/register", {
-        method: "POST", headers: {"Content-Type": "application/json"},
-        credentials: "same-origin", body: JSON.stringify(body)
+  function doRegister() {
+    clearAllErrors();
+    var username = document.getElementById("r-user").value.trim();
+    var email = document.getElementById("r-email").value.trim();
+    var password = document.getElementById("r-pass").value;
+    // 前端预校验（中文提示），后端仍会再次校验
+    if (!USERNAME_RE.test(username)) {
+      setFieldErr("err-r-user", "用户名需为 3-32 位，仅含字母、数字、. _ -");
+      return;
+    }
+    if (email && !EMAIL_RE.test(email)) {
+      setFieldErr("err-r-email", "邮箱格式不正确");
+      return;
+    }
+    if (!password || password.length < 8 || !PASSWORD_RE.test(password)) {
+      setFieldErr("err-r-pass", "密码至少 8 位，且需同时包含字母和数字");
+      return;
+    }
+    fetch("/api/auth/register", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({ username: username, email: email, password: password })
+    }).then(function (r) {
+      if (r.ok) { location.href = nextUrl(); return; }  // 注册成功即自动登录（已写会话 Cookie）
+      return r.json().then(function (j) {
+        // 把服务端错误归位到对应字段（重名 / 邮箱 / 密码等）
+        var d = j.detail;
+        if (d === "username_taken") setFieldErr("err-r-user", zhError(d));
+        else if (d === "invalid_email") setFieldErr("err-r-email", zhError(d));
+        else if (d === "invalid_username") setFieldErr("err-r-user", zhError(d));
+        else if (d === "weak_password") setFieldErr("err-r-pass", zhError(d));
+        else setMsg(zhError(d), "err");
       });
-      if (!r.ok) { setMsg((await r.json()).detail || "注册失败", "err"); return; }
-      // 注册成功后自动登录
-      r = await fetch("/api/auth/login", {
-        method: "POST", headers: {"Content-Type": "application/json"},
-        credentials: "same-origin", body: JSON.stringify(body)
-      });
-      if (!r.ok) { setMsg((await r.json()).detail || "登录失败", "err"); return; }
-      location.href = nextUrl();
-    } catch (e) { setMsg("网络错误", "err"); }
+    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
   }
 </script>
 </body>

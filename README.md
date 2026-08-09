@@ -229,6 +229,8 @@ site/explorer/               # 探索 SPA（原生 ES Module，无构建步骤�
 - **「全部免登录」调试开关**：`GOTY_AUTH_ENABLED=false` 即关闭整个账号体系——不要求任何登录、`/explore` 与计算接口直接放行、界面**隐藏登录/注册入口**（`/login` 改为「登录已关闭」提示页、审计用户身份留空）。仅用于本地调试，**生产务必保持 `true`**。前端可经 `GET /api/meta` 的 `auth_enabled` 字段感知当前模式，自行决定是否展示登录入口。
 - **凭据安全（传输与存储）**：① 密码经 **bcrypt** 加盐哈希存储，库中**绝不存明文**；② 审计日志写入前对请求/响应体中的 `password` / `token` 等敏感字段**自动脱敏**（遮蔽为 `***`），登录/注册接口的明文密码不会进入审计文件或审计库；③ 会话 Cookie 为 **HttpOnly + SameSite=Lax**，且生产（`GOTY_SESSION_COOKIE_SECURE=true`）下带 **Secure** 标记、仅经 HTTPS 下发，并同时下发 **HSTS**（`Strict-Transport-Security`）强制客户端仅走 TLS；④ 登录/注册响应**不回显密码**。因此用户名/密码只在客户端到服务端之间以 **HTTPS 加密通道**传输，服务端落库与落日志均不含明文密码。
 
+- **注册字段校验（前后端一致）**：内置登录页（`GET /login`）在前端对用户名/邮箱/密码做**字段级中文错误提示**；服务端会再次校验，错误码统一映射为中文（如 `username_taken` →「该用户名已被注册」）。规则：① 用户名 `^[A-Za-z0-9_.-]{3,32}$`（3-32 位，仅字母/数字/`. _ -`），**不允许重名**（`409 username_taken`）；② 邮箱为可选但**若填写必须格式正确**（`invalid_email`）；③ 密码**至少 8 位且同时含字母与数字**（`weak_password`）。前端预校验拦截后不会发请求；后端为最终权威。
+
 > 部署硬性要求：账号体系依赖 **HTTPS（TLS）** 承载——凭据明文仅在 TLS 加密通道内传输，明文 HTTP 部署会使凭据可被窃听。生产请将反向代理/网关配置为 TLS 终止，并把 `GOTY_SESSION_COOKIE_SECURE=true`。本地 http 开发（`false`）仅用于调试，切勿暴露到公网。
 
 > 设计取舍：认证与「探索总开关 `GOTY_ENABLE_EXPLORATION`」正交——auth 关闭则整站回退匿名流程（守卫与门禁全放行，`/explore` 与计算接口不再要求登录）；auth 开启但 `GOTY_EXPLORE_REQUIRES_AUTH=false` 时，仅计算接口要求登录、探索页导航不拦截。两套存储（`api/auth/store.py` 用户库 vs `api/audit/store.py` 审计库）**独立建库**，请勿共用同一文件。

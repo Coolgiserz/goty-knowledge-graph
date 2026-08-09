@@ -55,7 +55,7 @@ def _auth_client(tmp_path, **over) -> TestClient:
 def test_register_auto_logs_in_and_me(client_auth):
     r = client_auth.post(
         "/api/auth/register",
-        json={"username": "alice", "password": "supersecret", "email": "a@x.com"},
+        json={"username": "alice", "password": "supersecret1", "email": "a@x.com"},
     )
     assert r.status_code == 200
     assert r.json()["username"] == "alice"
@@ -67,14 +67,14 @@ def test_register_auto_logs_in_and_me(client_auth):
 
 
 def test_login_wrong_password(client_auth):
-    client_auth.post("/api/auth/register", json={"username": "bob", "password": "supersecret"})
+    client_auth.post("/api/auth/register", json={"username": "bob", "password": "supersecret1"})
     r = client_auth.post("/api/auth/login", json={"username": "bob", "password": "nope"})
     assert r.status_code == 401
 
 
 def test_duplicate_username(client_auth):
-    client_auth.post("/api/auth/register", json={"username": "carol", "password": "supersecret"})
-    r = client_auth.post("/api/auth/register", json={"username": "carol", "password": "otherpass"})
+    client_auth.post("/api/auth/register", json={"username": "carol", "password": "supersecret1"})
+    r = client_auth.post("/api/auth/register", json={"username": "carol", "password": "otherpass1"})
     assert r.status_code == 409
 
 
@@ -84,18 +84,59 @@ def test_weak_password_rejected(client_auth):
 
 
 def test_invalid_username_rejected(client_auth):
-    r = client_auth.post("/api/auth/register", json={"username": "a", "password": "supersecret"})
+    r = client_auth.post("/api/auth/register", json={"username": "a", "password": "supersecret1"})
     assert r.status_code == 400
+
+
+def test_invalid_email_rejected(client_auth):
+    # 邮箱格式错误 -> 400 invalid_email
+    r = client_auth.post(
+        "/api/auth/register",
+        json={"username": "erin", "password": "supersecret1", "email": "not-an-email"},
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "invalid_email"
+
+
+def test_password_requires_letter_and_digit(client_auth):
+    # 纯字母（虽 ≥8 位）缺数字 -> 400 weak_password
+    r = client_auth.post("/api/auth/register", json={"username": "finn", "password": "allletters"})
+    assert r.status_code == 400
+    assert r.json()["detail"] == "weak_password"
+
+
+def test_register_accepts_valid_email(client_auth):
+    r = client_auth.post(
+        "/api/auth/register",
+        json={"username": "gabe", "password": "supersecret1", "email": "gabe@example.com"},
+    )
+    assert r.status_code == 200
+    assert r.json()["email"] == "gabe@example.com"
+    me = client_auth.get("/api/auth/me")
+    assert me.json()["email"] == "gabe@example.com"
+
+
+def test_login_page_shows_validation_hints(tmp_path):
+    # 认证开启时，/login 页面对用户名的规则、邮箱格式、密码规则给出中文提示，
+    # 且包含把服务端错误码翻译为中文的映射（前端预校验体验）。
+    c = _auth_client(tmp_path, auth_enabled=True)
+    r = c.get("/login")
+    assert r.status_code == 200
+    text = r.text
+    assert "密码至少 8 位，且需同时包含字母和数字" in text
+    assert "邮箱格式不正确" in text
+    assert "该用户名已被注册" in text  # username_taken 中文映射
+    assert "doRegister" in text and "doLogin" in text  # 表单逻辑在位
 
 
 def test_registration_closed(tmp_path):
     c = _auth_client(tmp_path, auth_registration_open=False)
-    r = c.post("/api/auth/register", json={"username": "eve", "password": "supersecret"})
+    r = c.post("/api/auth/register", json={"username": "eve", "password": "supersecret1"})
     assert r.status_code == 403
 
 
 def test_logout_clears_session(client_auth):
-    client_auth.post("/api/auth/register", json={"username": "frank", "password": "supersecret"})
+    client_auth.post("/api/auth/register", json={"username": "frank", "password": "supersecret1"})
     assert client_auth.get("/api/auth/me").status_code == 200
     assert client_auth.post("/api/auth/logout").status_code == 200
     assert client_auth.get("/api/auth/me").status_code == 401
@@ -107,7 +148,7 @@ def test_jobs_requires_login(client_auth):
 
 
 def test_jobs_allowed_when_logged_in(client_auth, stub_run_board):
-    client_auth.post("/api/auth/register", json={"username": "grace", "password": "supersecret"})
+    client_auth.post("/api/auth/register", json={"username": "grace", "password": "supersecret1"})
     r = client_auth.post("/api/jobs", json={"board": "community", "params": {}})
     assert r.status_code == 200
     # owner 归属为登录用户名（审计 / 队列可按用户维度追溯）
@@ -119,7 +160,7 @@ def test_board_requires_login(client_auth, stub_run_board):
     r = client_auth.post("/api/board/community", json={"params": {}})
     assert r.status_code == 401
     # 登录后 -> 200
-    client_auth.post("/api/auth/register", json={"username": "heidi", "password": "supersecret"})
+    client_auth.post("/api/auth/register", json={"username": "heidi", "password": "supersecret1"})
     r2 = client_auth.post("/api/board/community", json={"params": {}})
     assert r2.status_code == 200
 
@@ -132,7 +173,7 @@ def test_explore_requires_login_redirects(tmp_path):
     assert "/login" in r.headers["location"]
     # 登录后不再跳转（注意：路由会把 /explore 永久规范化为 /explore/，这是正常的 307，
     # 与「未登录跳 /login」的守卫 307 无关；这里直接访问 /explore/ 验证守卫放行）。
-    c.post("/api/auth/register", json={"username": "ivan", "password": "supersecret"})
+    c.post("/api/auth/register", json={"username": "ivan", "password": "supersecret1"})
     r2 = c.get("/explore/", follow_redirects=False)
     assert "/login" not in r2.headers.get("location", "")
 
@@ -144,7 +185,7 @@ def test_audit_records_username(tmp_path):
         audit_db_url=f"sqlite:///{tmp_path}/audit.db",
         audit_log_file="",
     )
-    c.post("/api/auth/register", json={"username": "judy", "password": "supersecret"})
+    c.post("/api/auth/register", json={"username": "judy", "password": "supersecret1"})
     c.get("/api/meta")  # 携带会话 Cookie -> 审计应记录用户名
 
     store = c.app.state.audit_store
