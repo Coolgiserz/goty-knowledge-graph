@@ -88,6 +88,30 @@ class Settings(BaseSettings):
     # 探索页（/explore）是否要求已登录；auth_enabled 关闭时此开关自动失效。
     explore_requires_auth: bool = True
 
+    # ---- 邮箱验证（注册必填邮箱 + 验证前禁止登录）----
+    # 两个开关默认开启（新功能默认开启，但通过迁移保证不破坏存量、可一键降级）。
+    # auth_email_required：自助注册是否强制填写合法邮箱（空邮箱 -> 400 email_required）。
+    # auth_require_email_verified：硬策略——未验证邮箱禁止登录（401 email_not_verified）。
+    #   关闭则为软策略：注册即自动登录，邮箱验证仅作记录、不阻断登录。
+    auth_email_required: bool = True
+    auth_require_email_verified: bool = True
+    # 验证令牌有效期（秒），默认 1 小时；短 TTL + 单次有效降低泄露危害。
+    email_verify_ttl_seconds: int = 3600
+
+    # ---- 邮件发送（零依赖：标准库 smtplib，不引入第三方包）----
+    # mail_mode：off（纯本地调试，send 直接 no-op，令牌改由接口回显）/ console（仅打印链接到日志）/
+    #            smtp（经标准库发真实邮件，本地可用 MailHog 指向 localhost:1025）。
+    mail_mode: str = "console"
+    # 验证链接的公网基址（容器内部 localhost 不可用时由运维指定，如 https://example.com）。
+    app_public_url: str = ""
+    # 发件人地址（留空时退化为 no-reply@goty.local，仅影响邮件头 From）。
+    mail_from: str = ""
+    # SMTP 连接信息（mail_mode=smtp 时使用）；本地默认指向 MailHog（无鉴权、无 TLS）。
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: str = ""
+
     # ---- 访问控制：UA 策略（拦截明显爬虫，仅放行真实浏览器）----
     # 默认开启：拦截疑似爬虫/脚本 UA（命中 bot_ua_blocklist 即 403），并拦截**空 UA**
     # （扫描器常见特征）。运维内部报表接口 ``/api/admin`` 前缀**豁免** UA 拦截，

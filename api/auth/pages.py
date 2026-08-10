@@ -72,7 +72,7 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       <div class="tab" id="tab-register" onclick="switchTab('register')">注册</div>
     </div>
 
-    <div class="panel active" id="panel-login">
+      <div class="panel active" id="panel-login">
       <label for="l-user">用户名</label>
       <input id="l-user" autocomplete="username" placeholder="用户名" />
       <div class="field-err" id="err-l-user"></div>
@@ -80,20 +80,30 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       <input id="l-pass" type="password" autocomplete="current-password" placeholder="密码" />
       <div class="field-err" id="err-l-pass"></div>
       <button class="submit" onclick="doLogin()">登录</button>
+      <div class="hint" id="resend-area" style="margin-top:14px;display:none">
+        没有收到验证邮件？
+        <a href="#" onclick="toggleResend();return false;">重发验证邮件</a>
+        <div id="resend-box" style="display:none;margin-top:8px">
+          <input id="resend-email" autocomplete="email" placeholder="注册时填写的邮箱" />
+          <button class="submit" style="margin-top:8px" onclick="doResend()">发送</button>
+          <div class="msg" id="resend-msg" style="min-height:16px"></div>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="panel-register">
       <label for="r-user">用户名</label>
       <input id="r-user" autocomplete="username" placeholder="用户名" />
       <div class="field-err" id="err-r-user"></div>
-      <label for="r-email">邮箱（可选）</label>
+      <label for="r-email" id="lbl-r-email">邮箱</label>
       <input id="r-email" autocomplete="email" placeholder="you@example.com" />
       <div class="field-err" id="err-r-email"></div>
+      <div class="hint" id="hint-r-email">用于接收验证邮件；注册后需验证邮箱才能登录。</div>
       <label for="r-pass">密码</label>
       <input id="r-pass" type="password" autocomplete="new-password" placeholder="密码" />
       <div class="field-err" id="err-r-pass"></div>
       <div class="hint">密码至少 8 位，且需同时包含字母和数字。</div>
-      <button class="submit" onclick="doRegister()">注册并登录</button>
+      <button class="submit" onclick="doRegister()">注册</button>
     </div>
 
     <div class="msg" id="msg"></div>
@@ -133,6 +143,10 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       "weak_password": "密码至少 8 位，且需同时包含字母和数字",
       "invalid_username": "用户名格式不正确（3-32 位，仅含字母、数字、. _ -）",
       "invalid_email": "邮箱格式不正确",
+      "email_required": "请填写邮箱",
+      "email_not_verified": "请先验证邮箱后再登录",
+      "invalid_or_expired_token": "验证链接无效或已过期",
+      "already_verified": "该邮箱已验证",
       "invalid_credentials": "用户名或密码错误",
       "registration_closed": "注册已关闭，暂不支持自助注册",
       "auth_store_unavailable": "认证服务暂时不可用，请稍后再试"
@@ -155,7 +169,17 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       body: JSON.stringify({ username: username, password: password })
     }).then(function (r) {
       if (r.ok) { location.href = nextUrl(); return; }
-      return r.json().then(function (j) { setMsg(zhError(j.detail), "err"); });
+      return r.json().then(function (j) {
+        var d = j.detail;
+        if (d === "email_not_verified") {
+          // 未验证邮箱：明确提示并露出「重发验证邮件」入口。
+          setMsg(zhError(d), "err");
+          var ra = document.getElementById("resend-area");
+          if (ra) ra.style.display = "block";
+          return;
+        }
+        setMsg(zhError(d), "err");
+      });
     }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
   }
   function doRegister() {
@@ -181,17 +205,64 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       credentials: "same-origin",
       body: JSON.stringify({ username: username, email: email, password: password })
     }).then(function (r) {
-      if (r.ok) { location.href = nextUrl(); return; }  // 注册成功即自动登录（已写会话 Cookie）
+      if (r.ok) {
+        // 硬策略下注册不自动登录（email_verified=false），需先验证邮箱。
+        return r.json().then(function (j) {
+          if (j.email_verified === false) {
+            setMsg("注册成功！请查收验证邮件完成邮箱验证后再登录。", "ok");
+            switchTab("login");
+            return;
+          }
+          location.href = nextUrl();  // 软策略：注册即自动登录
+        });
+      }
       return r.json().then(function (j) {
         // 把服务端错误归位到对应字段（重名 / 邮箱 / 密码等）
         var d = j.detail;
         if (d === "username_taken") setFieldErr("err-r-user", zhError(d));
         else if (d === "invalid_email") setFieldErr("err-r-email", zhError(d));
+        else if (d === "email_required") setFieldErr("err-r-email", zhError(d));
         else if (d === "invalid_username") setFieldErr("err-r-user", zhError(d));
         else if (d === "weak_password") setFieldErr("err-r-pass", zhError(d));
         else setMsg(zhError(d), "err");
       });
     }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
+  }
+
+  function toggleResend() {
+    var box = document.getElementById("resend-box");
+    if (box) box.style.display = (box.style.display === "none") ? "block" : "none";
+  }
+  function doResend() {
+    var email = document.getElementById("resend-email").value.trim();
+    var msg = document.getElementById("resend-msg");
+    if (!email) { msg.className = "msg err"; msg.textContent = "请输入邮箱"; return; }
+    fetch("/api/auth/request-verification", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({ email: email })
+    }).then(function () {
+      // 恒返回 200（防枚举），统一提示「若邮箱存在且未验证则已发送」。
+      msg.className = "msg ok";
+      msg.textContent = "若该邮箱已注册且未验证，验证邮件已（重新）发送，请查收。";
+    }).catch(function () { msg.className = "msg err"; msg.textContent = "网络错误，请稍后再试"; });
+  }
+
+  function loadMeta() {
+    fetch("/api/meta", { credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) return;
+      return r.json().then(function (m) {
+        // 邮箱是否必填：动态更新标签与提示，并露出「重发验证邮件」。
+        if (m.auth_email_required) {
+          var lbl = document.getElementById("lbl-r-email");
+          if (lbl) lbl.textContent = "邮箱（必填）";
+          var hint = document.getElementById("hint-r-email");
+          if (hint) hint.textContent = "用于接收验证邮件；注册必填，且需验证后才能登录。";
+        }
+        var ra = document.getElementById("resend-area");
+        if (ra) ra.style.display = "block";  // 验证相关入口默认露出（无害）
+      });
+    }).catch(function () {});
   }
 
   function escapeHtml(s) {
@@ -223,6 +294,7 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     }).catch(function () {});
   }
   checkLoggedIn();
+  loadMeta();
 </script>
 </body>
 </html>
@@ -271,3 +343,83 @@ def login_page() -> HTMLResponse:
 def login_page_disabled() -> HTMLResponse:
     """认证关闭时返回「登录已关闭」提示页（无登录/注册表单）。"""
     return HTMLResponse(LOGIN_DISABLED_HTML)
+
+
+# ---------------------------------------------------------------------------
+# 邮箱验证确认页（邮件链接落地页：GET /verify-email?token=...）
+# ---------------------------------------------------------------------------
+
+VERIFY_EMAIL_PAGE_HTML = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>验证邮箱 · GOTY 知识图谱</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f172a; color: #e2e8f0;
+  }
+  .card { width: 400px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
+    background: #1e293b; box-shadow: 0 10px 40px rgba(0,0,0,.35); text-align: center; }
+  h1 { font-size: 19px; margin: 0 0 12px; }
+  .msg { font-size: 14px; line-height: 1.6; margin: 6px 0 18px; }
+  .msg.err { color: #f87171; }
+  .msg.ok { color: #4ade80; }
+  .spin { font-size: 13px; color: #94a3b8; }
+  button { padding: 11px 18px; border: 0; border-radius: 8px; background: #2563eb; color: #fff;
+    font-size: 15px; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  a { color: #60a5fa; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>邮箱验证</h1>
+    <div class="msg spin" id="status">正在验证，请稍候…</div>
+    <button id="to-login" style="display:none" onclick="location.href='/login'">去登录</button>
+  </div>
+<script>
+  function getToken() {
+    return new URLSearchParams(location.search).get("token") || "";
+  }
+  function show(kind, text) {
+    var el = document.getElementById("status");
+    el.className = "msg " + kind;
+    el.textContent = text;
+    if (kind === "ok") document.getElementById("to-login").style.display = "inline-block";
+  }
+  function verify() {
+    var token = getToken();
+    if (!token) { show("err", "验证链接不完整（缺少 token）。"); return; }
+    fetch("/api/auth/verify-email", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({ token: token })
+    }).then(function (r) {
+      if (r.ok) { show("ok", "邮箱验证成功！现在可以使用该邮箱登录了。"); return; }
+      return r.json().then(function (j) {
+        var map = {
+          "invalid_or_expired_token": "验证链接无效或已过期，请重新获取验证邮件。",
+          "already_verified": "该邮箱已验证，直接登录即可。",
+          "email_required": "请先填写邮箱。",
+          "auth_store_unavailable": "认证服务暂时不可用，请稍后再试。"
+        };
+        show("err", map[j.detail] || ("验证失败：" + (j.detail || "请重试")));
+      });
+    }).catch(function () { show("err", "网络错误，请稍后再试。"); });
+  }
+  verify();
+</script>
+</body>
+</html>
+"""
+
+
+def verify_email_page() -> HTMLResponse:
+    """返回邮箱验证确认页（由 ``api.app`` 以 ``GET /verify-email`` 挂载）。"""
+    return HTMLResponse(VERIFY_EMAIL_PAGE_HTML)

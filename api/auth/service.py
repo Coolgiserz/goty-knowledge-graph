@@ -16,9 +16,10 @@
 from __future__ import annotations
 
 import re
+import secrets
 
 from .models import User
-from .store import UserStore
+from .store import TokenStore, UserStore
 
 # ---- 业务规则常量（收敛于此，路由 / 存储均不重复定义）----
 # 用户名：3-32 位，字母/数字/._-/，避免空白与特殊字符注入。
@@ -75,6 +76,16 @@ class InvalidCredentials(AuthError):
         super().__init__(401, "invalid_credentials", "用户名或密码错误")
 
 
+class EmailRequired(AuthError):
+    def __init__(self) -> None:
+        super().__init__(400, "email_required", "请填写邮箱")
+
+
+class EmailNotVerified(AuthError):
+    def __init__(self) -> None:
+        super().__init__(401, "email_not_verified", "请先验证邮箱后再登录")
+
+
 async def register_user(
     store: UserStore | None,
     username: str,
@@ -82,12 +93,16 @@ async def register_user(
     email: str,
     *,
     registration_open: bool,
+    email_required: bool = False,
 ) -> User:
     """注册新用户（业务校验集中在此）。
 
-    成功返回新建 ``User``；任何业务规则不满足抛出对应 :class:`AuthError`，由路由翻译为响应。
-    注意：本函数只创建用户，**不负责登录**（会话写入由路由在拿到 user 后调
-    :func:`create_session_for` 完成），保持单一职责。
+    成功返回新建 ``User``（``email_verified=False``）；任何业务规则不满足抛出对应
+    :class:`AuthError`，由路由翻译为响应。本函数只创建用户，**不负责登录**（会话写入由路由
+    在拿到 user 后调 :func:`create_session_for` 完成），保持单一职责。
+
+    - ``email_required``：开启时邮箱为空 -> :class:`EmailRequired`（硬策略前置条件）。
+    - 邮箱非空时的格式校验始终生效（``EmailRequired`` 与 ``InvalidEmail`` 分列，前端可归位）。
     """
     if not registration_open:
         raise RegistrationClosed()
@@ -95,12 +110,15 @@ async def register_user(
         raise InvalidUsername()
     if not password or len(password) < PASSWORD_MIN_LEN or not PASSWORD_RE.match(password):
         raise WeakPassword()
+    # 邮箱：必填策略下空邮箱直接拒绝；非空时才校验格式。
+    if email_required and not email:
+        raise EmailRequired()
     if email and not EMAIL_RE.match(email):
         raise InvalidEmail()
     if store is None:
         raise AuthStoreUnavailable()
     try:
-        return await store.register(username, password, email)
+        return await store.register(username, password, email, email_verified=False)
     except ValueError:
         # 存储层在用户名唯一约束冲突时抛 ValueError（已存在）
         raise UsernameTaken() from None
@@ -110,13 +128,21 @@ async def authenticate(
     store: UserStore | None,
     username: str,
     password: str,
+    *,
+    require_email_verified: bool = False,
 ) -> User:
-    """校验凭据；成功返回用户，失败抛 :class:`InvalidCredentials`。"""
+    """校验凭据；成功返回用户，失败抛 :class:`InvalidCredentials`。
+
+    ``require_email_verified``：硬策略开启时，邮箱未验证直接抛 :class:`EmailNotVerified`
+    （凭据本身正确，只是被邮箱验证门禁拦截），由路由翻译为 ``401``。
+    """
     if store is None:
         raise AuthStoreUnavailable()
     user = await store.authenticate(username, password)
     if user is None:
         raise InvalidCredentials()
+    if require_email_verified and not user.email_verified:
+        raise EmailNotVerified()
     return user
 
 
@@ -136,3 +162,46 @@ async def delete_session(store: UserStore | None, session_id: str | None) -> Non
     """吊销会话（登出）。``store``/``session_id`` 为空时静默无操作。"""
     if store is not None and session_id:
         await store.delete_session(session_id)
+
+
+async def create_verification_token(
+    token_store: TokenStore | None,
+    user: User,
+    ttl: int,
+) -> str:
+    """为指定用户生成并存储邮箱验证令牌，返回令牌字符串。
+
+    令牌为 32 字节 URL-safe 随机值（与 ``SessionRow.id`` 同源），单次有效、短 TTL；
+    覆盖旧令牌使重发幂等。``token_store`` 为空（auth 关闭 / 惰性）时抛
+    :class:`AuthStoreUnavailable`。
+    """
+    if token_store is None:
+        raise AuthStoreUnavailable()
+    token = secrets.token_urlsafe(32)
+    await token_store.create(user.id, token, ttl)
+    return token
+
+
+async def verify_email(
+    store: UserStore | None,
+    token_store: TokenStore | None,
+    token: str,
+) -> User:
+    """消费验证令牌并把用户标记为已验证，返回用户。
+
+    - 令牌不存在 / 过期 -> ``AuthError(400, "invalid_or_expired_token")``。
+    - 令牌有效但邮箱已验证（重复点击）-> ``AuthError(409, "already_verified")``。
+    - 成功：``store.mark_verified`` 置 ``email_verified=True`` 后返回用户。
+    """
+    if token_store is None or store is None:
+        raise AuthStoreUnavailable()
+    user_id = await token_store.consume(token)  # 原子：校验未过期 + 取 user_id + 删行
+    if user_id is None:
+        raise AuthError(400, "invalid_or_expired_token", "验证链接无效或已过期")
+    user = await store.get_user(user_id)
+    if user is None:
+        raise AuthError(400, "invalid_or_expired_token", "验证链接无效或已过期")
+    if user.email_verified:
+        raise AuthError(409, "already_verified", "该邮箱已验证")
+    await store.mark_verified(user.id)
+    return user

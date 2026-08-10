@@ -6,12 +6,15 @@
 
 import asyncio
 import os
+import re
 
 import pytest
 from api.app import create_app
 from api.audit.models import AuditLog
+from api.auth.store import DbEmailTokenStore, SyncUserStore, UserStore
 from api.config import Settings
 from api.registry import run_board as _real_run_board
+from api.routers.auth import _resend_limiter
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -44,6 +47,10 @@ def _auth_client(tmp_path, **over) -> TestClient:
     kwargs = {
         "enable_exploration": True,
         "explore_token": "",
+        # 基线认证用例固定关闭邮箱验证开关，保持「注册即自动登录、邮箱可选」的旧行为，
+        # 使既有回归用例不受新功能影响；邮箱验证流程由下方专用用例（_verify_client）覆盖。
+        "auth_email_required": False,
+        "auth_require_email_verified": False,
         "users_db_url": f"sqlite:///{tmp_path}/users.db",
     }
     kwargs.update(over)
@@ -269,3 +276,168 @@ def test_bypass_mode_allows_anonymous(tmp_path, stub_run_board):
     assert "/login" not in r.headers.get("location", "")
     r2 = c.post("/api/jobs", json={"board": "community", "params": {}})
     assert r2.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# 邮箱验证功能（auth_email_required / auth_require_email_verified 开启时）
+# ---------------------------------------------------------------------------
+
+
+class _CapturingMail:
+    """测试用邮件发送器：捕获验证链接中的 token，便于在 off/console 模式下断言流程。"""
+
+    def __init__(self) -> None:
+        self.tokens: list[str] = []
+
+    def send(self, to: str, subject: str, body: str) -> None:
+        m = re.search(r"token=([A-Za-z0-9_-]+)", body)
+        if m:
+            self.tokens.append(m.group(1))
+
+
+def _verify_client(tmp_path, **over) -> TestClient:
+    """开启邮箱验证开关的客户端（硬策略 + 注册邮箱必填）。"""
+    kwargs = {
+        "enable_exploration": True,
+        "auth_enabled": True,
+        "auth_email_required": True,
+        "auth_require_email_verified": True,
+        "mail_mode": "console",
+        "users_db_url": f"sqlite:///{tmp_path}/users.db",
+        "audit_db_url": f"sqlite:///{tmp_path}/audit.db",
+    }
+    kwargs.update(over)
+    return TestClient(create_app(Settings(**kwargs)))
+
+
+def test_register_requires_email(tmp_path):
+    # 硬策略前置：邮箱必填，空邮箱 -> 400 email_required
+    c = _verify_client(tmp_path)
+    r = c.post("/api/auth/register", json={"username": "noemail", "password": "supersecret1"})
+    assert r.status_code == 400
+    assert r.json()["detail"] == "email_required"
+
+
+def test_unverified_cannot_login(tmp_path):
+    # 硬策略：未验证邮箱禁止登录（401 email_not_verified），且注册不自动登录。
+    c = _verify_client(tmp_path)
+    reg = c.post(
+        "/api/auth/register",
+        json={"username": "unverified", "password": "supersecret1", "email": "u@x.com"},
+    )
+    assert reg.status_code == 200
+    assert reg.json()["email_verified"] is False
+    # 注册未写会话 Cookie
+    assert "goty_session" not in c.cookies
+    # 登录被拦截
+    r = c.post("/api/auth/login", json={"username": "unverified", "password": "supersecret1"})
+    assert r.status_code == 401
+    assert r.json()["detail"] == "email_not_verified"
+
+
+def test_verify_email_full_flow(tmp_path):
+    # 注册 -> 验证 -> 登录 全流程（token 经捕获的邮件发送器取得）。
+    c = _verify_client(tmp_path)
+    cap = _CapturingMail()
+    c.app.state.mail_sender = cap
+    reg = c.post(
+        "/api/auth/register",
+        json={"username": "flow", "password": "supersecret1", "email": "flow@x.com"},
+    )
+    assert reg.status_code == 200
+    assert cap.tokens, "注册应触发验证邮件"
+    token = cap.tokens[0]
+    # 验证前登录仍被拦截
+    assert (
+        c.post("/api/auth/login", json={"username": "flow", "password": "supersecret1"}).status_code
+        == 401
+    )
+    # 消费令牌
+    v = c.post("/api/auth/verify-email", json={"token": token})
+    assert v.status_code == 200
+    assert v.json()["username"] == "flow"
+    # 验证后可登录
+    login = c.post("/api/auth/login", json={"username": "flow", "password": "supersecret1"})
+    assert login.status_code == 200
+    assert login.json()["email_verified"] is True
+    # /me 可用
+    assert c.get("/api/auth/me").status_code == 200
+
+
+def test_verify_invalid_or_expired_token(tmp_path):
+    c = _verify_client(tmp_path)
+    r = c.post("/api/auth/verify-email", json={"token": "nonexistent-token"})
+    assert r.status_code == 400
+    assert r.json()["detail"] == "invalid_or_expired_token"
+
+
+def test_verify_already_verified(tmp_path):
+    # 已验证后再次消费新令牌 -> 409 already_verified
+    # 注：request-verification 接口对已验证用户故意跳过发送（防枚举），故这里直接经 service
+    # 为已验证用户再发一枚令牌，验证消费时应返回 already_verified。
+    from api.auth import service
+
+    c = _verify_client(tmp_path)
+    cap = _CapturingMail()
+    c.app.state.mail_sender = cap
+    c.post(
+        "/api/auth/register",
+        json={"username": "twice", "password": "supersecret1", "email": "t@x.com"},
+    )
+    t1 = cap.tokens[0]
+    assert c.post("/api/auth/verify-email", json={"token": t1}).status_code == 200
+    # 直接为已验证用户再发放令牌（绕过接口的「已验证则跳过」），消费应得 already_verified
+    store = c.app.state.user_store
+    token_store = c.app.state.email_token_store
+    user = asyncio.run(store.get_by_email("t@x.com"))
+    tok = asyncio.run(service.create_verification_token(token_store, user, 3600))
+    r = c.post("/api/auth/verify-email", json={"token": tok})
+    assert r.status_code == 409
+    assert r.json()["detail"] == "already_verified"
+
+
+def test_resend_idempotent_and_constant_200(tmp_path):
+    # 重发：两次均 200；旧令牌被覆盖后失效（消费幂等）。
+    _resend_limiter._buckets.clear()  # 隔离频控状态，保证确定性
+    c = _verify_client(tmp_path)
+    cap = _CapturingMail()
+    c.app.state.mail_sender = cap
+    c.post(
+        "/api/auth/register",
+        json={"username": "resend", "password": "supersecret1", "email": "r@x.com"},
+    )
+    r1 = c.post("/api/auth/request-verification", json={"email": "r@x.com"})
+    assert r1.status_code == 200
+    old = cap.tokens[-1]
+    r2 = c.post("/api/auth/request-verification", json={"email": "r@x.com"})
+    assert r2.status_code == 200  # 恒定 200（防枚举）
+    new = cap.tokens[-1]
+    assert old != new
+    # 旧令牌已被覆盖 -> 消费失败
+    assert c.post("/api/auth/verify-email", json={"token": old}).status_code == 400
+    # 新令牌可成功验证
+    assert c.post("/api/auth/verify-email", json={"token": new}).status_code == 200
+
+
+def test_cli_account_verified_by_default(tmp_path):
+    # 同步存储（CLI/脚本建号）默认 email_verified=True，可直接登录。
+    store = SyncUserStore(f"sqlite:///{tmp_path}/cli.db")
+    store.init()
+    u = store.register("cliuser", "supersecret1", "cli@x.com")
+    assert u.email_verified is True
+
+
+def test_db_token_store_consume_idempotent(tmp_path):
+    # 直接验证 DbEmailTokenStore：消费一次后即失效；过期令牌返回 None。
+    store = UserStore(f"sqlite:///{tmp_path}/tk.db")
+    store.init()
+    u = asyncio.run(store.register("tkuser", "supersecret1", "tk@x.com", email_verified=False))
+    ts = DbEmailTokenStore(store)
+    tok = "valid-token-abc"
+    asyncio.run(ts.create(u.id, tok, 3600))
+    assert asyncio.run(ts.consume(tok)) == u.id  # 首次消费返回 user_id
+    assert asyncio.run(ts.consume(tok)) is None  # 已被消费 -> None
+    # 过期令牌（ttl 为负 -> 写入即过期）
+    expired = "expired-token-xyz"
+    asyncio.run(ts.create(u.id, expired, -10))
+    assert asyncio.run(ts.consume(expired)) is None

@@ -79,10 +79,14 @@ def client_token(settings_token):
 @pytest.fixture
 def settings_auth(tmp_path) -> Settings:
     # 探索开启 + 登录门禁开启，用户库与审计库均存于临时库（隔离）
+    # 注意：两个邮箱验证开关在此固定为 False，保持「基线认证」行为不变（注册即自动登录、
+    # 邮箱可选），使既有回归用例不受新功能影响；邮箱验证流程由 test_auth.py 的专用用例覆盖。
     return Settings(
         enable_exploration=True,
         explore_token="",
         auth_enabled=True,
+        auth_email_required=False,
+        auth_require_email_verified=False,
         users_db_url=f"sqlite:///{tmp_path}/users.db",
         audit_db_url=f"sqlite:///{tmp_path}/audit.db",
     )

@@ -28,6 +28,7 @@ class MetaResponse(BaseModel):
     graph_backend: str
     boards: list[MetaBoardSummary]
     auth_enabled: bool
+    auth_email_required: bool
 
 
 class ParamSpecView(BaseModel):

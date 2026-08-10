@@ -32,8 +32,10 @@ from fastapi.staticfiles import StaticFiles
 from . import tools  # 触发板块注册（导入即注册）  # noqa: F401
 from .anomaly import AnomalyDetector, FrequencyRule
 from .audit.store import AuditStore
+from .auth import mail as auth_mail
+from .auth import pages as auth_pages
 from .auth.middleware import create_auth_guard_middleware
-from .auth.store import UserStore
+from .auth.store import UserStore, create_token_store
 from .config import Settings, get_settings
 from .deps import get_settings_dep
 from .graph_store import get_graph_store
@@ -111,9 +113,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception:
             log.exception("用户存储初始化失败，认证将不可用（探索页门禁失效）")
 
+    # 邮箱验证令牌存储（可插拔：配置了 Redis 走 Redis，否则走独立 email_tokens 表）+
+    # 邮件发送器（off/console/smtp，零第三方依赖）。auth 关闭时令牌存储惰性（None）。
+    email_token_store = create_token_store(settings, user_store)
+    mail_sender = auth_mail.create_mail_sender(settings)
+
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.8.4",
+        version="1.8.5",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -123,6 +130,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.audit_store = audit_store
     app.state.anomaly_detector = anomaly_detector
     app.state.user_store = user_store
+    app.state.email_token_store = email_token_store
+    app.state.mail_sender = mail_sender
 
     app.add_middleware(
         CORSMiddleware,
@@ -159,6 +168,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not settings.auth_enabled:
             return auth.login_page_disabled()
         return auth.login_page()
+
+    @app.get("/verify-email")
+    def verify_email_page():
+        """邮箱验证确认页（邮件链接落地页），打开即调验证接口；无需登录。"""
+        return auth_pages.verify_email_page()
 
     # 静态资源：先注册 API 路由，最后按模式挂载静态目录。
     # 无论是否开启探索，根路径 "/" 都默认承载「原始数据页 + 原始洞察页」(v1 只读浏览)；
