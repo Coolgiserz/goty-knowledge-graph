@@ -1,6 +1,6 @@
 [project]
 name = "goty-knowledge-graph"
-version = "1.8.5"
+version = "1.8.6"
 description = "年度最佳游戏知识图谱 · 数据探索 API（FastAPI）"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -89,8 +89,11 @@ docstring-code-format = true
 pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# 集成测试默认不运行（需 -m integration 显式触发），避免无外部依赖环境下的不确定性。
+addopts = "-m 'not integration'"
 markers = [
     "perf: 性能/负载测试（默认不运行，需 -m perf 显式触发）",
+    "integration: 集成测试（真实 SMTP / 外部服务，默认不运行，需 -m integration 显式触发）",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

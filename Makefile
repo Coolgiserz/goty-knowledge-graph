@@ -106,6 +106,10 @@ test:
 test-perf:
 	$(UV) run pytest -q -m perf
 
+## test-integration：邮件验证集成测试（进程内 SMTP 捕获，真实走 smtp 发信路径）
+test-integration:
+	$(UV) run pytest -q -m integration
+
 ## ci：本地等价执行 CI 流水线（lint + test + perf）
 ci: lint test test-perf
 

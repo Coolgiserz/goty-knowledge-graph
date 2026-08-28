@@ -360,6 +360,7 @@ await asyncio.to_thread(mail_sender.send, to, subject, body)
 | 页面 | `api/auth/pages.py` | 验证确认页 + 登录页重发入口 |
 | 配置 | `api/config.py` | 本节第 3 节全部开关 |
 | 测试 | `tests/test_auth.py` | 必填邮箱、未验证禁登录、令牌消费/过期、重发幂等、CLI 账号默认可登录、TokenStore 双后端 |
+| 集成测试 | `tests/integration/test_email_integration.py` | 真实走 SMTP 发信路径（进程内 `socketserver` SMTP 捕获，零依赖）；`make test-integration` 触发，默认不进 `make test`/`make ci` |
 
 ---
 
