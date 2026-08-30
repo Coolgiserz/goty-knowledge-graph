@@ -631,3 +631,42 @@ def test_task_manager_prunes_finished_tasks_and_can_shutdown():
         assert t.id not in tm._tasks, "已完成任务应被回收"
     finally:
         tm.shutdown(wait=False)
+
+
+# --------------------------------------------------------------------------- #
+# 免登录调试模式：GOTY_AUTH_ENABLED=false（整个站点免登录、关闭账号体系）
+# --------------------------------------------------------------------------- #
+def _client(tmp_path, **over):
+    from api.app import create_app
+    from fastapi.testclient import TestClient
+
+    kwargs = {
+        "enable_exploration": True,
+        "users_db_url": f"sqlite:///{tmp_path}/u.db",
+        "audit_db_url": f"sqlite:///{tmp_path}/a.db",
+    }
+    kwargs.update(over)
+    return TestClient(create_app(Settings(**kwargs)), follow_redirects=False)
+
+
+def test_auth_disabled_makes_whole_site_public(tmp_path):
+    """GOTY_AUTH_ENABLED=false：页面与全部需要登录的接口都应匿名可用。"""
+    c = _client(tmp_path, auth_enabled=False)
+    # 探索页不再跳登录页
+    r = c.get("/explore/")
+    assert r.status_code == 200, f"免登录模式下 /explore/ 应直接返回，实际 {r.status_code}"
+    assert "location" not in r.headers
+    # 需要登录的计算接口放行
+    assert c.post("/api/jobs", json={"board": "community", "params": {}}).status_code == 200
+    assert c.post("/api/board/community", json={"params": {}}).status_code == 200
+    # /login 显示「登录已关闭」
+    assert "登录已关闭" in c.get("/login").text
+    # meta 对外声明该系统一状态，供前端隐藏用户区
+    assert c.get("/api/meta").json()["auth_enabled"] is False
+
+
+def test_auth_enabled_still_guards(tmp_path):
+    """对照：默认开启时，未登录应被守卫跳登录页、接口返回 401。"""
+    r = _client(tmp_path, auth_enabled=True).get("/explore/")
+    assert r.status_code in (302, 307)
+    assert "/login" in r.headers.get("location", "")

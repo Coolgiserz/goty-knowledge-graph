@@ -105,12 +105,18 @@ function hideConnBanner() {
   const b = document.getElementById("conn-banner");
   if (b) b.style.display = "none";
 }
+// 缓存 /api/meta 结果；auth_enabled=false 表示站点处于「免登录调试模式」
+let backendMeta = null;
+
 async function probeBackend() {
   try {
     const r = await fetch(`${API}/meta`, { method: "GET", cache: "no-store" });
     if (r.ok) {
       hideConnBanner();
       setStatus(`已连接（${API}）`);
+      // 缓存 meta：其中的 auth_enabled 决定本站是否为「免登录调试模式」
+      // （GOTY_AUTH_ENABLED=false）。loadUser 据此跳过登录态请求。
+      try { backendMeta = await r.json(); } catch (e) { backendMeta = null; }
       return true;
     }
     showConnBanner(
@@ -1261,9 +1267,15 @@ let currentUser = null;
 
 // 拉取当前登录用户；未登录（理论上守卫已跳 /login，这里兜底隐藏用户区）。
 async function loadUser() {
+  const ua = document.getElementById("user-area");
+  // 免登录调试模式（GOTY_AUTH_ENABLED=false）：账号体系整体关闭，
+  // 直接隐藏用户区即可，无需再请求 /api/auth/me —— 否则控制台会多一条 401 噪音。
+  if (backendMeta && backendMeta.auth_enabled === false) {
+    if (ua) ua.hidden = true;
+    return;
+  }
   try {
     const r = await fetch(`${API}/auth/me`, { credentials: "same-origin" });
-    const ua = document.getElementById("user-area");
     if (!r.ok) { if (ua) ua.hidden = true; return; }
     const u = await r.json();
     currentUser = u;
@@ -1319,8 +1331,10 @@ window.addEventListener("unhandledrejection", (ev) => {
 initNetwork();
 bind();
 bindUser();       // 绑定退出登录 / 个人信息
-loadUser();       // 拉取当前登录用户，显示用户区与个人信息
-probeBackend();   // 后台探测后端可达性；不可达时弹出醒目横幅 + 修复指引
+// 先探测后端以拿到 meta（含 auth_enabled），再决定是否拉取登录用户，
+// 这样免登录模式下不会发出无谓的 /api/auth/me 请求。
+probeBackend().then(loadUser); // 连接探测 + 登录态（免登录模式自动跳过）
+
 loadTagOptions();  // 填充「渲染种子」的标签多选框（类型节点）
 loadTable(true);   // 进入即填充表格，方便从任意节点开始探索
 loadDefaultSeed(); // 进入即展示 GOTY 获奖作品的初始子图，避免空白画布

@@ -141,7 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.15.0",
+        version="1.15.1",
         lifespan=lifespan,
     )
     app.state.settings = settings
