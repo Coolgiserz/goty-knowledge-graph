@@ -117,8 +117,8 @@ ci: lint test test-perf
 css-check:
 	@command -v npm >/dev/null 2>&1 || { echo "跳过 css-check（未安装 npm）"; exit 0; }
 	npm run build:css
-	@git diff --quiet site/assets/tailwind.css || { \
-		echo "✗ site/assets/tailwind.css 与源文件不同步：请执行 npm run build:css 并提交产物"; \
+	@git diff --quiet site/assets/tailwind.css site/assets/index.css site/assets/explorer.css || { \
+		echo "✗ 样式产物与源文件不同步：请执行 npm run build:css 并提交 site/assets/ 下的产物"; \
 		exit 1; }
 
 ## css：重新构建前端样式（Tailwind v4）

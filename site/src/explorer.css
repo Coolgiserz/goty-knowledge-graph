@@ -1,0 +1,16 @@
+/* 遗留探索页（site/explorer/）样式入口 → site/assets/explorer.css
+ *
+ * 注意：app.py 挂载的 /explore 指向 explorer-graph，本目录**未被挂载**，
+ * 仅因 site/ 整体挂在 "/" 而可被直接访问。其 :root 体系与前两者均不同
+ * （含 --bg-2/--border/--ok/--warn/--bad/--radius/--shadow），故独立产物。
+ *
+ * 建议：确认无用后删除本目录与入口。
+ *
+ * 构建： npm run build:css
+ */
+@import "./base.css";
+
+@source "../explorer/index.html";
+@source "../explorer/app.js";
+
+@import "../explorer/styles.css";

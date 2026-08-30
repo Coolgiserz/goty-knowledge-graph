@@ -1,0 +1,19 @@
+/* 共享基础层：Tailwind v4 入口 + 项目通用基础
+ *
+ * 三个页面各自有独立的 :root 命名体系（见各入口注释），因此**不使用单一产物**，
+ * 而是每个页面一个产物；本文件是它们共用的部分（Tailwind preflight + 基础工具类）。
+ *
+ * 作用域由各入口的 @source 指定，因此每个产物只包含该页面用到的工具类。
+ */
+@import "tailwindcss";
+
+/* 通用：iOS Safari 地址栏会吃掉 100% 的视口高度导致底部被截 */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
+/* 触摸设备：点击目标至少 44px（移动端规范），避免手指点不中 */
+@media (pointer: coarse) {
+  button, select, input[type="button"], .chip {
+    min-height: 44px;
+  }
+}
