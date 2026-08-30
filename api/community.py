@@ -260,7 +260,11 @@ class LouvainDetector(CommunityDetector):
     )
     blurb = "工业界最常用的算法：动画展示「社团被层层折叠成超级节点」的多级思想。"
     supports_animation = True
-    optional_dependency = "community"
+    # 走 **networkx 内置**实现（nx.community.louvain_*），不再依赖第三方 python-louvain：
+    # 与「探索板块」（analysis/ml/community.py）同一套底层，既省一个可选依赖，也避免
+    # 同一算法名在不同入口因实现不同（best_partition vs louvain_communities）而结果打架。
+    # 注：nx.community.louvain_partitions 会 yield 每一级的划分，故多级动画能力不受影响。
+    optional_dependency = None
     params_schema = [
         {
             "name": "resolution",
@@ -281,14 +285,24 @@ class LouvainDetector(CommunityDetector):
         },
     ]
 
+    @staticmethod
+    def _seed(randomize: bool) -> int | None:
+        """``randomize=False`` 时固定种子，保证结果可复现（与 analysis 侧默认 seed=42 一致，
+        使同一算法在「探索板块」与「图浏览器」两个入口给出相同划分）。"""
+        return None if randomize else 42
+
     def detect(self, G: nx.Graph, params: dict[str, Any]) -> CommResult:
         resolution = float(params.get("resolution", 1.0))
         randomize = bool(params.get("randomize", False))
-        import community as community_louvain  # lazy：仅 louvain 策略用到
+        import networkx as nx
 
-        final = community_louvain.best_partition(
-            G, weight="weight", resolution=resolution, randomize=randomize
+        comms = nx.community.louvain_communities(
+            G,
+            weight="weight",
+            resolution=resolution,
+            seed=self._seed(randomize),
         )
+        final = _assignment_from_partitions([set(c) for c in comms])
         assign = _pad_isolated(G, dict(final))
         comms = _communities_summary(assign)
         return CommResult(
@@ -302,15 +316,20 @@ class LouvainDetector(CommunityDetector):
         )
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
+        """逐级产出动画帧：networkx 的 ``louvain_partitions`` 会 yield 每一级的划分，
+        与原先 python-louvain 的 ``generate_dendrogram`` 等价（都是「一级一帧」）。"""
         resolution = float(params.get("resolution", 1.0))
         randomize = bool(params.get("randomize", False))
-        import community as community_louvain  # lazy
+        import networkx as nx
 
-        dendro = community_louvain.generate_dendrogram(
-            G, weight="weight", resolution=resolution, randomize=randomize
+        levels = nx.community.louvain_partitions(
+            G,
+            weight="weight",
+            resolution=resolution,
+            seed=self._seed(randomize),
         )
-        for step, level in enumerate(dendro):
-            assign = _pad_isolated(G, dict(level))
+        for step, level in enumerate(levels):
+            assign = _pad_isolated(G, _assignment_from_partitions([set(c) for c in level]))
             compact = _compact_ids(assign)
             yield CommFrame(
                 step=step,

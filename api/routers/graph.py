@@ -211,7 +211,7 @@ def graph_communities(
 
     - ``modularity``（默认）：贪心模块度最大化，``resolution`` 控制粒度。
     - ``label_propagation``：标签传播，``seed`` 可复现。
-    - ``louvain``：多级模块度（需 ``pip install python-louvain``）。
+    - ``louvain``：多级模块度（**networkx 内置**，零额外依赖；支持多级动画）。
     - ``infomap``：信息流划分（需 ``pip install infomap``），暂不支持动画。
     - ``girvan_newman``：边中介度分裂，``target_communities`` 控制停止时机。
 

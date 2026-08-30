@@ -1,6 +1,6 @@
 [project]
 name = "goty-knowledge-graph"
-version = "1.10.0"
+version = "1.11.0"
 description = "年度最佳游戏知识图谱 · 数据探索 API（FastAPI）"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -29,10 +29,11 @@ analysis = [
 neo4j = [
     "neo4j>=5.0",
 ]
-# 社区发现：Louvain（多级模块度）/ Infomap（信息流）等策略所需的第三方包。
-# 默认网络内存 networkx 不需要；想要这两种算法时再装：uv pip install ".[community]"
+# 社区发现扩展：Infomap（信息流）所需的第三方包。
+# 注：Louvain 已改用 **networkx 内置**实现（nx.community.louvain_*），不再需要
+# python-louvain —— 这样图浏览器与探索板块共用同一套底层，结果不会因实现不同打架。
+# 需要 Infomap 时装：uv pip install ".[community]"
 community = [
-    "python-louvain>=0.16",
     "infomap>=2.0",
 ]
 

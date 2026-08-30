@@ -584,18 +584,73 @@ def test_infomap_runs_when_installed(client):
     assert total == len(body["nodes"])
 
 
-def test_louvain_runs_when_installed(client):
-    """louvain 已安装：应返回 200 + 合法划分（覆盖全图节点）。"""
-    import importlib.util
+def test_louvain_always_runs_on_networkx_builtin(client):
+    """louvain 走 networkx 内置实现，不再依赖 python-louvain，故**恒可用**。
 
-    if importlib.util.find_spec("community") is None:
-        pytest.skip("python-louvain 未安装，跳过运行验证")
+    此前该用例依赖第三方 python-louvain，环境未装时直接 skip —— 等于从未真正跑过。
+    改用 networkx 内置后无需跳过，可常态化守住划分正确性。
+    """
     r = client.get("/api/graph/communities", params={"algorithm": "louvain"})
     assert r.status_code == 200
     body = r.json()
     assert body["algorithm"] == "louvain"
     total = sum(len(c["members"]) for c in body["communities"])
     assert total == len(body["nodes"])
+    # 契约：指标自带语义标签
+    assert body["metrics"] and body["metrics"][0]["key"] == "modularity"
+    assert body["modularity"] == body["metrics"][0]["value"]
+
+
+def test_louvain_same_result_in_both_entrypoints():
+    """同一算法在「探索板块」与「图浏览器」两个入口必须给出一致的划分。
+
+    回归背景：两入口曾用不同底层库（analysis 侧 networkx 内置 vs api 侧 python-louvain
+    的 best_partition），同一算法名可能给出不同结果。统一到 networkx 内置并对齐默认
+    随机种子（randomize=False -> seed=42）后，两边应完全一致。
+    """
+    from api import tools  # noqa: F401  触发板块注册
+    from api.community import get_detector
+    from api.graph_loader import GG
+    from api.registry import run_board
+
+    # 入口 A：探索板块（analysis/ml）
+    board = run_board("community", {}, True)["metrics"]
+    # 入口 B：图浏览器（api/community.py）
+    res = get_detector("louvain").detect(GG, {})
+
+    assert board["method"] == "louvain"
+    assert len(set(res.assignment.values())) == board["n_communities"]
+    assert round(res.modularity, 4) == board["quality"]["modularity"]
+
+
+def test_louvain_seed_fixed_unless_randomized():
+    """``randomize=False`` 必须固定种子，与 analysis 侧默认 seed=42 对齐。
+
+    为什么单写这条白盒断言：只靠「两入口结果一致」守不住种子对齐——本图社团结构明显，
+    即便 seed 退化为随机，两边仍可能偶然得到相同划分（实测变异存活）。故直接断言
+    种子取值本身，把「对齐意图」变成确定性契约。
+    """
+    from api.community import get_detector
+
+    det = get_detector("louvain")
+    assert det._seed(False) == 42, "randomize=False 应固定种子以保证可复现与两侧一致"
+    assert det._seed(True) is None, "randomize=True 才交给算法自身随机"
+
+
+def test_louvain_animation_frames_preserved():
+    """改用 networkx 内置后，多级动画能力必须保留（一级一帧）。"""
+    from api.community import get_detector
+    from api.graph_loader import GG
+
+    det = get_detector("louvain")
+    assert det.supports_animation is True
+    frames = list(det.detect_stepwise(GG, {}))
+    assert len(frames) >= 1, "至少应有一级划分帧"
+    # 帧序号连续、描述可读、每帧覆盖全图节点
+    for i, f in enumerate(frames):
+        assert f.step == i
+        assert "级" in f.description
+        assert set(f.assignment) == set(GG.nodes())
 
 
 def test_unavailable_optional_dependency_returns_400(client, monkeypatch):
