@@ -219,7 +219,12 @@ function initNetwork() {
       stabilization: { iterations: 180 },
       barnesHut: { gravitationalConstant: -9000, springLength: 130 },
     },
-    interaction: { hover: true, tooltipDelay: 120 },
+    // 触摸设备无 hover：关掉可省去无谓计算，并避免「点击后 hover 样式残留」。
+    // 交互由下方 click 事件承担，功能不受影响（详情走侧栏面板，信息完整）。
+    interaction: {
+      hover: window.matchMedia("(hover: hover)").matches,
+      tooltipDelay: 120,
+    },
   });
   network.on("click", (params) => {
     if (params.nodes && params.nodes.length) selectNode(params.nodes[0]);
