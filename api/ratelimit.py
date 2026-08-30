@@ -65,6 +65,18 @@ class Limiter:
             cnt, start = 0, now
         self._buckets[key] = (cnt + 1, start)
 
+    def check_and_hit(self, key: str) -> tuple[bool, int]:
+        """原子「判定并计数」：允许则立即计数，返回 ``(allowed, retry_after)``。
+
+        必须成对使用 ``check`` + ``hit`` 才能生效——``check`` 是纯读、从不写桶，
+        漏调 ``hit`` 会让限流**完全失效**（计数器恒为 0）。故提供本方法作为默认入口，
+        避免调用方踩这个坑。
+        """
+        allowed, retry_after = self.check(key)
+        if allowed:
+            self.hit(key)
+        return allowed, retry_after
+
 
 class Blacklist:
     """IP 黑名单：永久种子 + 临时自动封禁（可选持久化到 JSON）。"""

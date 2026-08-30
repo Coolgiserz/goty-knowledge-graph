@@ -29,6 +29,10 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # 密码：至少 8 位，且同时包含字母与数字（基本强度要求）。
 PASSWORD_MIN_LEN = 8
 PASSWORD_RE = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).+$")
+# 密码上限：bcrypt 只取前 **72 字节**（超出直接抛 ValueError），必须按字节而非字符计
+# ——UTF-8 下中文占 3 字节，约 25 个汉字就会越界。此处提前拒绝，避免用户撞上
+# 底层异常（并曾被 ``except ValueError`` 误报成「用户名已存在」，见 register_user）。
+PASSWORD_MAX_BYTES = 72
 
 
 class AuthError(Exception):
@@ -110,6 +114,9 @@ async def register_user(
         raise InvalidUsername()
     if not password or len(password) < PASSWORD_MIN_LEN or not PASSWORD_RE.match(password):
         raise WeakPassword()
+    if len(password.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        # bcrypt 上限 72 字节；提前拒绝，避免底层 ValueError 被误判为重名（见下方 except）。
+        raise WeakPassword()
     # 邮箱：必填策略下空邮箱直接拒绝；非空时才校验格式。
     if email_required and not email:
         raise EmailRequired()
@@ -119,8 +126,12 @@ async def register_user(
         raise AuthStoreUnavailable()
     try:
         return await store.register(username, password, email, email_verified=False)
-    except ValueError:
-        # 存储层在用户名唯一约束冲突时抛 ValueError（已存在）
+    except ValueError as e:
+        # 存储层仅在用户名唯一约束冲突时抛 ``ValueError("username_taken")``。
+        # 其余 ValueError（如 bcrypt 参数越界）若一并吞掉会伪装成「用户名已存在」，
+        # 误导用户反复改用户名却始终注册失败，故此处只转换重名一种情形。
+        if str(e) != "username_taken":
+            raise
         raise UsernameTaken() from None
 
 

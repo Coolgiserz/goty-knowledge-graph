@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -31,6 +32,8 @@ from ..auth.store import TokenStore, UserStore
 from ..config import Settings
 from ..deps import get_settings_dep
 from ..ratelimit import Limiter, get_client_ip
+
+logger = logging.getLogger("goty.auth.router")
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -81,21 +84,40 @@ def _translate(e: service.AuthError) -> HTTPException:
     return HTTPException(status_code=e.status_code, detail=e.code)
 
 
-def _build_verify_link(settings: Settings, token: str) -> str:
-    """构造验证链接：优先用公网基址（容器内 localhost 不可用时由运维指定）。"""
+def _build_verify_link(settings: Settings, token: str, request: Request | None = None) -> str:
+    """构造验证链接：优先用公网基址，未配置时降级为当前请求的绝对地址。
+
+    ``GOTY_APP_PUBLIC_URL`` 默认为空，若仍拼出相对路径 ``/verify-email?token=...``，
+    邮件客户端会将其解析为 ``about:/verify-email...`` 导致链接点不开、用户永远无法完成验证；
+    叠加硬策略（验证前禁登录）即等于**锁死新注册用户**。因此未配置时用请求基址兜底，
+    保证链接始终是绝对 URL。反向代理后仍建议显式配置公网地址。
+    """
     base = (settings.app_public_url or "").rstrip("/")
+    if not base and request is not None:
+        base = str(request.base_url).rstrip("/")
     return f"{base}/verify-email?token={token}"
 
 
 async def _deliver_verification_email(sender, to: str, link: str, ttl: int) -> None:
-    """后台发送验证邮件：``asyncio.to_thread`` 把阻塞的 SMTP 调用丢进线程池，不占事件循环。"""
+    """后台发送验证邮件：``asyncio.to_thread`` 把阻塞的 SMTP 调用丢进线程池，不占事件循环。
+
+    **必须在本地捕获异常**：后台任务在响应**之后**才执行，异常不会回传客户端、也不会变成
+    5xx。若不记录，SMTP 故障时注册接口仍返回 200「请查收验证邮件」，而用户永远收不到邮件——
+    在硬策略（验证前禁登录）下等于账号被静默锁死，且日志里没有任何线索可查。
+    """
     subject = "请验证你的邮箱 · GOTY 知识图谱"
     body = (
         "感谢注册 GOTY 知识图谱。请点击以下链接完成邮箱验证：\n"
         f"{link}\n\n"
         f"该链接 {ttl // 60} 分钟内有效，且仅可使用一次。若非本人操作，请忽略本邮件。"
     )
-    await asyncio.to_thread(sender.send, to, subject, body)
+    try:
+        await asyncio.to_thread(sender.send, to, subject, body)
+    except Exception:
+        logger.exception(
+            "验证邮件发送失败（to=%s）：该用户将无法完成验证与登录，请检查 GOTY_MAIL_MODE / SMTP 配置",
+            to,
+        )
 
 
 @router.post("/register")
@@ -128,7 +150,7 @@ async def register(
             token = await service.create_verification_token(
                 token_store, user, settings.email_verify_ttl_seconds
             )
-            link = _build_verify_link(settings, token)
+            link = _build_verify_link(settings, token, request)
             background_tasks.add_task(
                 _deliver_verification_email,
                 mail_sender,
@@ -201,8 +223,9 @@ async def request_verification(
     token_store: TokenStore | None = request.app.state.email_token_store
     mail_sender = request.app.state.mail_sender
     # 频控（按客户端 IP）；超限则跳过发送，但仍返回 200（不泄露）。
+    # 注意：必须走 check_and_hit 原子方法——只调 check 是纯读、不计数，限流会完全失效。
     ip = get_client_ip(request, getattr(settings, "trust_proxy", True))
-    allowed, _ = _resend_limiter.check(ip)
+    allowed, _ = _resend_limiter.check_and_hit(ip)
     if not allowed:
         return {"ok": True}
 
@@ -218,7 +241,7 @@ async def request_verification(
     token = await service.create_verification_token(
         token_store, user, settings.email_verify_ttl_seconds
     )
-    link = _build_verify_link(settings, token)
+    link = _build_verify_link(settings, token, request)
     background_tasks.add_task(
         _deliver_verification_email,
         mail_sender,

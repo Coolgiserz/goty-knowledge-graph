@@ -14,7 +14,7 @@ from api.audit.models import AuditLog
 from api.auth.store import DbEmailTokenStore, SyncUserStore, UserStore
 from api.config import Settings
 from api.registry import run_board as _real_run_board
-from api.routers.auth import _resend_limiter
+from api.routers.auth import _build_verify_link, _resend_limiter
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -441,3 +441,91 @@ def test_db_token_store_consume_idempotent(tmp_path):
     expired = "expired-token-xyz"
     asyncio.run(ts.create(u.id, expired, -10))
     assert asyncio.run(ts.consume(expired)) is None
+
+
+# --------------------------------------------------------------------------- #
+# 回归防线：修 bug 必须配测试，否则随时会被改回去
+# --------------------------------------------------------------------------- #
+def test_password_over_bcrypt_limit_rejected_as_weak(tmp_path):
+    """bcrypt 上限 72 **字节**：超长密码须报 weak_password(400)，不得穿透成 500 或 409。
+
+    回归背景：bcrypt 对 >72 字节抛 ValueError，而 register_user 曾把它一并吞成
+    ``UsernameTaken``(409)——用户看到「用户名已存在」，改用户名却始终注册失败。
+    """
+    c = _verify_client(tmp_path)
+    # ASCII：73 字节刚好越界（72 应仍可接受）
+    ok = c.post(
+        "/api/auth/register",
+        json={"username": "pw72", "password": "a" * 71 + "1", "email": "p@x.com"},
+    )
+    assert ok.status_code == 200, "72 字节内应可注册"
+    long_ascii = "a" * 72 + "1"  # 73 字节
+    r = c.post(
+        "/api/auth/register",
+        json={"username": "pwascii", "password": long_ascii, "email": "p2@x.com"},
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "weak_password"
+    # 中文：UTF-8 下 3 字节/字，约 25 字即越界（远早于直觉）
+    long_cn = "密" * 40 + "1"
+    assert len(long_cn.encode("utf-8")) > 72
+    r2 = c.post(
+        "/api/auth/register",
+        json={"username": "pwcn", "password": long_cn, "email": "p3@x.com"},
+    )
+    assert r2.status_code == 400
+    assert r2.json()["detail"] == "weak_password"
+
+
+def test_resend_rate_limit_actually_counts(tmp_path):
+    """重发频控必须真的计数：超过 5 次/60s 后跳过发送（响应仍恒 200，防枚举）。
+
+    回归背景：曾只调 ``Limiter.check``（纯读、不写桶）而漏调 ``hit``，
+    导致频控完全失效、可无限重发邮件。
+    """
+    _resend_limiter._buckets.clear()
+    c = _verify_client(tmp_path)
+    cap = _CapturingMail()
+    c.app.state.mail_sender = cap
+    c.post(
+        "/api/auth/register",
+        json={"username": "rl", "password": "supersecret1", "email": "rl@x.com"},
+    )
+    sent_after_register = len(cap.tokens)
+    # 窗口内再重发 5 次：全部 200（防枚举），但只有前几次真的发信
+    codes = [
+        c.post("/api/auth/request-verification", json={"email": "rl@x.com"}).status_code
+        for _ in range(5)
+    ]
+    assert set(codes) == {200}, "频控命中也必须恒 200（不泄露状态）"
+    # 关键断言：频控生效后不再产生新令牌
+    extra = len(cap.tokens) - sent_after_register
+    assert extra < 5, f"频控未生效：窗口内竟发出 {extra} 封（上限应 <5）"
+
+
+def test_verify_link_is_absolute_without_app_public_url(tmp_path):
+    """未配置 GOTY_APP_PUBLIC_URL 时，验证链接必须仍是绝对 URL。
+
+    回归背景：曾用空基址拼出 ``/verify-email?token=...``，邮件客户端解析成
+    ``about:/verify-email...`` 导致链接点不开；叠加硬策略即永久锁死新用户。
+    """
+    c = _verify_client(tmp_path, app_public_url="")  # 显式为空：走降级分支
+    cap = _CapturingMail()
+    c.app.state.mail_sender = cap
+    c.post(
+        "/api/auth/register",
+        json={"username": "abs", "password": "supersecret1", "email": "abs@x.com"},
+    )
+    assert cap.tokens
+    link = _build_verify_link(
+        c.app.state.settings, cap.tokens[0], _DummyRequest("http://svc.example.com")
+    )
+    assert link.startswith("http://"), f"验证链接必须是绝对 URL，实际：{link}"
+    assert link == f"http://svc.example.com/verify-email?token={cap.tokens[0]}"
+
+
+class _DummyRequest:
+    """最小 Request 替身：仅为向 ``_build_verify_link`` 提供 ``base_url``。"""
+
+    def __init__(self, base: str) -> None:
+        self.base_url = base

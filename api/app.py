@@ -118,9 +118,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     email_token_store = create_token_store(settings, user_store)
     mail_sender = auth_mail.create_mail_sender(settings)
 
+    # 启动期配置体检：硬策略（验证前禁登录）下，若验证链接不可达或邮件根本发不出去，
+    # 新注册用户会**永远无法登录**且日志无任何线索。此处尽早告警，避免线上静默锁死用户。
+    if settings.auth_enabled and settings.auth_require_email_verified:
+        if not settings.app_public_url:
+            log.warning(
+                "GOTY_APP_PUBLIC_URL 未配置：验证链接将降级为请求基址，"
+                "经反向代理或邮件客户端打开时可能失效，请显式配置公网地址。"
+            )
+        if (getattr(settings, "mail_mode", "console") or "console").lower() in ("off", "console"):
+            log.warning(
+                "GOTY_MAIL_MODE=%s 不会发出真实邮件，但 GOTY_AUTH_REQUIRE_EMAIL_VERIFIED=true："
+                "新注册用户收不到验证邮件将无法登录。生产请设为 smtp 并配好 SMTP 与发件地址。",
+                settings.mail_mode,
+            )
+
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.8.5",
+        version="1.8.7",
         lifespan=lifespan,
     )
     app.state.settings = settings
