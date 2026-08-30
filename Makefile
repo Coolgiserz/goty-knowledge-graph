@@ -23,7 +23,7 @@ IMG ?= goty-knowledge-graph
 EXPLORATION ?= false   # 洞察模式=false（默认，只读）/ 探索模式=true
 
 .PHONY: all build site insight serve serve-static docker run up down neo4j neo4j-dev \
-        neo4j-stop neo4j-export analysis install lint test test-perf ci clean help
+        neo4j-stop neo4j-export analysis install css css-check lint test test-perf ci clean help
 
 all: build
 
@@ -112,6 +112,18 @@ test-integration:
 
 ## ci：本地等价执行 CI 流水线（lint + test + perf）
 ci: lint test test-perf
+
+## css-check：校验构建产物与源是否同步（引入构建链后的新风险：改了源忘记重新构建）
+css-check:
+	@command -v npm >/dev/null 2>&1 || { echo "跳过 css-check（未安装 npm）"; exit 0; }
+	npm run build:css
+	@git diff --quiet site/assets/tailwind.css || { \
+		echo "✗ site/assets/tailwind.css 与源文件不同步：请执行 npm run build:css 并提交产物"; \
+		exit 1; }
+
+## css：重新构建前端样式（Tailwind v4）
+css:
+	npm run build:css
 
 ## clean：清理生成的站点与打包产物（不删数据）
 clean:

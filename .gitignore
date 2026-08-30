@@ -30,3 +30,6 @@ data/users.db
 .idea/
 .vscode/
 *.swp
+
+# 前端构建依赖（Tailwind 工具链；产物 site/assets/*.css 需提交以保证离线运行）
+node_modules/

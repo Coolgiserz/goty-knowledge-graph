@@ -4,15 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GOTY 知识图谱 · 交互式探索浏览器</title>
-  <link rel="stylesheet" href="styles.css" />
+  <!-- Tailwind 构建产物（含既有组件样式，离线可用）。
+       源：site/src/tailwind.css —— 改样式后需执行 npm run build:css -->
+  <link rel="stylesheet" href="/assets/tailwind.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
+  <!-- 顶栏：窄屏换行，搜索框独占一行（此前 6 类元素横排且无 flex-wrap，窄屏溢出） -->
+  <header class="topbar flex-wrap gap-x-4 gap-y-2 max-md:flex-col max-md:items-stretch">
+    <div class="brand min-w-0">
       <h1>年度最佳游戏 · 知识图谱</h1>
       <p class="sub">交互式探索浏览器 — 检索 / 钻取邻居 / 最短路径 / 社区分析</p>
     </div>
-    <div class="search-wrap">
+    <!-- max-md：占满整行并排到最后，避免与品牌区争抢宽度 -->
+    <div class="search-wrap max-md:order-last max-md:max-w-none max-md:w-full">
       <input id="search-input" type="text" placeholder="搜索游戏 / 工作室 / 类型 / 奖项…" autocomplete="off" />
       <button id="search-btn" type="button">搜索</button>
       <!-- 搜索结果直接在此下拉展示，避免被埋在侧栏底部 -->
@@ -33,8 +37,10 @@
     <div class="profile-row"><span>会话状态</span><b class="ok">已登录</b></div>
   </div>
 
-  <main class="layout">
-    <aside class="sidebar">
+  <!-- 布局：md 以下改为上下堆叠（此前侧栏固定 340px 且不收缩，
+       375px 屏上画布只剩约 35px，实际不可用） -->
+  <main class="layout max-md:flex-col">
+    <aside class="sidebar max-md:w-full max-md:max-h-[45vh] max-md:shrink">
       <div id="status" class="status"></div>
 
       <section class="card">
@@ -223,7 +229,7 @@
       </section>
     </aside>
 
-    <section class="canvas-wrap">
+    <section class="canvas-wrap max-md:min-h-[55vh] max-md:flex-1">
       <div id="overlay" class="overlay">
         <div class="spinner"></div>
         <div class="ov-text">处理中…</div>

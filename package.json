@@ -1,0 +1,19 @@
+{
+  "name": "goty-knowledge-graph",
+  "version": "1.0.0",
+  "description": "前端样式构建（Tailwind v4）。产物 site/assets/tailwind.css 已提交以保证离线可用。",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i site/src/tailwind.css -o site/assets/tailwind.css --minify",
+    "watch:css": "tailwindcss -i site/src/tailwind.css -o site/assets/tailwind.css --watch"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  },
+  "private": true
+}

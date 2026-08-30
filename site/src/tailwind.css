@@ -1,0 +1,35 @@
+/* Tailwind 入口 → 构建产物 site/assets/tailwind.css（已提交，保证离线可用）
+ *
+ * 迁移策略：**渐进式**，不推翻现有样式
+ *   - Tailwind 提供布局 / 间距 / 断点响应式工具类；
+ *   - 现有 styles.css 保留为「组件层」（.card / .sidebar / #canvas 等），
+ *     因为 app.js 动态生成的 HTML 依赖这些类名（34 处 class=），一次性推翻风险过高。
+ *
+ * 作用域：**仅 explorer-graph**（app.py 挂载的探索 SPA）。
+ *   不引入 site/explorer/ 与 site/index.html —— 前者是遗留目录（未被挂载），
+ *   且两者的 :root 变量与 explorer-graph 有 4 个同名不同值（--bg/--panel/--panel-2/
+ *   --muted），合并在同一产物里会互相覆盖、破坏视觉。
+ *
+ * 构建： npm run build:css   （或 make css）
+ */
+@import "tailwindcss";
+
+/* 扫描范围：模板 + 动态生成类名的 JS */
+@source "../explorer-graph/index.html";
+@source "../explorer-graph/app.js";
+
+/* 主题映射：把项目既有的 CSS 变量接到 Tailwind theme，
+   使既有 var(--bg) 与新写的 bg-panel 共用一套色板，视觉不分裂。 */
+@theme {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+}
+
+/* 组件层：既有样式（后续可逐步把布局类改写成 Tailwind 工具类） */
+@import "../explorer-graph/styles.css";
