@@ -13,9 +13,10 @@
 - **完整属性**：每款年度最佳游戏都挖掘了类别 / 玩法 / 独特之处 / 缺点·争议 / 评分 / 主要奖项 / 影响力。
 - **重点：开发商其他作品**：不仅收录 GOTY，还展开其开发商的**其他代表作**（如 Rockstar 的 GTA 前作与 RDR、FromSoftware 的魂系列），形成「工作室 → 作品」关系网。
 - **可导入 Neo4j**：提供标准 CSV 数据集 + 离线 / 在线两种导入方式 + 自动导入脚本。
-- **开箱即部署**：探索 SPA 由 FastAPI 同源托管（含原静态图谱页），支持本地 `make serve`、Docker / docker-compose 一键部署；原静态站点也可**双击 `site/index.html`** 离线打开。
+- **开箱即部署**：支持本地 `make serve`、Docker / docker-compose 一键部署；静态站点也可通过 `make serve-static` 离线打开。
 
 ---
+![img.png](docs/images/goty-2006-2026.png)
 
 ## 📊 数据规模
 
