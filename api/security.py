@@ -15,6 +15,7 @@ class SecurityContext:
 
     def __init__(self, settings: Settings):
         self.trust_proxy = settings.trust_proxy
+        self.trusted_proxies = getattr(settings, "trusted_proxies", "") or ""
         # 限流后端经工厂选择（默认内存 Limiter；配 GOTY_RATE_LIMIT_REDIS_URL 可换 Redis），
         # 类型统一为 RateLimiter 协议，调用方无感知。
         self.general_limiter: RateLimiter = create_rate_limiter(
@@ -33,4 +34,4 @@ class SecurityContext:
         self.autoban_seconds = settings.autoban_seconds
 
     def client_ip(self, request) -> str:
-        return get_client_ip(request, self.trust_proxy)
+        return get_client_ip(request, self.trust_proxy, self.trusted_proxies)

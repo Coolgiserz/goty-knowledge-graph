@@ -32,6 +32,11 @@ class Settings(BaseSettings):
 
     # ---- 安全防护：信任代理 / 两档限流 / 自动封禁 / 黑名单 ----
     trust_proxy: bool = True
+    # 可信代理网段（逗号分隔的 IP / CIDR）。**仅当直连对端落在其中时**才采信
+    # X-Forwarded-For / X-Real-IP——这两个头客户端可任意伪造。默认为空即不采信任何
+    # 代理头，直接部署最安全；经反代/负载均衡时必须把反代地址填进来，否则所有请求
+    # 都会被记成同一个反代 IP（限流会误伤整层）。
+    trusted_proxies: str = ""
     rate_limit_max: int = 200
     rate_window: int = 60
     board_limit_max: int = 8

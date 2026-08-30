@@ -72,11 +72,35 @@ _SENSITIVE_KEYS = {
     "authorization",
 }
 _MASK = "***"
+# 查询串（URL query）中需要遮蔽的参数名：管理报表与邮箱验证链接都用 ?token= 携带凭据。
+_SENSITIVE_QUERY_KEYS = frozenset(
+    {
+        "token",
+        "access_token",
+        "refresh_token",
+        "id_token",
+        "api_key",
+        "apikey",
+        "key",
+        "secret",
+        "password",
+        "passwd",
+        "pwd",
+        "sig",
+        "signature",
+        "code",
+        "session",
+        "sid",
+        "csrf_token",
+    }
+)
 # 针对被截断（非完整 JSON）的请求体，回退正则遮蔽敏感键的值。
+# 末组 ``("|$)`` 允许值缺少闭合引号——body 被截断在密码中间时也要能遮蔽，
+# 否则会整段漏脱敏、把明文密码前缀写进审计。
 _SENSITIVE_RE = re.compile(
     r'("(?:'
     + "|".join(re.escape(k) for k in sorted(_SENSITIVE_KEYS, key=len, reverse=True))
-    + r')"\s*:\s*")([^"]*)(")',
+    + r')"\s*:\s*")([^"]*)("|$)',
     re.IGNORECASE,
 )
 
@@ -98,8 +122,12 @@ def _redact_sensitive(body: str) -> str:
     """对审计用的请求/响应体做凭据脱敏：仅遮蔽敏感字段的值，其余原样保留。
 
     - 完整个 JSON：解析后递归遮蔽敏感键，再序列化回去（结构/其余字段不变）。
-    - 被截断的非完整 JSON：回退正则遮蔽 ``"key": "value"`` 形态的敏感键。
+    - 被截断的非完整 JSON：回退正则遮蔽 ``"key": "value"`` 形态的敏感键（正则**不要求**
+      闭合引号，否则截断处正好落在密码值时就完全不脱敏、明文前缀直接落盘）。
     这样登录/注册接口的明文密码不会进入审计文件或审计库。
+
+    调用方注意：**必须先脱敏、再截断**。顺序颠倒会先把 JSON 截成非完整串，
+    再交给本函数的回退路径，脱敏可靠性大幅下降。
     """
     if not body:
         return body
@@ -111,7 +139,28 @@ def _redact_sensitive(body: str) -> str:
     try:
         return json.dumps(data, ensure_ascii=False)
     except Exception:
-        return body
+        # 序列化失败（理论极罕见）时绝不能退回未脱敏原文——宁可不记，也不能泄。
+        return ""
+
+
+def _redact_query(query: str) -> str:
+    """脱敏查询串中的敏感参数值（``?token=xxx`` → ``?token=***``）。
+
+    管理报表支持 ``?token=`` 携带管理令牌，邮箱验证落地页为 ``/verify-email?token=``，
+    若不处理则凭据明文进入审计文件与审计库。只遮蔽值、保留参数名，便于排障。
+    """
+    if not query:
+        return query
+    out = []
+    for part in query.split("&"):
+        if not part:
+            continue
+        name, _sep, value = part.partition("=")
+        if name.lower() in _SENSITIVE_QUERY_KEYS and value:
+            out.append(f"{name}={_MASK}")
+        else:
+            out.append(part)
+    return "&".join(out)
 
 
 def _compute_visitor_id(ip: str, user_agent: str) -> str:
@@ -277,9 +326,11 @@ def create_security_audit_middleware(
                     raw = await request.body()
                     if raw:
                         # 凭据脱敏：登录/注册等含明文密码的接口，写审计前先遮蔽敏感字段。
-                        req_body = _redact_sensitive(
-                            raw[: settings.audit_body_max_bytes].decode("utf-8", "replace")
-                        )
+                        # 顺序要点：**先脱敏、后截断**。若先截断，JSON 被切碎后只能走
+                        # 正则回退路径，脱敏可靠性下降（尤其在截断处正好落在密码值时）。
+                        req_body = _redact_sensitive(raw.decode("utf-8", "replace"))[
+                            : settings.audit_body_max_bytes
+                        ]
                 except Exception:
                     req_body = ""
 
@@ -320,7 +371,9 @@ def create_security_audit_middleware(
                     "user_agent": request.headers.get("user-agent", ""),
                     "method": method,
                     "path": path,
-                    "query": request.url.query,
+                    # query 同样要脱敏：管理报表支持 ?token=、邮箱验证链接为
+                    # /verify-email?token=，原样落盘等于把凭据写进审计文件与审计库。
+                    "query": _redact_query(request.url.query),
                     "request_body": req_body,
                     "status_code": resp_status,
                     "duration_ms": round(dur_ms, 2),

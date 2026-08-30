@@ -147,17 +147,18 @@ def test_middleware_anomaly_bans_after_threshold():
     )
     app = create_app(settings)
     client = TestClient(app)
-    headers = {"X-Forwarded-For": "9.9.9.9"}
 
     # 前 3 次正常（频率未超）
     for _ in range(3):
-        assert client.get("/api/meta", headers=headers).status_code == 200
+        assert client.get("/api/meta").status_code == 200
     # 第 4 次命中频率规则：本次仍 200，但随后被拉黑
-    assert client.get("/api/meta", headers=headers).status_code == 200
+    assert client.get("/api/meta").status_code == 200
     # 之后该 IP 被封禁
-    assert client.get("/api/meta", headers=headers).status_code == 403
-    # 其他 IP 不受影响
-    assert client.get("/api/meta", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 200
+    assert client.get("/api/meta").status_code == 403
+    # 注：不再用 X-Forwarded-For 模拟不同 IP —— 该头客户端可任意伪造，现已仅在直连对端
+    # 属于 GOTY_TRUSTED_PROXIES 时才采信；TestClient 的直连对端是 "testclient"（非 IP，
+    # 无法列入可信网段），故本用例只覆盖单 IP 的封禁时序。多 IP 隔离语义由
+    # tests/test_security.py 中 get_client_ip 的单元测试覆盖。
 
 
 def test_middleware_audit_disabled_skips_db(tmp_path):

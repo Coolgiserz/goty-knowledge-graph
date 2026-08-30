@@ -224,7 +224,11 @@ async def request_verification(
     mail_sender = request.app.state.mail_sender
     # 频控（按客户端 IP）；超限则跳过发送，但仍返回 200（不泄露）。
     # 注意：必须走 check_and_hit 原子方法——只调 check 是纯读、不计数，限流会完全失效。
-    ip = get_client_ip(request, getattr(settings, "trust_proxy", True))
+    ip = get_client_ip(
+        request,
+        getattr(settings, "trust_proxy", True),
+        getattr(settings, "trusted_proxies", "") or "",
+    )
     allowed, _ = _resend_limiter.check_and_hit(ip)
     if not allowed:
         return {"ok": True}

@@ -12,29 +12,81 @@
 组装；本模块只提供无状态、可单测的纯逻辑，不直接读环境变量。
 """
 
+import ipaddress
 import os
 import time
 from collections import defaultdict
 from typing import Protocol, runtime_checkable
 
 
-def get_client_ip(request, trust_proxy: bool = True) -> str:
-    """提取真实客户端 IP。
+def _parse_networks(raw: str) -> list:
+    """把 ``GOTY_TRUSTED_PROXIES``（逗号分隔的 IP / CIDR）解析为网络对象列表。"""
+    nets = []
+    for item in (raw or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            # 非法条目忽略：宁可少信任一个代理，也不因配置笔误而放行伪造头
+            continue
+    return nets
 
-    信任代理时优先读取 X-Forwarded-For 首段（原始客户端）、其次 X-Real-IP；
-    否则退回直连对端。注意：部署时应在边缘节点剥离客户端伪造的 XFF，避免绕过。
+
+def _in_networks(ip: str, nets: list) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in net for net in nets)
+
+
+def _valid_ip(ip: str) -> bool:
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return True
+
+
+def get_client_ip(request, trust_proxy: bool = True, trusted_proxies: str = "") -> str:
+    """提取真实客户端 IP（**仅在直连方是可信代理时才采信 XFF**）。
+
+    ``X-Forwarded-For`` / ``X-Real-IP`` 是**客户端可任意伪造**的请求头。旧实现无条件
+    取 XFF 首段，攻击者发一个 ``X-Forwarded-For: 1.2.3.4`` 就能任意切换身份 —— 限流、
+    黑名单、自动封禁全部失效；更可把任意第三方 IP 打成黑名单（针对正常用户的 DoS），
+    并污染审计记录。
+
+    因此这里以**直连对端**为准做信任判定：
+
+    - 未开启 ``trust_proxy``、或未配置 ``trusted_proxies``、或直连对端不在可信网段内
+      → 一律不采信 XFF/XRI，返回直连对端（客户端伪造无效）。
+    - 直连对端确为可信代理 → 从 XFF 链**由右向左**跳过可信代理自己追加的条目，
+      取第一个非可信地址作为真实客户端；全链皆可信或格式非法则回落直连对端。
+
+    运维：反代部署时把边缘/反代的地址配进 ``GOTY_TRUSTED_PROXIES``（如 ``10.0.0.0/8``）。
     """
-    if trust_proxy:
-        xff = request.headers.get("x-forwarded-for")
-        if xff:
-            first = xff.split(",")[0].strip()
-            if first:
-                return first
-        xri = request.headers.get("x-real-ip")
-        if xri:
-            return xri.strip()
     client = getattr(request, "client", None)
-    return client.host if client else "0.0.0.0"
+    direct = client.host if client else "0.0.0.0"
+
+    nets = _parse_networks(trusted_proxies) if trust_proxy else []
+    if not nets or not _in_networks(direct, nets):
+        # 直连方不是可信代理 -> 任何 XFF/XRI 都可能是伪造，一律忽略
+        return direct
+
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        # XFF 形如 "client, proxy1, proxy2"：最左为原始客户端（可伪造），
+        # 最右为最近一跳代理所追加（可信）。故从右往左找第一个不可信地址。
+        chain = [p.strip() for p in xff.split(",") if p.strip()]
+        for candidate in reversed(chain):
+            if _valid_ip(candidate) and not _in_networks(candidate, nets):
+                return candidate
+    xri = request.headers.get("x-real-ip")
+    if xri and _valid_ip(xri.strip()) and not _in_networks(xri.strip(), nets):
+        return xri.strip()
+    return direct
 
 
 class Limiter:

@@ -55,8 +55,11 @@ def client_ratelimit(settings_ratelimit):
 
 @pytest.fixture
 def settings_blacklist() -> Settings:
+    # 黑名单按**直连对端**判定；TestClient 的直连对端固定为 "testclient"，故以它为种子。
+    # 不再用伪造的 X-Forwarded-For 触发黑名单——该头客户端可任意伪造，现已仅在直连对端
+    # 属于 GOTY_TRUSTED_PROXIES 时才采信（见 test_security.py 中 get_client_ip 的单测）。
     return Settings(
-        enable_exploration=False, blacklist="1.2.3.4", trust_proxy=True, auth_enabled=False
+        enable_exploration=False, blacklist="testclient", trust_proxy=True, auth_enabled=False
     )
 
 
