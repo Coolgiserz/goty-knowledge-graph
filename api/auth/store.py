@@ -159,6 +159,16 @@ class UserStore:
             await conn.run_sync(_migrate_user_columns_sync)
         self._schema_ready = True
 
+    async def aclose(self) -> None:
+        """释放异步引擎的连接池（幂等）。
+
+        同 :meth:`api.audit.store.AuditStore.aclose` —— 必须显式调用，否则 GC 在事件循环
+        关闭后清理连接池会抛 ``RuntimeError('Event loop is closed')``。
+        """
+        engine = getattr(self, "engine", None)
+        if engine is not None:
+            await engine.dispose()
+
     def init(self) -> None:
         """建表（幂等）。无运行中的事件循环时同步建；否则留给首次写入惰性建。"""
         try:

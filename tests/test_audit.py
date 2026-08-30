@@ -51,14 +51,20 @@ def _sample_anomaly(client_ip: str = "1.2.3.4") -> dict:
 async def test_audit_store_async_sqlite_records(tmp_path):
     db = tmp_path / "audit.db"
     store = AuditStore(f"sqlite:///{db}")
-    # init() 在运行中循环内会被跳过，首次写入经 _ensure_schema 惰性建表
-    assert await store.count_audit() == 0
-    await store.record_audit(_sample_audit())
-    assert await store.count_audit() == 1
-    assert await store.count_audit("1.2.3.4") == 1
-    assert await store.count_audit("9.9.9.9") == 0
-    await store.record_anomaly(_sample_anomaly())
-    assert await store.count_anomalies("1.2.3.4") == 1
+    try:
+        # init() 在运行中循环内会被跳过，首次写入经 _ensure_schema 惰性建表
+        assert await store.count_audit() == 0
+        await store.record_audit(_sample_audit())
+        assert await store.count_audit() == 1
+        assert await store.count_audit("1.2.3.4") == 1
+        assert await store.count_audit("9.9.9.9") == 0
+        await store.record_anomaly(_sample_anomaly())
+        assert await store.count_anomalies("1.2.3.4") == 1
+    finally:
+        # 必须显式释放：async engine 的连接池绑定当前事件循环，
+        # 本测试结束后循环即被 pytest-asyncio 关闭，留给 GC 会抛
+        # RuntimeError('Event loop is closed')（CI/Linux 上必现）。
+        await store.aclose()
 
 
 # 同步接口（运维脚本 / 同步测试使用）：纯同步，无 await、无事件循环。

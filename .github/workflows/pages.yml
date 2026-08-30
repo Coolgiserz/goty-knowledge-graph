@@ -1,0 +1,97 @@
+name: Deploy static site to Pages
+
+# 只发布 **v1 静态首页**（site/index.html）：它数据内联、零外链、vis-network 已本地化，
+# 是纯静态自包含页面，可在 GitHub Pages 上独立运行。
+#
+# **不发布**探索 SPA（site/explorer-graph/）：它依赖 FastAPI 后端（app.js 里
+# const API = "/api"），Pages 只服务静态文件，放上去会是打不开的死页面。
+# 首页的「开始数据探索」入口默认隐藏，只在探测到 /api/meta 返回 exploration_enabled
+# 时才显示，因此在 Pages 上不会出现死链。
+#
+# 触发方式：
+#   · push 到 main 时自动发布（依赖 lint-test 全绿）
+#   · 也可在 Actions 里手动触发（workflow_dispatch）
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# 同分支并发时取消旧任务，避免互相覆盖发布产物
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+# GitHub Pages 部署所需的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # 首页样式是 Tailwind 构建产物（site/src/index.css → site/assets/index.css）。
+      # 产物已随仓库提交，这里重新构建一次以保证与源同步；若不同步则让流程失败，
+      # 避免发布出样式过期的页面。
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Build CSS
+        run: npm run build:css
+
+      - name: Fail if built CSS is out of sync with committed artifact
+        run: |
+          if ! git diff --quiet site/assets/; then
+            echo "::error::site/assets/ 与 site/src/ 不同步。请执行 npm run build:css 并提交产物后再发布。"
+            git --no-pager diff --stat site/assets/
+            exit 1
+          fi
+
+      # 只拷贝首页运行所需的三个文件，不要带上 explorer-graph/（Pages 上跑不起来）。
+      # 注意目录布局：首页用**相对路径**引用 assets/index.css 与
+      # assets/vis-network.min.js，因此资源必须放在 _site/assets/ 下，
+      # 平铺到 _site/ 会导致子路径部署（user.github.io/<repo>/）时 404。
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p _site/assets
+          cp site/index.html _site/
+          cp site/assets/index.css _site/assets/
+          cp site/assets/vis-network.min.js _site/assets/
+          # 禁用 Jekyll：否则 Pages 会忽略下划线开头的文件/目录，且多一次无谓构建
+          touch _site/.nojekyll
+          echo "产物清单："
+          find _site -type f | sort
+          du -sh _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,6 @@
 [project]
 name = "goty-knowledge-graph"
-version = "1.15.2"
+version = "1.15.3"
 description = "年度最佳游戏知识图谱 · 数据探索 API（FastAPI）"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -90,6 +90,10 @@ docstring-code-format = true
 pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# 显式固定 async fixture 的事件循环作用域：pytest-asyncio 1.x 起该值不再隐式继承，
+# 不设置会因默认值变更而出现「fixture 与测试用了不同事件循环」的隐晦错误
+# （典型症状就是 teardown 阶段抛 RuntimeError('Event loop is closed')）。
+asyncio_default_fixture_loop_scope = "function"
 # 集成测试默认不运行（需 -m integration 显式触发），避免无外部依赖环境下的不确定性。
 addopts = "-m 'not integration'"
 markers = [

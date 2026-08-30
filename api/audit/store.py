@@ -198,6 +198,18 @@ class AuditStore:
             await conn.run_sync(_migrate_audit_columns_sync)
         self._schema_ready = True
 
+    async def aclose(self) -> None:
+        """释放异步引擎的连接池（幂等，可重复调用）。
+
+        **必须显式调用**，不能只依赖 GC：async engine 的连接池绑定到创建它的事件循环；
+        若等到对象被回收才清理，那时循环往往已关闭（例如 pytest-asyncio 在每个 async
+        测试结束后关闭自己的循环），清理动作会抛 ``RuntimeError('Event loop is closed')``
+        —— 该异常发生在解释器析构阶段，表现为 CI 里难以定位的 teardown 报错。
+        """
+        engine = getattr(self, "engine", None)
+        if engine is not None:
+            await engine.dispose()
+
     def init(self) -> None:
         """建表（幂等）。同步入口，供 app 构造/导入期（无运行中的事件循环）调用。
 

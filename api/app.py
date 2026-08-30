@@ -21,6 +21,7 @@
 运行：``uvicorn api.app:app --host 0.0.0.0 --port 8000``
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -50,6 +51,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXPLORER_DIR = os.path.join(ROOT, "site", "explorer-graph")
 SITE_DIR = os.path.join(ROOT, "site")
 
+# 模块级 logger：供 lifespan（应用关闭阶段）使用。
+# 注意 create_app() 内部另有一个同名的 log（setup_logging 返回值），属局部变量，
+# 不会与之冲突；lifespan 不在 create_app 作用域内，只能用这个模块级实例。
+log = logging.getLogger("goty.app")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,6 +67,17 @@ async def lifespan(app: FastAPI):
         tasks_mgr = getattr(app.state, "tasks_mgr", None)
         if tasks_mgr is not None:
             tasks_mgr.shutdown(wait=False)
+        # 释放异步引擎连接池：不能只依赖 GC —— async engine 的连接池绑定创建它的事件循环，
+        # 等到对象回收时循环往往已关闭，清理会抛 RuntimeError('Event loop is closed')。
+        for attr in ("user_store", "audit_store"):
+            store = getattr(app.state, attr, None)
+            aclose = getattr(store, "aclose", None)
+            if aclose is not None:
+                try:
+                    await aclose()
+                except Exception:
+                    # 关闭阶段不应抛出异常掩盖主流程；仅记录，便于排障。
+                    log.warning("%s 释放连接池失败（已忽略）", attr, exc_info=True)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -141,7 +158,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.15.2",
+        version="1.15.3",
         lifespan=lifespan,
     )
     app.state.settings = settings
