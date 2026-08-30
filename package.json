@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "build:css": "tailwindcss -i site/src/tailwind.css -o site/assets/tailwind.css --minify && tailwindcss -i site/src/index.css -o site/assets/index.css --minify && tailwindcss -i site/src/explorer.css -o site/assets/explorer.css --minify",
+    "build:css": "tailwindcss -i site/src/tailwind.css -o site/assets/tailwind.css --minify && tailwindcss -i site/src/index.css -o site/assets/index.css --minify",
     "watch:css": "tailwindcss -i site/src/tailwind.css -o site/assets/tailwind.css --watch"
   },
   "license": "ISC",

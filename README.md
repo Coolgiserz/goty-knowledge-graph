@@ -105,6 +105,7 @@ make up                                  # 默认：web 容器同源托管一切
 
 - **[docs/SECURITY.md](docs/SECURITY.md)** — 防护设计、审计、访问控制、认证体系。
 - **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** — 全部 `GOTY_*` 环境变量参考。
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — 部署方式（GitHub Pages 静态站 / 完整站点）、免登录模式、样式构建链。
 - **[SECURITY_REPORT.md](SECURITY_REPORT.md)** — 独立漏洞报告（审查结论与残余风险）。
 
 > 部署硬性要求：账号体系依赖 **HTTPS（TLS）** 承载，凭据仅在 TLS 加密通道内传输；生产请把 `GOTY_SESSION_COOKIE_SECURE=true`。
@@ -154,6 +155,7 @@ make up                                  # 默认：web 容器同源托管一切
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 如何重新生成 / 扩展数据、修改构建流程 |
 | [docs/INSIGHTS.md](docs/INSIGHTS.md) | 数据挖掘报告（奖项品味 / 工作室格局 / 评分门槛 / 研究课题） |
 | [docs/ML_PIPELINE.md](docs/ML_PIPELINE.md) | 统计机器学习流水线结构与产物 |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署指南：GitHub Pages 静态站 / 完整站点、免登录模式、前端样式构建链 |
 | [SECURITY_REPORT.md](SECURITY_REPORT.md) | 独立漏洞报告 |
 
 ---
