@@ -118,7 +118,8 @@ make up                                  # 默认：web 容器同源托管一切
 ├── README.md / LICENSE / Makefile / pyproject.toml / Dockerfile / docker-compose.yml
 ├── src/                    # 合并原始数据 → 数据集（CSV + graph.json）+ 生成网站
 ├── data/                   # raw/（原始研究数据）、csv/、neo4j/、graph.json
-├── site/                   # index.html（原静态图谱站点，数据内联）+ explorer/（探索 SPA）
+├── site/                   # index.html（原静态图谱站点，数据内联）+ explorer-graph/（探索 SPA）
+├── site/src/               # 样式源（Tailwind 入口，改后需构建）；产物在 site/assets/ 并已提交
 ├── vendor/                 # 第三方库（vis-network.min.js）
 ├── scripts/                # init.cypher、serve*.sh、neo4j_import.sh、audit_report.py
 ├── api/                    # 探索后端（FastAPI，应用工厂 + 路由拆分 + 依赖注入）
@@ -132,7 +133,7 @@ make up                                  # 默认：web 容器同源托管一切
 
 ## 🛠 技术栈
 
-- **前端**：原静态站点用 [vis-network](https://github.com/visjs/vis-network)（力导向图，已本地化）；探索 SPA 为原生 ES Module（无构建步骤），图表用纯 SVG 手绘渲染。
+- **前端**：原静态站点用 [vis-network](https://github.com/visjs/vis-network)（力导向图，已本地化）；探索 SPA 为原生 ES Module，图表用纯 SVG 手绘渲染。样式用 Tailwind v4 构建（`site/src/` → `site/assets/`）——**产物已随仓库提交，因此部署与运行时仍零 Node 依赖**；仅改动样式时才需要 `npm run build:css`（详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)）。
 - **后端**：FastAPI + uvicorn 探索 API；复用 `analysis/ml/` 计算模块（Strategy + Registry 可插拔架构）。
 - **数据**：Python 3 合并脚本，输出 CSV（Neo4j 友好）+ JSON。
 - **部署**：FastAPI 同源托管 / Docker / docker-compose。
