@@ -37,11 +37,11 @@ fi
 
 # 若已存在同名容器则先移除
 if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
-  echo "→ 发现已有容器 $NAME，正在移除…"
+  echo "→ 发现已有容器 ${NAME}，正在移除…"
   docker rm -f "$NAME" >/dev/null
 fi
 
-echo "→ 启动 Neo4j 开发容器（镜像 $IMAGE，端口 HTTP:$HTTP_PORT / Bolt:$BOLT_PORT，数据卷 ${NAME}-data）…"
+echo "→ 启动 Neo4j 开发容器（镜像 ${IMAGE}，端口 HTTP:$HTTP_PORT / Bolt:${BOLT_PORT}，数据卷 ${NAME}-data）…"
 docker run -d --name "$NAME" \
   -p "$HTTP_PORT:7474" -p "$BOLT_PORT:7687" \
   -e NEO4J_AUTH="neo4j/$PASS" \
@@ -73,7 +73,7 @@ for i in $(seq 1 30); do
     break
   fi
   if echo "$err" | grep -qiE 'unauthorized|AuthenticationRateLimit|invalid (username|password)|credentials'; then
-    echo "✗ 认证失败（$err）" >&2
+    echo "✗ 认证失败（${err}）" >&2
     echo "  请确认 .env 的 NEO4J_PASSWORD 与容器启动密码一致。" >&2
     echo "  （Neo4j 仅在首次启动设置密码；改过密码需先 docker volume rm ${NAME}-data 再重跑。）" >&2
     exit 1
@@ -88,7 +88,7 @@ fi
 
 echo ""
 echo "✅ 导入完成！"
-echo "   Neo4j Browser： http://localhost:$HTTP_PORT  （neo4j / $PASS）"
+echo "   Neo4j Browser： http://localhost:$HTTP_PORT  （neo4j / ${PASS}）"
 echo "   Bolt 连接串：   bolt://localhost:$BOLT_PORT"
 echo "   后端启用：      设 GOTY_GRAPH_BACKEND=neo4j 且 GOTY_NEO4J_URI=bolt://localhost:$BOLT_PORT"
 echo "   停止容器：       docker rm -f $NAME"

@@ -26,11 +26,11 @@ fi
 
 # 若已存在同名容器则先移除
 if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
-  echo "→ 发现已有容器 $NAME，正在移除…"
+  echo "→ 发现已有容器 ${NAME}，正在移除…"
   docker rm -f "$NAME" >/dev/null
 fi
 
-echo "→ 启动 Neo4j 容器（镜像 $IMAGE，数据卷 neo4j-goty-data）…"
+echo "→ 启动 Neo4j 容器（镜像 ${IMAGE}，数据卷 neo4j-goty-data）…"
 docker run -d --name "$NAME" \
   -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH="neo4j/$PASS" \
@@ -62,7 +62,7 @@ for i in $(seq 1 30); do
     break
   fi
   if echo "$err" | grep -qiE 'unauthorized|AuthenticationRateLimit|invalid (username|password)|credentials'; then
-    echo "✗ 认证失败（$err）" >&2
+    echo "✗ 认证失败（${err}）" >&2
     echo "  请确认 .env 的 NEO4J_PASSWORD 与容器启动密码一致。" >&2
     echo "  （Neo4j 仅在首次启动设置密码；改过密码需先 docker volume rm neo4j-goty-data 再重跑。）" >&2
     exit 1
@@ -78,6 +78,6 @@ fi
 echo ""
 echo "✅ 导入完成！"
 echo "   网站(若用 docker-compose)： http://localhost:8080"
-echo "   Neo4j Browser：            http://localhost:7474  （neo4j / $PASS）"
+echo "   Neo4j Browser：            http://localhost:7474  （neo4j / ${PASS}）"
 echo "   停止容器： docker stop $NAME"
 echo "   删除容器与数据： docker rm -f $NAME && docker volume rm neo4j-goty-data"

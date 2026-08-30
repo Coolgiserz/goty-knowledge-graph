@@ -607,6 +607,21 @@ class Neo4jStore(GraphStore):
             return f"{node.get('name')} ({node.get('year')})"
         return str(node.id)
 
+    @staticmethod
+    def _id_of(node: Any, group: str) -> Any:
+        """按**节点类型**取唯一标识，而非无差别 fallback。
+
+        Award 节点同时带 ``award_id`` 与 ``game_id``（奖项关联到具体游戏）。若按固定
+        顺序优先取 ``game_id``，Award 会拿到 ``game_00x``，与 GOTY 节点（同为
+        ``game_00x``）撞 id —— 图构建时 id 被用作字典键，导致 20 个节点被静默覆盖丢失
+        （实测 189 节点只剩 169 唯一 id，社区划分因 20 个孤立点而严重劣化：
+        NetworkX 10 团 / Q=0.657，Neo4j 136 团 / Q=0.184）。
+        """
+        spec = GRAPH_SCHEMA.get(group)
+        if spec is not None and spec.id_field:
+            return node.get(spec.id_field)
+        return None
+
     def _node_view_from(self, node: Any) -> dict[str, Any]:
         g = self._group_of(node)
         summary: dict[str, Any] = {}
@@ -614,10 +629,7 @@ class Neo4jStore(GraphStore):
             if node.get(k) is not None:
                 summary[k] = node.get(k)
         return {
-            "id": node.get("game_id")
-            or node.get("studio_id")
-            or node.get("genre_id")
-            or node.get("award_id"),
+            "id": self._id_of(node, g),
             "group": g,
             "label": self._label_of(node),
             "summary": summary,
@@ -633,7 +645,6 @@ class Neo4jStore(GraphStore):
         WHERE n.title_zh CONTAINS $q OR n.title CONTAINS $q
               OR n.name CONTAINS $q OR n.name_zh CONTAINS $q
               OR n.developer CONTAINS $q OR n.body CONTAINS $q
-              OR n.label CONTAINS $q
         RETURN n LIMIT $limit
         """
         with driver.session() as s:
@@ -747,6 +758,15 @@ class Neo4jStore(GraphStore):
                         "Award": "awards",
                     }.get(lb, lb.lower() + "s")
                     counts[key] = counts.get(key, 0) + rec["c"]
+        # 字段必须与 NetworkXStore.stats（graph_loader.node_counts）**完全一致**：
+        # 前端按固定字段渲染，缺任一项都会在切换图后端后变成 undefined。
+        # 补 nodes / edges / goty（按标签聚合本身给不出这三项）。
+        with driver.session() as s:
+            counts["nodes"] = s.run("MATCH (n) RETURN count(n) AS c").single()["c"]
+            counts["edges"] = s.run("MATCH ()-[r]->() RETURN count(r) AS c").single()["c"]
+            counts["goty"] = s.run(
+                "MATCH (n:Game) WHERE n.is_goty = true RETURN count(n) AS c"
+            ).single()["c"]
         return counts
 
     def list_nodes(
@@ -774,11 +794,16 @@ class Neo4jStore(GraphStore):
             )
             where = (where + " AND " + qpred) if where else qpred
         base = "MATCH (n)" + (f" WHERE {where}" if where else "")
+        # 排序键：不存在通用的 n.id 属性（Neo4j 会告警且排序键为 null，导致分页
+        # 顺序不稳定 —— 翻页可能重复/漏项）。按标签取该类型自己的 id 属性排序，
+        # 与 group 对应；未指定 group 时用内部 elementId 保证稳定全序。
+        spec = GRAPH_SCHEMA.get(group or "")
+        order_by = f"n.{spec.id_field}" if (spec and spec.id_field) else "elementId(n)"
         with driver.session() as s:
             items = [
                 self._node_view_from(rec["n"])
                 for rec in s.run(
-                    base + " RETURN n ORDER BY n.id SKIP $offset LIMIT $limit",
+                    base + f" RETURN n ORDER BY {order_by} SKIP $offset LIMIT $limit",
                     offset=offset,
                     limit=limit,
                     **({"q": q} if q else {}),
@@ -966,7 +991,10 @@ class Neo4jStore(GraphStore):
         edge_triples: list[tuple[str, str, str]] = []
         seen: set[frozenset] = set()
         with driver.session() as s:
-            for rec in s.run("MATCH (a)-[r]-(b) RETURN a, b LIMIT 20000"):
+            # 必须 RETURN r：下面要取 rec["r"].type 作为边类型。
+            # 此前只 RETURN a, b，一旦图里有边就 KeyError('r') —— Neo4j 后端的社区发现
+            # 接口 100% 不可用（该缺陷只有真正连上 Neo4j 才会暴露）。
+            for rec in s.run("MATCH (a)-[r]-(b) RETURN a, b, r LIMIT 20000"):
                 a = self._node_view_from(rec["a"])["id"]
                 b = self._node_view_from(rec["b"])["id"]
                 key = frozenset((a, b))

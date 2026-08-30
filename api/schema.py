@@ -19,6 +19,11 @@ class NodeTypeSpec:
 
     group: str  # 内部 group 名（也作 scope id）
     neo4j_label: str  # Neo4j 节点标签
+    # 该类型的**唯一标识属性名**（Neo4j 属性 / graph.json 的 id 前缀）。
+    # 必须按类型取，不能无差别 fallback：Award 节点同时带 award_id 与 game_id，
+    # 若按固定顺序取 game_id，就会与 GOTY 节点（同为 game_00x）撞 id，
+    # 导致节点在图构建时被字典覆盖而丢失（实测丢 20 个）。
+    id_field: str = ""
     is_goty: bool | None = None  # 是否需要用 is_goty 区分（game=False / goty=True / 其他 None）
     summary_fields: tuple = ()  # 前端卡片摘要取用的 raw 字段
     display_label: str = ""  # 下拉显示名（界面对用户，非后台标识）
@@ -31,6 +36,7 @@ GRAPH_SCHEMA: dict[str, NodeTypeSpec] = {
     "game": NodeTypeSpec(
         group="game",
         neo4j_label="Game",
+        id_field="game_id",
         is_goty=False,
         summary_fields=("title_zh", "year", "genre", "developer", "player_rating"),
         display_label="仅游戏（同类投影）",
@@ -39,6 +45,7 @@ GRAPH_SCHEMA: dict[str, NodeTypeSpec] = {
     "goty": NodeTypeSpec(
         group="goty",
         neo4j_label="Game",
+        id_field="game_id",  # 与 game 同为 Game 标签，靠 is_goty 区分
         is_goty=True,
         summary_fields=("title_zh", "year", "genre", "developer", "player_rating"),
         display_label="仅年度游戏（同类投影）",
@@ -47,6 +54,7 @@ GRAPH_SCHEMA: dict[str, NodeTypeSpec] = {
     "genre": NodeTypeSpec(
         group="genre",
         neo4j_label="Genre",
+        id_field="genre_id",
         summary_fields=("name", "parent", "tier"),
         display_label="仅类型（同类投影）",
         projection_blurb="把类型按「被哪些游戏共同拥有」聚类，得到「经常结伴出现的类型」社群（如开放世界 + 角色扮演）。",
@@ -54,6 +62,7 @@ GRAPH_SCHEMA: dict[str, NodeTypeSpec] = {
     "studio": NodeTypeSpec(
         group="studio",
         neo4j_label="Studio",
+        id_field="studio_id",
         summary_fields=("name_zh", "country", "founded"),
         display_label="仅工作室（同类投影）",
         projection_blurb="按「共同开发的游戏」聚类工作室；若多为独立簇，说明本数据里工作室各自出品、少有重叠。",
@@ -61,6 +70,7 @@ GRAPH_SCHEMA: dict[str, NodeTypeSpec] = {
     "award": NodeTypeSpec(
         group="award",
         neo4j_label="Award",
+        id_field="award_id",
         summary_fields=("name", "year", "body"),
         display_label="仅奖项（同类投影）",
         projection_blurb="按「授予同一批游戏」聚类奖项，看奖项偏好是否成派系。",
