@@ -664,7 +664,10 @@ async function loadCommunities() {
     }
     (data.edges || []).forEach(upsertEdge);
     setPhysics(true); // 重新打开物理，确保大量节点铺开后触发 stabilizationIterationsDone
-    const assign = buildAssignmentFromCommunities(data.communities || []);
+    // 优先用契约顶层下发的 assignment；老后端没有该字段时回退到从 members 派生。
+    const assign = (data.assignment && Object.keys(data.assignment).length)
+      ? data.assignment
+      : buildAssignmentFromCommunities(data.communities || []);
     renderCommunityList(data.communities || []);
     const nComm = (data.communities || []).length;
     setStatus(`已构建社区分析图（${meta.display_name} · ${scopeLabel}）：共 ${nComm} 个社团、${nodeViews.length} 个节点。${wantsAnimate ? "正在播放算法过程…" : "已按社团上色并冻结布局；点列表项查看社团包含哪些节点。"}`);
@@ -862,7 +865,10 @@ function renderAnimFrame(i) {
   applyAssignment(f.assignment || {}, { highlightEdges: f.highlight_edges });
   const seek = $("#comm-anim-seek"); if (seek) seek.value = String(i);
   const total = commAnim.frames.length;
-  const qtxt = (f.metric != null) ? ` · 模块度 Q=${Number(f.metric).toFixed(3)}` : "";
+  // 指标文案取自后端契约的语义标签，不再硬编码「模块度」：
+  // 换算法库后指标可能是 codelength（越小越好）等，标签由后端给出，前端原样渲染。
+  const label = f.metric_label || "模块度 Q";
+  const qtxt = (f.metric != null) ? ` · ${label}=${Number(f.metric).toFixed(3)}` : "";
   $("#comm-anim-step").textContent = `步骤 ${i + 1} / ${total}${qtxt}`;
   $("#comm-anim-desc").textContent = f.description || "";
 }

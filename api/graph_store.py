@@ -29,11 +29,13 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import Any
 
 import networkx as nx
 
 from .community import run_detection
+from .contracts import from_legacy
 from .graph_loader import EDGES, NODES
 from .schema import GRAPH_SCHEMA, group_of_node, group_predicate
 
@@ -481,23 +483,19 @@ class NetworkXStore(GraphStore):
                 edge_triples.append((u, v, ty))
         G, scoped_nodes, scoped_edges = _build_scope_graph(node_dicts, edge_triples, scope)
         res = run_detection(algorithm, G, params, animate=animate)
+        # 经**稳定契约**下发：算法库（含其裸 modularity 字段与帧结构）被隔离在
+        # contracts 之后，前端只依赖契约。将来换算法库 / 新增指标时前端无需改动。
+        contract = from_legacy(res.algorithm, res.display_name, res)
+        if not animate:
+            contract = replace(contract, frames=[])
+        payload = contract.to_dict()
         nodes_out = []
         for n in scoped_nodes:
             view = _node_view(n)
-            view["community"] = res.assignment[n["id"]]
+            view["community"] = contract.assignment[n["id"]]
             nodes_out.append(view)
-        return {
-            "algorithm": res.algorithm,
-            "display_name": res.display_name,
-            "params": res.params,
-            "scope": scope,
-            "communities": res.communities,
-            "nodes": nodes_out,
-            "edges": scoped_edges,
-            "supports_animation": res.supports_animation,
-            "modularity": res.modularity,
-            "frames": res.frames if animate else [],
-        }
+        payload.update({"scope": scope, "nodes": nodes_out, "edges": scoped_edges})
+        return payload
 
     def influence(
         self, metric: str = "pagerank", top_n: int = 20, group: str | None = None

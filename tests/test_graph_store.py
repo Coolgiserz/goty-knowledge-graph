@@ -497,17 +497,77 @@ def test_greedy_modularity_matches_networkx():
 
 
 def test_community_animation_frames_returned_when_animate():
-    """animate=true 时，支持动画的算法应返回过程帧；帧含 step/description/assignment。"""
+    """animate=true 时，支持动画的算法应返回过程帧；帧含 step/description/assignment。
+
+    帧经 contracts 层下发为**稳定契约**（dict），不再直接暴露算法库的 CommFrame 对象：
+    换算法库时帧的结构保持不变，前端无需改动。
+    """
     s = NetworkXStore()
     for algo in ("modularity", "label_propagation", "girvan_newman"):
         res = s.communities(algorithm=algo, animate=True)
         assert res["supports_animation"] is True
         assert len(res["frames"]) >= 2
         f0 = res["frames"][0]
-        assert f0.step == 0
-        assert isinstance(f0.description, str) and f0.description
+        assert f0["step"] == 0
+        assert isinstance(f0["description"], str) and f0["description"]
         # 每帧 assignment 覆盖全图节点
-        assert set(f0.assignment.keys()) == {n["id"] for n in res["nodes"]}
+        assert set(f0["assignment"].keys()) == {n["id"] for n in res["nodes"]}
+        # 契约新增：指标自带语义标签（旧前端仍可读数值 metric）
+        assert f0["metric_label"] is None or isinstance(f0["metric_label"], str)
+
+
+def test_communities_result_conforms_to_stable_contract():
+    """社区结果必须符合稳定契约：指标列表 + 顶层归属 + 向后兼容字段。
+
+    这是「换算法库不影响前端」的守护测试：只要契约字段在，前端就无需改动。
+    """
+    s = NetworkXStore()
+    res = s.communities(algorithm="modularity")
+    # 契约核心字段
+    for key in ("algorithm", "display_name", "communities", "assignment", "metrics"):
+        assert key in res, f"缺契约字段 {key}"
+    # 指标是「列表 + 语义标签」，而非固定 modularity 一处
+    assert isinstance(res["metrics"], list) and res["metrics"]
+    m0 = res["metrics"][0]
+    assert {"key", "label", "value", "higher_is_better"} <= set(m0)
+    assert m0["key"] == "modularity" and m0["higher_is_better"] is True
+    # 向后兼容：旧的顶层 modularity 仍在（从 metrics 派生）
+    assert res["modularity"] == m0["value"]
+    # 顶层下发归属，前端不必再从 communities[].members 派生
+    assert set(res["assignment"]) == {n["id"] for n in res["nodes"]}
+
+
+def test_contract_supports_algorithms_with_different_metrics():
+    """契约必须能表达「指标不是模块度」的算法（如 Infomap 的 codelength 越小越好）。
+
+    旧结构只有固定的 modularity 字段，Infomap 的 codelength 无处安放、被丢弃；
+    前端还把裸 metric 硬编码标成「模块度」，会张冠李戴。
+    """
+    from dataclasses import replace
+
+    from api.contracts import CODELENGTH, MODULARITY, CommunityDetectionResult
+
+    result = CommunityDetectionResult(
+        algorithm="infomap",
+        display_name="Infomap（信息流）",
+        params={},
+        communities=[{"id": 0, "size": 2, "members": ["a", "b"]}],
+        assignment={"a": 0, "b": 0},
+        # 同一结果可同时携带多项指标（本例：codelength 为主，modularity 作同口径对照）
+        metrics=[replace(CODELENGTH, value=4.21), replace(MODULARITY, value=0.55)],
+    )
+    d = result.to_dict()
+    keys = [m["key"] for m in d["metrics"]]
+    assert keys == ["codelength", "modularity"]
+    # 方向不同：codelength 越小越好
+    assert d["metrics"][0]["higher_is_better"] is False
+    assert d["metrics"][1]["higher_is_better"] is True
+    # 向后兼容：modularity 从 metrics 派生，而非硬编码字段
+    assert d["modularity"] == 0.55
+    # 主指标是 codelength（列表首项），语义标签可供前端正确渲染
+    assert result.primary_metric is not None
+    assert result.primary_metric.key == "codelength"
+    assert "编码长度" in result.primary_metric.format()
 
 
 def test_infomap_runs_when_installed(client):
