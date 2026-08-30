@@ -171,7 +171,6 @@ class GreedyModularityDetector(CommunityDetector):
             assignment=compact,
             modularity=q,
             supports_animation=self.supports_animation,
-            frames=list(self.detect_stepwise(G, params)),
         )
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
@@ -232,7 +231,6 @@ class LabelPropagationDetector(CommunityDetector):
             assignment=assign,
             modularity=_safe_modularity(G, _partitions_from_assign(assign)),
             supports_animation=self.supports_animation,
-            frames=list(self.detect_stepwise(G, params)),
         )
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
@@ -301,7 +299,6 @@ class LouvainDetector(CommunityDetector):
             assignment=assign,
             modularity=_safe_modularity(G, _partitions_from_assign(assign)),
             supports_animation=self.supports_animation,
-            frames=list(self.detect_stepwise(G, params)),
         )
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
@@ -432,7 +429,6 @@ class GirvanNewmanDetector(CommunityDetector):
             assignment=assign,
             modularity=_safe_modularity(G, partitions),
             supports_animation=self.supports_animation,
-            frames=list(self.detect_stepwise(G, params)),
         )
 
     def detect_stepwise(self, G: nx.Graph, params: dict[str, Any]) -> Iterator[CommFrame]:
@@ -448,9 +444,16 @@ class GirvanNewmanDetector(CommunityDetector):
             # 高亮：跨社团的「桥边」（即被切断的边）
             cut_edges = [(u, v) for u, v in G.edges() if compact.get(u) != compact.get(v)]
             q = _safe_modularity(G, partitions)
+            # 退化图（如无边 / 全孤立节点）下 _safe_modularity 返回 None，直接格式化会
+            # 抛 TypeError（同文件贪心策略 194 行已按此模式保护，此处是遗漏）。
+            desc = (
+                f"第 {step + 1} 刀：删除最高中介度的桥边，裂成 {len(partitions)} 个社团（Q={q:.3f}）"
+                if q is not None
+                else f"第 {step + 1} 刀：裂成 {len(partitions)} 个社团（该图无法计算模块度）"
+            )
             yield CommFrame(
                 step=step,
-                description=f"第 {step + 1} 刀：删除最高中介度的桥边，裂成 {len(partitions)} 个社团（Q={q:.3f}）",
+                description=desc,
                 assignment=dict(compact),
                 metric=q,
                 highlight_edges=cut_edges,

@@ -94,3 +94,71 @@ def test_out_of_range_params_are_clamped_not_honored():
     res = run_board("studio", {"num_walks": oversized}, data_matches_baseline=True)
     assert res is not None
     assert res["params"]["num_walks"] == spec.max, "执行的参数应已被裁剪"
+
+
+# --------------------------------------------------------------------------- #
+# 图浏览器社区发现的退化图边界（api/community.py，供 /api/graph/communities 使用）
+# --------------------------------------------------------------------------- #
+def _degenerate_graphs():
+    import networkx as nx
+
+    g_empty = nx.Graph()
+    g_single = nx.Graph()
+    g_single.add_node("a")
+    g_isolated = nx.Graph()
+    g_isolated.add_nodes_from(["a", "b"])  # 两孤立节点、0 边
+    g_selfloop = nx.Graph()
+    g_selfloop.add_edge("a", "a")
+    return {
+        "空图": g_empty,
+        "单点": g_single,
+        "两孤立节点": g_isolated,
+        "仅自环": g_selfloop,
+    }
+
+
+@pytest.mark.parametrize("gname", ["空图", "单点", "两孤立节点", "仅自环"])
+def test_community_detection_survives_degenerate_graphs(gname):
+    """退化图不得让任何已安装的算法崩溃（返回 500）。
+
+    回归背景：girvan_newman 的动画帧描述对 ``modularity=None`` 未做保护，
+    两孤立节点（0 边）时 ``f"...Q={q:.3f}"`` 直接抛 TypeError；
+    而 detect() 无条件生成动画帧，故即使不请求动画也会崩。
+    """
+    from api.community import list_detectors, run_detection
+
+    G = _degenerate_graphs()[gname]
+    for d in list_detectors():
+        name = d["name"]
+        try:
+            run_detection(name, G, {})
+        except RuntimeError:
+            continue  # 缺可选依赖（如 louvain/infomap 未装），属预期
+        except Exception as e:  # 其余任何异常都是缺陷
+            pytest.fail(f"{gname} + {name} 崩溃：{type(e).__name__}: {e}")
+
+
+def test_girvan_newman_frames_describe_uncomputable_modularity():
+    """退化图下动画帧描述不得因模块度为 None 而崩，且要给出可读文案。"""
+    from api.community import run_detection
+
+    G = _degenerate_graphs()["两孤立节点"]
+    res = run_detection("girvan_newman", G, {}, animate=True)
+    assert res.frames, "animate=True 应产出动画帧"
+    for f in res.frames:
+        assert "Q=" not in f.description or "无法计算" in f.description or "." in f.description
+        assert isinstance(f.description, str) and f.description
+
+
+def test_detect_does_not_recompute_animation_frames():
+    """未请求动画时不应生成动画帧——此前 4 个 detector 无条件重跑一遍算法填 frames，
+    而 run_detection 在 animate=True 时本就会填，导致每次调用双倍计算。"""
+    from api.community import run_detection
+
+    # 用「两孤立节点」：它有可分裂步骤、能产出动画帧，便于对比 animate 开关的效果。
+    # （「仅自环」图无可切边、生成器为空，两种情况都没有帧，不适合做对比。）
+    G = _degenerate_graphs()["两孤立节点"]
+    res = run_detection("girvan_newman", G, {}, animate=False)
+    assert res.frames == [], "animate=False 时不应生成动画帧"
+    res2 = run_detection("girvan_newman", G, {}, animate=True)
+    assert res2.frames, "animate=True 时才生成动画帧"
