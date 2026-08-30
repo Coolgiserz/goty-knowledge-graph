@@ -101,3 +101,24 @@ def test_blacklist_clears_violations_after_ban():
     assert banned is True
     assert bl.violations.get("1.2.3.4", 0) == 0, "封禁后违规计数应清零"
     assert bl.is_blacklisted("1.2.3.4") is True
+
+
+def test_healthcheck_style_ua_blocked_but_browser_ua_allowed(tmp_path):
+    """urllib 默认 UA（Python-urllib）会被 Bot 规则拦截 -> Docker 健康检查必须显式带浏览器 UA。
+
+    回归背景：Dockerfile 的 HEALTHCHECK 用 urllib.request.urlopen，其默认 UA 含
+    "python"/"urllib"，而 bot_ua_blocklist 默认开启且含这两项 -> 健康检查恒 403，
+    容器被误判 unhealthy。
+    """
+    settings = Settings(
+        enable_exploration=False,
+        auth_enabled=False,
+        block_bot_ua=True,
+        users_db_url=f"sqlite:///{tmp_path}/u.db",
+        audit_db_url=f"sqlite:///{tmp_path}/a.db",
+    )
+    client = TestClient(create_app(settings))
+    assert client.get("/api/meta", headers={"user-agent": "Python-urllib/3.12"}).status_code == 403
+    # 健康检查改用浏览器 UA 后应放行
+    ua = "Mozilla/5.0 (healthcheck) GOTY-HealthCheck"
+    assert client.get("/api/meta", headers={"user-agent": ua}).status_code == 200

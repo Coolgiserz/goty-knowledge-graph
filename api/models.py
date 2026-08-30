@@ -48,15 +48,31 @@ class ParamSpec:
             "group": self.group,
         }
 
+    def _clamp(self, v):
+        """把数值裁剪到 [min, max]；未声明边界则原样返回。
+
+        必须做裁剪而非只做类型检查：前端控件的 min/max 只是提示，请求可由客户端
+        任意构造。此前 min/max 声明了却从不生效，导致诸如 ``num_walks``（声明上限 60）
+        被传 6000 时单次计算耗时从 1s 涨到 60s 以上、更大值直接吃爆内存——
+        任何登录用户一个请求即可打满工作线程，构成 DoS。
+        """
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            return v
+        if self.min is not None and v < self.min:
+            return self.min
+        if self.max is not None and v > self.max:
+            return self.max
+        return v
+
     def coerce(self, v):
-        """把前端/请求传来的值按类型安全转换；非法则回退默认值。"""
+        """把前端/请求传来的值按类型安全转换并裁剪到 [min, max]；非法则回退默认值。"""
         if v is None:
             return self.default
         try:
             if self.type == "int":
-                return int(v)
+                return int(self._clamp(int(v)))
             if self.type == "float":
-                return float(v)
+                return float(self._clamp(float(v)))
             if self.type == "bool":
                 if isinstance(v, bool):
                     return v

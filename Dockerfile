@@ -52,8 +52,13 @@ RUN uv pip install --system --no-cache \
 COPY . .
 
 EXPOSE 8080
+# 注意：必须显式带浏览器 UA。urllib 的默认 UA 是 "Python-urllib/3.x"，会被默认开启的
+# BotUserAgentRule（blocklist 含 python / urllib）判为爬虫而 403，导致健康检查恒失败、
+# 容器被误判 unhealthy。这里设一个明确的浏览器 UA 表明"这是探活、不是爬虫"。
 HEALTHCHECK --interval=30s --timeout=3s --start-period=8s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/api/meta').status==200 else 1)" || exit 1
+  CMD python -c "import urllib.request,sys; \
+r=urllib.request.Request('http://localhost:8080/api/meta', headers={'User-Agent':'Mozilla/5.0 (healthcheck) GOTY-HealthCheck'}); \
+sys.exit(0 if urllib.request.urlopen(r, timeout=2).status==200 else 1)" || exit 1
 
 # 默认只读洞察模式；开启探索 SPA 需 -e GOTY_ENABLE_EXPLORATION=true
 CMD ["sh", "-c", "python -m uvicorn api.app:app --host 0.0.0.0 --port 8080"]

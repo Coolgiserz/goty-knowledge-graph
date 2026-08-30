@@ -55,3 +55,43 @@ def test_board_sync_runs_when_enabled(client_enabled, stub_run_board):
 def test_board_unknown_returns_404(client_enabled, stub_run_board):
     r = client_enabled.post("/api/board/does_not_exist", json={"params": {}})
     assert r.status_code == 404
+
+
+# --------------------------------------------------------------------------- #
+# 参数越界防护（min/max 必须真正生效）
+# --------------------------------------------------------------------------- #
+def test_param_spec_clamps_numeric_to_declared_bounds():
+    """数值参数必须裁剪到 [min, max]。
+
+    回归背景：coerce() 声明了 min/max 却从不使用，前端控件只是提示、请求可任意构造。
+    实测 studio.num_walks（声明 max=60）传 6000 时耗时从 1s 涨到 62s、更大值吃爆内存，
+    任何登录用户一个请求即可打满工作线程（DoS）。
+    """
+    from api.models import ParamSpec
+
+    spec = ParamSpec("k", "k", "int", 6, min=2, max=12)
+    assert spec.coerce(999) == 12, "超出 max 应裁到 max"
+    assert spec.coerce(-5) == 2, "低于 min 应裁到 min"
+    assert spec.coerce(7) == 7, "范围内原样保留"
+    assert spec.coerce(None) == 6, "None 回退默认值"
+    assert spec.coerce("abc") == 6, "非法值回退默认值"
+
+    fspec = ParamSpec("r", "r", "float", 1.0, min=0.3, max=3.0)
+    assert fspec.coerce(1e9) == 3.0
+    assert fspec.coerce(-1.0) == 0.3
+
+    # 布尔不应被数值裁剪误伤
+    bspec = ParamSpec("flag", "flag", "bool", False)
+    assert bspec.coerce(True) is True
+
+
+def test_board_params_are_clamped_end_to_end(client_enabled):
+    """经 run_board 的端到端验证：越界参数被裁剪，不会原样传给算法。"""
+    from api.registry import get
+
+    tool = get("studio")
+    spec = next(p for p in tool.params if p.key == "num_walks")
+    assert spec.max is not None
+    raw = spec.max * 1000  # 极端越界
+    coerced = spec.coerce(raw)
+    assert coerced == spec.max, f"应裁到 max={spec.max}，实际 {coerced}"
