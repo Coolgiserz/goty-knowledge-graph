@@ -9,8 +9,13 @@ name: Deploy static site to Pages
 # 时才显示，因此在 Pages 上不会出现死链。
 #
 # 触发方式：
-#   · push 到 main 时自动发布（依赖 lint-test 全绿）
+#   · push 到 main 时自动发布（本工作流**独立于** lint-test，不等待其通过，
+#     因为发布内容只有首页，与后端测试是否通过无关）
 #   · 也可在 Actions 里手动触发（workflow_dispatch）
+#
+# ⚠️ 仓库侧必须先开启一次：Settings → Pages → Source 选 **GitHub Actions**。
+# 若停留在「Deploy from a branch」，GitHub 会用 Jekyll 渲染 README.md 当首页，
+# 本工作流即便跑成功也不会生效。
 
 on:
   push:
@@ -79,6 +84,10 @@ jobs:
           echo "产物清单："
           find _site -type f | sort
           du -sh _site
+
+      # 官方推荐：为 Pages 写入 base_path 等配置（子路径站点必需）
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
