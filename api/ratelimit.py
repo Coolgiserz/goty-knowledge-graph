@@ -13,10 +13,16 @@
 """
 
 import ipaddress
+import logging
 import os
 import time
 from collections import defaultdict
 from typing import Protocol, runtime_checkable
+
+logger = logging.getLogger("goty.ratelimit")
+
+# Redis 网络超时（秒）：无响应时不能把事件循环拖死。
+_REDIS_SOCKET_TIMEOUT = 2.0
 
 
 def _parse_networks(raw: str) -> list:
@@ -95,12 +101,32 @@ class Limiter:
     返回 (allowed, retry_after)：allowed 为 False 时 retry_after 为建议重试秒数。
     """
 
-    def __init__(self, max_req: int, window: int):
+    def __init__(self, max_req: int, window: int, max_keys: int = 100_000):
         self.max = max(1, max_req)
         self.window = max(1, window)
         self._buckets: dict = {}  # key -> [count, window_start_epoch]
+        # 桶数量上限：_buckets 曾永不清理，IP（可伪造）持续灌新键即无界增长。
+        # 设 100 的下限只是防止误配成极小值导致正常流量被反复淘汰。
+        self._max_keys = max(100, max_keys)
 
-    def check(self, key: str):
+    def _sweep(self) -> None:
+        """清理过期桶并硬性限制键数量（防止 IP 维度无界增长）。
+
+        每个不同 IP 都会在 ``_buckets`` 里留一个条目且永不清理，长时间运行会单调吃内存；
+        客户端还可轮换 IP（甚至伪造 XFF）持续灌新键。故在每次写入前清扫一次。
+        """
+        now = time.time()
+        stale = [k for k, (_cnt, start) in self._buckets.items() if now - start >= self.window]
+        for k in stale:
+            self._buckets.pop(k, None)
+        overflow = len(self._buckets) - self._max_keys
+        if overflow > 0:
+            # 仍超限：淘汰最久未更新的键（按窗口起点升序）
+            oldest = sorted(self._buckets.items(), key=lambda kv: kv[1][1])[:overflow]
+            for k, _v in oldest:
+                self._buckets.pop(k, None)
+
+    async def check(self, key: str):
         now = time.time()
         cnt, start = self._buckets.get(key, (0, now))
         if now - start >= self.window:
@@ -110,23 +136,24 @@ class Limiter:
             return False, max(1, retry_after)
         return True, 0
 
-    def hit(self, key: str):
+    async def hit(self, key: str):
         now = time.time()
         cnt, start = self._buckets.get(key, (0, now))
         if now - start >= self.window:
             cnt, start = 0, now
         self._buckets[key] = (cnt + 1, start)
+        self._sweep()
 
-    def check_and_hit(self, key: str) -> tuple[bool, int]:
+    async def check_and_hit(self, key: str) -> tuple[bool, int]:
         """原子「判定并计数」：允许则立即计数，返回 ``(allowed, retry_after)``。
 
         必须成对使用 ``check`` + ``hit`` 才能生效——``check`` 是纯读、从不写桶，
         漏调 ``hit`` 会让限流**完全失效**（计数器恒为 0）。故提供本方法作为默认入口，
         避免调用方踩这个坑。
         """
-        allowed, retry_after = self.check(key)
+        allowed, retry_after = await self.check(key)
         if allowed:
-            self.hit(key)
+            await self.hit(key)
         return allowed, retry_after
 
 
@@ -185,12 +212,30 @@ class Blacklist:
         self._save()
 
     def register_violation(self, ip: str, autoban_violations: int, autoban_seconds: int) -> bool:
-        """记录一次超限；达到阈值且尚未封禁则临时封禁，返回是否刚刚封禁。"""
+        """记录一次超限；达到阈值且尚未封禁则临时封禁，返回是否刚刚封禁。
+
+        封禁后**清零**违规计数：否则计数永不衰减，临时封禁一过期、再超限一次就立刻
+        重新封禁，等于把「临时封禁」变成了事实上的永久封禁。
+        """
         self.violations[ip] += 1
         if self.violations[ip] >= autoban_violations and not self.is_blacklisted(ip):
             self.add(ip, autoban_seconds)
+            self.violations.pop(ip, None)  # 封禁即清零，解封后重新累计
             return True
         return False
+
+    def sweep(self) -> None:
+        """清理已过期的临时封禁与久无活动的违规计数（防止 ``temp`` / ``violations`` 无界增长）。
+
+        黑名单键由客户端 IP 维度累积；IP 可被伪造时更是能持续灌新键，故需周期性清扫。
+        建议在低频后台任务中调用，或由每次 ``is_blacklisted`` 顺带做增量清理。
+        """
+        now = time.time()
+        for ip in [k for k, exp in self.temp.items() if exp != 0 and exp <= now]:
+            self.temp.pop(ip, None)
+        # 违规计数不做时间衰减（保持简单），但封禁时已清零；此处仅清理已解封且无计数的残留
+        for ip in [k for k in self.violations if k not in self.temp and self.violations[k] <= 0]:
+            self.violations.pop(ip, None)
 
 
 @runtime_checkable
@@ -201,12 +246,16 @@ class RateLimiter(Protocol):
     :func:`create_rate_limiter` 中返回它，其余代码（SecurityContext / 中间件）零改动。
     """
 
-    def check(self, key: str) -> tuple[bool, int]:
+    async def check(self, key: str) -> tuple[bool, int]:
         """返回 ``(allowed, retry_after)``；``allowed=False`` 时 ``retry_after`` 为建议重试秒数。"""
         ...
 
-    def hit(self, key: str) -> None:
+    async def hit(self, key: str) -> None:
         """记录该 key 的一次请求（消耗一次配额）。"""
+        ...
+
+    async def check_and_hit(self, key: str) -> tuple[bool, int]:
+        """原子「判定并计数」：允许则立即计数（推荐入口，避免漏调 hit 导致限流失效）。"""
         ...
 
 
@@ -231,10 +280,17 @@ class RedisLimiter:
 
     def __init__(self, redis_url: str, max_req: int, window: int, prefix: str = "goty:rl:") -> None:
         try:
-            import redis
+            import redis.asyncio as aioredis
         except ImportError as exc:  # 仅在真正启用 Redis 限流时才要求依赖
             raise RuntimeError("使用 Redis 限流需先安装依赖：uv pip install redis") from exc
-        self._client = redis.Redis.from_url(redis_url, decode_responses=True)
+        # async 客户端：中间件是 async 的，同步 redis 调用会阻塞整个事件循环。
+        # 并设 socket 超时，避免 Redis 无响应时把请求线程/循环拖死。
+        self._client = aioredis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_timeout=_REDIS_SOCKET_TIMEOUT,
+            socket_connect_timeout=_REDIS_SOCKET_TIMEOUT,
+        )
         self.max = max(1, max_req)
         self.window = max(1, window)
         self._prefix = prefix
@@ -244,13 +300,31 @@ class RedisLimiter:
             "return cnt"
         )
 
-    def check(self, key: str) -> tuple[bool, int]:
-        cnt = int(self._client.get(self._prefix + key) or 0)
+    async def check(self, key: str) -> tuple[bool, int]:
+        try:
+            cnt = int(await self._client.get(self._prefix + key) or 0)
+        except Exception:
+            # fail-open：Redis 故障时放行而不是让全站 500（可用性优先，配合告警排查）。
+            logger.exception("Redis 限流读取失败，本次放行（fail-open）")
+            return True, 0
         if cnt >= self.max:
-            ttl = self._client.ttl(self._prefix + key)
+            try:
+                ttl = await self._client.ttl(self._prefix + key)
+            except Exception:
+                ttl = None
             retry = max(1, ttl if ttl and ttl > 0 else self.window)
             return False, retry
         return True, 0
 
-    def hit(self, key: str) -> None:
-        self._script(keys=[self._prefix + key], args=[self.window])
+    async def hit(self, key: str) -> None:
+        try:
+            await self._script(keys=[self._prefix + key], args=[self.window])
+        except Exception:
+            # 计数失败同样 fail-open：宁可少记一次，也不能把请求打成 500。
+            logger.exception("Redis 限流计数失败（已忽略）")
+
+    async def check_and_hit(self, key: str) -> tuple[bool, int]:
+        allowed, retry_after = await self.check(key)
+        if allowed:
+            await self.hit(key)
+        return allowed, retry_after

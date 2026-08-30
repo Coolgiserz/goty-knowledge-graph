@@ -53,8 +53,14 @@ SITE_DIR = os.path.join(ROOT, "site")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 当前无外部连接池/文件句柄需显式启停；保留钩子以便将来扩展（如预热缓存）。
-    yield
+    try:
+        yield
+    finally:
+        # 回收任务线程池：否则工作线程一直挂着，进程无法正常退出。
+        # （任务结果本身的内存回收由 TaskManager 在 create 时按 TTL/上限淘汰。）
+        tasks_mgr = getattr(app.state, "tasks_mgr", None)
+        if tasks_mgr is not None:
+            tasks_mgr.shutdown(wait=False)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -135,7 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="GOTY 知识图谱 · 数据探索 API",
-        version="1.8.8",
+        version="1.8.9",
         lifespan=lifespan,
     )
     app.state.settings = settings

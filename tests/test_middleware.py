@@ -5,10 +5,12 @@ BotUserAgentRule 拦截爬虫 UA（默认关闭、可开启）；create_rate_lim
 默认返回内存实现、配置 Redis URL 时给出清晰扩展点。
 """
 
+import asyncio
+
 import pytest
 from api.app import create_app
 from api.config import Settings
-from api.ratelimit import Limiter, RateLimiter, create_rate_limiter
+from api.ratelimit import Blacklist, Limiter, RateLimiter, create_rate_limiter
 from api.security import SecurityContext
 from fastapi.testclient import TestClient
 
@@ -55,13 +57,13 @@ def test_middleware_allows_bot_ua_when_disabled():
 
 
 def test_rate_limiter_factory_default_in_memory():
+    # 限流器协议为 async（中间件是 async 的，Redis 后端必须用 async 客户端才不阻塞循环）
     rl = create_rate_limiter(3, 60)
     assert isinstance(rl, Limiter)
-    ok, _ = rl.check("k")
-    assert ok
+    assert asyncio.run(rl.check("k"))[0]
     for _ in range(3):
-        rl.hit("k")
-    ok2, retry = rl.check("k")
+        asyncio.run(rl.hit("k"))
+    ok2, retry = asyncio.run(rl.check("k"))
     assert not ok2 and retry > 0
 
 
@@ -75,3 +77,27 @@ def test_security_context_limiters_are_ratelimiter_protocol():
     sc = SecurityContext(Settings(enable_exploration=False))
     assert isinstance(sc.general_limiter, RateLimiter)
     assert isinstance(sc.board_limiter, RateLimiter)
+
+
+def test_limiter_buckets_are_bounded():
+    """限流桶必须有界：_buckets 曾永不清理，IP 维度（可伪造）持续灌新键即无界增长。"""
+    lim = Limiter(2, 60, max_keys=100)
+
+    async def _flood():
+        for i in range(300):  # 远超上限的键数
+            await lim.check_and_hit(f"ip-{i}")
+        return len(lim._buckets)
+
+    n = asyncio.run(_flood())
+    assert n <= 100, f"桶数量应有界（<=100），实际 {n}"
+
+
+def test_blacklist_clears_violations_after_ban():
+    """封禁后必须清零违规计数，否则临时封禁过期后「一次即封」，等于永久封禁。"""
+    bl = Blacklist(seed=[])
+    banned = False
+    for _ in range(3):
+        banned = bl.register_violation("1.2.3.4", 3, 60)
+    assert banned is True
+    assert bl.violations.get("1.2.3.4", 0) == 0, "封禁后违规计数应清零"
+    assert bl.is_blacklisted("1.2.3.4") is True

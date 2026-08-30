@@ -48,17 +48,61 @@ class Task:
         return d
 
 
+# 终态：不会再变化，可被清理
+_TERMINAL_STATUSES = ("done", "failed", "canceled")
+
+
 class TaskManager:
-    def __init__(self, max_workers: int = 2, max_pending_per_owner: int = 5):
+    def __init__(
+        self,
+        max_workers: int = 2,
+        max_pending_per_owner: int = 5,
+        task_ttl_seconds: int = 3600,
+        max_tasks: int = 500,
+    ):
         self._lock = threading.Lock()
         self._tasks: dict = {}
         self.max_workers = max(1, max_workers)
         self._exec = ThreadPoolExecutor(max_workers=self.max_workers)
         self.max_pending_per_owner = max(1, max_pending_per_owner)
+        # 内存存储必须有界：demo 长跑时任务只增不减会单调吃内存（含完整结果）。
+        self.task_ttl = max(60, task_ttl_seconds)
+        self.max_tasks = max(50, max_tasks)
+
+    # ---- 内存回收 ----
+    def _prune_locked(self) -> None:
+        """清理「终态且超过 TTL」的任务，并硬性限制总量（调用方须持锁）。
+
+        任务结果常驻内存便于轮询，但不能无限增长：先按 TTL 淘汰，仍超限再按创建时间
+        淘汰最旧的终态任务（进行中的任务绝不淘汰，避免正在算的结果凭空消失）。
+        """
+        now = time.time()
+        expired = [
+            t
+            for t in self._tasks.values()
+            if t.status in _TERMINAL_STATUSES
+            and (t.finished_at or t.created_at) + self.task_ttl < now
+        ]
+        for t in expired:
+            self._tasks.pop(t.id, None)
+
+        overflow = len(self._tasks) - self.max_tasks
+        if overflow > 0:
+            oldest = sorted(
+                (t for t in self._tasks.values() if t.status in _TERMINAL_STATUSES),
+                key=lambda t: t.created_at,
+            )
+            for t in oldest[:overflow]:
+                self._tasks.pop(t.id, None)
+
+    def shutdown(self, wait: bool = False) -> None:
+        """释放线程池（应用关闭时调用；否则工作线程会一直挂着）。"""
+        self._exec.shutdown(wait=wait)
 
     # ---- 写入态操作（加锁） ----
     def create(self, board: str, params: dict, owner: str) -> Task:
         with self._lock:
+            self._prune_locked()
             pending = sum(
                 1
                 for t in self._tasks.values()

@@ -242,7 +242,7 @@ def create_security_audit_middleware(
                 )
             else:
                 # 2) 一般限流
-                ok, retry = security.general_limiter.check(ip)
+                ok, retry = await security.general_limiter.check(ip)
                 if not ok:
                     banned = security.blacklist.register_violation(
                         ip, security.autoban_violations, security.autoban_seconds
@@ -266,7 +266,7 @@ def create_security_audit_middleware(
                     )
                 # 3) 板块级限流（仅探索计算 POST /api/board/*）
                 elif is_board:
-                    ok2, retry2 = security.board_limiter.check(ip)
+                    ok2, retry2 = await security.board_limiter.check(ip)
                     if not ok2:
                         banned = security.blacklist.register_violation(
                             ip, security.autoban_violations, security.autoban_seconds
@@ -316,9 +316,9 @@ def create_security_audit_middleware(
                         except Exception:
                             log.warning("异常事件入库失败（已忽略）", exc_info=True)
             # 5) 计数（通过后）
-            security.general_limiter.hit(ip)
+            await security.general_limiter.hit(ip)
             if is_board:
-                security.board_limiter.hit(ip)
+                await security.board_limiter.hit(ip)
 
             # 6) 读取请求体用于审计（仅写操作；Starlette 会缓存 body，下游仍可正常解析）
             if is_api and method in ("POST", "PUT", "PATCH"):

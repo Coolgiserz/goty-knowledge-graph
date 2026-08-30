@@ -229,7 +229,7 @@ async def request_verification(
         getattr(settings, "trust_proxy", True),
         getattr(settings, "trusted_proxies", "") or "",
     )
-    allowed, _ = _resend_limiter.check_and_hit(ip)
+    allowed, _ = await _resend_limiter.check_and_hit(ip)
     if not allowed:
         return {"ok": True}
 

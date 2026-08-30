@@ -7,6 +7,7 @@
 import asyncio
 import os
 import re
+import time
 
 import pytest
 from api.app import create_app
@@ -529,3 +530,104 @@ class _DummyRequest:
 
     def __init__(self, base: str) -> None:
         self.base_url = base
+
+
+# --------------------------------------------------------------------------- #
+# 第 3 组健壮性回归防线
+# --------------------------------------------------------------------------- #
+def test_db_token_store_consume_is_single_use_under_concurrent_access(tmp_path):
+    """并发消费同一令牌只能成功一次（DELETE ... RETURNING 在库内一步完成）。
+
+    回归背景：原实现「先 SELECT 再 DELETE」，READ COMMITTED 下两个并发请求可读到同一行。
+    """
+    store = UserStore(f"sqlite:///{tmp_path}/cc.db")
+    store.init()
+    u = asyncio.run(store.register("cc", "supersecret1", "cc@x.com", email_verified=False))
+    ts = DbEmailTokenStore(store)
+    tok = "concurrent-token"
+    asyncio.run(ts.create(u.id, tok, 3600))
+
+    async def _two_consumers():
+        return await asyncio.gather(ts.consume(tok), ts.consume(tok))
+
+    r1, r2 = asyncio.run(_two_consumers())
+    winners = [r for r in (r1, r2) if r == u.id]
+    assert len(winners) == 1, f"并发消费应只有一个成功，实际 {r1}, {r2}"
+
+
+def test_expired_token_not_returned_and_row_cleaned(tmp_path):
+    """过期令牌消费返回 None，且该行被删除（不留垃圾）。"""
+    store = UserStore(f"sqlite:///{tmp_path}/exp.db")
+    store.init()
+    u = asyncio.run(store.register("ex", "supersecret1", "ex@x.com", email_verified=False))
+    ts = DbEmailTokenStore(store)
+    tok = "expired-tok"
+    asyncio.run(ts.create(u.id, tok, -10))
+    assert asyncio.run(ts.consume(tok)) is None
+    # 行已被 DELETE ... RETURNING 一并移除
+    assert asyncio.run(ts.consume(tok)) is None
+
+
+def test_token_migration_uses_dialect_specific_boolean_literal():
+    """PostgreSQL 不接受整型字面量作 boolean 默认值，迁移必须按方言取值。"""
+    from api.auth import store as store_mod
+
+    captured: list[str] = []
+
+    class _FakeConn:
+        class dialect:
+            name = "postgresql"
+
+    conn = _FakeConn()
+
+    class _Inspector:
+        @staticmethod
+        def get_columns(_t):
+            return []  # 列不存在 -> 触发 ALTER
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(store_mod, "inspect", lambda _c: _Inspector())
+    monkeypatch.setattr(store_mod, "text", lambda s: (captured.append(s), s)[1])
+    try:
+        conn.execute = lambda stmt, *a, **k: None
+        store_mod._migrate_user_columns_sync(conn)
+    finally:
+        monkeypatch.undo()
+
+    assert any("DEFAULT false" in s for s in captured), f"PG 应生成 DEFAULT false，实际 {captured}"
+    assert any("email_verified=true" in s for s in captured), f"PG 应生成 =true，实际 {captured}"
+    assert not any("DEFAULT 0" in s for s in captured)
+
+
+def test_sync_user_store_works_without_explicit_init(tmp_path):
+    """同步存储未显式 init() 也应自动建表（与异步侧同构）。
+
+    回归背景：SyncUserStore 各方法曾完全不调 _ensure_schema()，CLI 直接用会撞 no such table。
+    """
+    store = SyncUserStore(f"sqlite:///{tmp_path}/noinit.db")
+    # 故意不调用 store.init()
+    u = store.register("noinit", "supersecret1", "noinit@x.com")
+    assert u.email_verified is True
+    assert store.get_by_email("noinit@x.com") is not None
+    assert store.authenticate("noinit", "supersecret1") is not None
+
+
+def test_task_manager_prunes_finished_tasks_and_can_shutdown():
+    """任务必须能被回收，线程池必须能被关闭（否则长跑内存单调增长、进程退不出去）。"""
+    from api.tasks import TaskManager
+
+    tm = TaskManager(max_workers=1, max_pending_per_owner=5, task_ttl_seconds=0, max_tasks=10)
+    try:
+        t = tm.create("community", {}, "tester")
+        # 等待执行结束（线程池只有 1 个 worker，提交后很快完成）
+        for _ in range(200):
+            if tm.get(t.id).status in ("done", "failed"):
+                break
+            time.sleep(0.01)
+        assert tm.get(t.id).status in ("done", "failed")
+        # 把完成时间回拨到 TTL 之前（task_ttl 有 60s 下限，不能靠传 0 绕过）
+        tm.get(t.id).finished_at = time.time() - 10_000
+        tm.create("community", {}, "tester")  # 触发回收
+        assert t.id not in tm._tasks, "已完成任务应被回收"
+    finally:
+        tm.shutdown(wait=False)

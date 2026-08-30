@@ -105,16 +105,28 @@ def _migrate_user_columns_sync(conn) -> None:
     关键：存量标记只在本列「首次被加入」时执行一次——把所有**既有行**标记为已验证
     （受信任的历史账号），避免硬策略一刀切锁死老用户。若列已存在（已是迁移后的库），
     **不**再跑 UPDATE，否则重启会把「新注册但未验证」的用户也错误提升为已验证。
+
+    **方言兼容**：布尔字面量在不同库不同——PostgreSQL 不接受整型字面量（``DEFAULT 0`` /
+    ``SET email_verified=1``）作用于 boolean 列，须用 ``false`` / ``true``；SQLite 与
+    MySQL 则相反（``true`` 在 SQLite 老版本不可用）。故按 ``conn.dialect.name`` 取值。
+
+    **不再吞异常**：失败必须向上抛，让调用方**不**标记 schema 就绪以便下次重试。
+    此前 ``except Exception: pass`` 会掩盖失败，导致后续所有引用该列的查询持续 500
+    且日志里毫无线索（多 worker 并发时一个 ALTER 成功、另一个撞冲突被静默吞掉）。
+    并发冲突是自愈的：下次重试时 inspect 发现列已存在即直接返回。
     """
-    try:
-        existing = {c["name"] for c in inspect(conn).get_columns("users")}
-        if "email_verified" in existing:
-            return  # 已是迁移后的库，无需（且不可再）批量提升
-        conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0"))
-        # 仅本次新加列时，把全部既有行标记为已验证（此后新注册账号以 False 起步）。
-        conn.execute(text("UPDATE users SET email_verified=1"))
-    except Exception:
-        pass
+    dialect = conn.dialect.name
+    false_lit = "false" if dialect == "postgresql" else "0"
+    true_lit = "true" if dialect == "postgresql" else "1"
+
+    existing = {c["name"] for c in inspect(conn).get_columns("users")}
+    if "email_verified" in existing:
+        return  # 已是迁移后的库，无需（且不可再）批量提升
+    conn.execute(
+        text(f"ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT {false_lit}")
+    )
+    # 仅本次新加列时，把全部既有行标记为已验证（此后新注册账号以 False 起步）。
+    conn.execute(text(f"UPDATE users SET email_verified={true_lit}"))
 
 
 def _new_session_id() -> str:
@@ -396,6 +408,10 @@ class SyncUserStore:
 
     @contextmanager
     def _session(self) -> Any:
+        # 会话是同步侧所有方法的唯一入口，故在此统一建表：未显式 `init()` 就直接使用的
+        # CLI / 脚本此前会撞 `no such table`（异步侧每个方法都有 `_ensure_schema`，
+        # 同步侧曾全部缺失，违反「同步+异步双接口同构」约定）。
+        self._ensure_schema()
         s: Session = self._session_factory()
         try:
             yield s
@@ -432,7 +448,9 @@ class DbEmailTokenStore:
     """DB 后端（默认，零新依赖）：令牌存独立的 ``email_tokens`` 表。
 
     复用 ``UserStore`` 的引擎与会话工厂，避免重复建连；表随 ``AuthBase.metadata.create_all``
-    自动建立。消费为「查 + 删」原子（同一事务内），天然防双重消费。
+    自动建立。消费用单条 ``DELETE ... RETURNING`` 在库内一步完成「取出 + 删除」，
+    天然防并发双重消费（原「先 SELECT 再 DELETE」在 READ COMMITTED 下两个并发请求
+    会读到同一行、双双返回 user_id）。
     """
 
     def __init__(self, user_store: UserStore) -> None:
@@ -452,19 +470,22 @@ class DbEmailTokenStore:
     async def consume(self, token: str) -> int | None:
         await self._store._ensure_schema()
         async with self._store._session() as s:
-            row = await s.get(EmailToken, token)
+            # 单条 DELETE ... RETURNING：行在库内被立即移除，并发的第二个请求只会拿到 None。
+            # 过期判定仍在 Python 侧做，避免把时区归一化交给不同方言的字符串比较。
+            stmt = (
+                delete(EmailToken)
+                .where(EmailToken.token == token)
+                .returning(EmailToken.user_id, EmailToken.expires_at)
+            )
+            row = (await s.execute(stmt)).first()
+            await s.commit()
             if row is None:
                 return None
-            expires = row.expires_at
+            user_id, expires = row
             if expires.tzinfo is None:
                 expires = expires.replace(tzinfo=UTC)
             if expires < datetime.now(UTC):
-                await s.delete(row)  # 过期行顺手清理
-                await s.commit()
-                return None
-            user_id = row.user_id
-            await s.delete(row)
-            await s.commit()
+                return None  # 已过期（行已被上面删除，无需再清理）
             return user_id
 
     async def clear_for_user(self, user_id: int) -> None:
@@ -493,9 +514,15 @@ class RedisEmailTokenStore:
         self._prefix = "goty:verify:"
 
     async def create(self, user_id: int, token: str, ttl: int) -> None:
+        # 先清掉该用户的旧令牌，保持与 DB 后端一致的「重发幂等」语义——
+        # 否则旧链接在其自身 TTL 内依然有效，重发形同虚设。
+        await self.clear_for_user(user_id)
         key = f"{self._prefix}{token}"
         await self._redis.set(key, str(user_id), ex=ttl)
-        await self._redis.sadd(f"{self._prefix}byuser:{user_id}", token)
+        set_key = f"{self._prefix}byuser:{user_id}"
+        await self._redis.sadd(set_key, token)
+        # 索引集合也要有 TTL：用户从不验证时集合会无界增长（键泄漏）。
+        await self._redis.expire(set_key, max(ttl * 2, ttl + 3600))
 
     async def consume(self, token: str) -> int | None:
         key = f"{self._prefix}{token}"
@@ -506,6 +533,8 @@ class RedisEmailTokenStore:
         user_id = await self._redis.eval(script, 1, key)
         if user_id is None:
             return None
+        # 消费后从索引集合移除，避免集合随验证次数单调增长。
+        await self._redis.srem(f"{self._prefix}byuser:{int(user_id)}", token)
         return int(user_id)
 
     async def clear_for_user(self, user_id: int) -> None:
