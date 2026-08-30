@@ -71,7 +71,8 @@ def graph_traverse(
     """
     try:
         ets = [t.strip() for t in types.split(",")] if types else None
-        sub = store.neighbors(start, hops=hops, edge_types=ets)
+        # 在边界统一裁剪：与后端内部的 hops 上限保持一致，让「请求值」与「返回 hops」相符。
+        sub = store.neighbors(start, hops=max(1, min(hops, 4)), edge_types=ets)
     except RuntimeError as exc:
         if "neo4j_unavailable" in str(exc):
             raise HTTPException(

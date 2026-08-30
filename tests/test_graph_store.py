@@ -714,3 +714,64 @@ def test_girvan_newman_returns_valid_partition():
     assert len(res["communities"]) >= 4
     total = sum(len(c["members"]) for c in res["communities"])
     assert total == len(res["nodes"])
+
+
+# --------------------------------------------------------------------------- #
+# 双后端语义一致性（同一请求不能因图后端不同而表现不同）
+# --------------------------------------------------------------------------- #
+def test_neighbors_hops_capped_consistently_across_backends():
+    """hops 上限必须与 Neo4j 后端一致（同为 4），否则返回 hops 与实际展开不符。
+
+    回归背景：NetworkX 后端原样执行 hops（无上限），Neo4j 后端内部 clamp 到 4；
+    路由层也未校验即透传 —— 同一请求两后端行为不同，前端看到的 hops 是「撒谎」的。
+    """
+    import inspect
+
+    from api.graph_store import Neo4jStore
+
+    # 两个后端声明的上限必须一致（Neo4j 内部 clamp 表达式与 NetworkX 对齐）
+    src = inspect.getsource(Neo4jStore.neighbors)
+    assert "min(hops, 4)" in src, "Neo4j 后端应 clamp hops 到 4"
+
+    s = NetworkXStore()
+    node = s.list_nodes(limit=1)["items"][0]
+    r = s.neighbors(node["id"], hops=100)
+    assert r["hops"] == 4, f"超上限的 hops 应被裁剪为 4，实际 {r['hops']}"
+    # 下限同样生效
+    assert s.neighbors(node["id"], hops=-5)["hops"] == 1
+    assert s.neighbors(node["id"], hops=0)["hops"] == 1
+
+
+def test_communities_payload_shape_is_backend_independent():
+    """社区结果的字段集合必须与图后端无关（networkx / neo4j 共用同一出口）。
+
+    回归背景：Neo4j 后端曾直接拼旧结构（缺 assignment / metrics、帧还是裸对象），
+    与走契约的 NetworkX 后端字段不一致。现两者共用 _communities_payload。
+    """
+    import inspect
+
+    from api.graph_store import Neo4jStore
+
+    # 两个后端的 communities 都必须调用共享契约出口（源码级一致性检查，
+    # 因为 Neo4j 无可连实例，无法做运行时对比）
+    for cls in (NetworkXStore, Neo4jStore):
+        body = inspect.getsource(cls.communities)
+        assert "_communities_payload" in body, f"{cls.__name__}.communities 应走共享契约出口"
+
+    # 实测 NetworkX 后端字段完整（Neo4j 无可连实例，用共享出口保证其形状一致）
+    res = NetworkXStore().communities(algorithm="modularity")
+    expected = {
+        "algorithm",
+        "display_name",
+        "params",
+        "communities",
+        "assignment",
+        "metrics",
+        "modularity",
+        "supports_animation",
+        "frames",
+        "scope",
+        "nodes",
+        "edges",
+    }
+    assert expected <= set(res), f"缺字段：{expected - set(res)}"

@@ -156,6 +156,32 @@ class GraphStore(ABC):
         """
 
 
+def _communities_payload(
+    res: Any,
+    scoped_nodes: list[dict[str, Any]],
+    scoped_edges: list[dict[str, Any]],
+    scope: str,
+    animate: bool,
+) -> dict[str, Any]:
+    """把检测结果经**稳定契约**序列化，并补上渲染数据（两个后端共用）。
+
+    必须共用：此前 Neo4j 后端直接拼旧结构、NetworkX 后端走契约，导致同一接口在
+    不同图后端下字段不一致（前者缺 ``assignment`` / ``metrics``，帧还是裸对象）。
+    抽出单一出口后，换后端不会改变响应契约。
+    """
+    contract = from_legacy(res.algorithm, res.display_name, res)
+    if not animate:
+        contract = replace(contract, frames=[])
+    payload = contract.to_dict()
+    nodes_out = []
+    for n in scoped_nodes:
+        view = dict(n)
+        view["community"] = contract.assignment[n["id"]]
+        nodes_out.append(view)
+    payload.update({"scope": scope, "nodes": nodes_out, "edges": scoped_edges})
+    return payload
+
+
 def _build_scope_graph(
     node_dicts: list[dict[str, Any]],
     edge_triples: list[tuple[str, str, str]],
@@ -265,6 +291,9 @@ class NetworkXStore(GraphStore):
     def neighbors(
         self, node_id: str, hops: int = 1, edge_types: list[str] | None = None
     ) -> dict[str, Any]:
+        # 与 Neo4j 后端**同一上限**：两端必须表现一致，否则同一请求在 networkx 下
+        # 真走 N 跳、在 neo4j 下只走 4 跳，且返回的 hops 字段会与实际展开不符（结果撒谎）。
+        hops = max(1, min(hops, 4))
         ets = {t.upper() for t in (edge_types or [])}
         if node_id not in self._nodes:
             return {"center": None, "nodes": [], "edges": [], "hops": hops}
@@ -485,17 +514,7 @@ class NetworkXStore(GraphStore):
         res = run_detection(algorithm, G, params, animate=animate)
         # 经**稳定契约**下发：算法库（含其裸 modularity 字段与帧结构）被隔离在
         # contracts 之后，前端只依赖契约。将来换算法库 / 新增指标时前端无需改动。
-        contract = from_legacy(res.algorithm, res.display_name, res)
-        if not animate:
-            contract = replace(contract, frames=[])
-        payload = contract.to_dict()
-        nodes_out = []
-        for n in scoped_nodes:
-            view = _node_view(n)
-            view["community"] = contract.assignment[n["id"]]
-            nodes_out.append(view)
-        payload.update({"scope": scope, "nodes": nodes_out, "edges": scoped_edges})
-        return payload
+        return _communities_payload(res, scoped_nodes, scoped_edges, scope, animate)
 
     def influence(
         self, metric: str = "pagerank", top_n: int = 20, group: str | None = None
@@ -959,23 +978,8 @@ class Neo4jStore(GraphStore):
             list(node_views.values()), edge_triples, scope
         )
         res = run_detection(algorithm, G, params, animate=animate)
-        nodes_out = []
-        for n in scoped_nodes:
-            view = dict(n)
-            view["community"] = res.assignment[n["id"]]
-            nodes_out.append(view)
-        return {
-            "algorithm": res.algorithm,
-            "display_name": res.display_name,
-            "params": res.params,
-            "scope": scope,
-            "communities": res.communities,
-            "nodes": nodes_out,
-            "edges": scoped_edges,
-            "supports_animation": res.supports_animation,
-            "modularity": res.modularity,
-            "frames": res.frames if animate else [],
-        }
+        # 与 NetworkX 后端共用同一出口，保证不同图后端下的响应契约一致
+        return _communities_payload(res, scoped_nodes, scoped_edges, scope, animate)
 
     def influence(
         self, metric: str = "pagerank", top_n: int = 20, group: str | None = None
