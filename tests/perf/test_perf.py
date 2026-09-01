@@ -21,7 +21,7 @@ TOTAL_REQUESTS = 200
 
 @pytest.mark.perf
 @pytest.mark.asyncio
-async def test_meta_p95_and_throughput(tmp_path):
+async def test_meta_p95_and_throughput():
     # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流/UA 拦截/审计写库干扰
     # （审计写库吞吐受 SQLite 单文件并发写串行化影响，属于部署/DB 选型问题，非接口逻辑
     #  问题；审计正确性与并发由 tests/test_audit.py 覆盖，重负载写入请用 locustfile.py）。
@@ -67,7 +67,7 @@ async def test_meta_p95_and_throughput(tmp_path):
 
 @pytest.mark.perf
 @pytest.mark.asyncio
-async def test_boards_p95_and_throughput(tmp_path):
+async def test_boards_p95_and_throughput():
     # 性能测试只测「廉价只读接口」的稳态吞吐，需排除异常判定/限流/UA 拦截/审计写库干扰
     # （审计写库吞吐受 SQLite 单文件并发写串行化影响，属于部署/DB 选型问题，非接口逻辑
     #  问题；审计正确性与并发由 tests/test_audit.py 覆盖，重负载写入请用 locustfile.py）。
