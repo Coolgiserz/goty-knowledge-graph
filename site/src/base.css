@@ -17,3 +17,17 @@
     min-height: 44px;
   }
 }
+
+/* 尊重系统「减弱动态效果」偏好（WCAG 2.3.3）：前庭敏感用户会因无限旋转的
+   spinner、画布闪烁等动画产生不适。此前全站 0 处处理该偏好，故在共享层统一兜底
+   （两个产物都 @import 本文件，改一处即全站生效）。
+   刻意不写 animation:none —— 那会连「加载中」这类必要状态变化一起抹掉；
+   改为压到几乎瞬时完成：状态仍然改变、可被感知，但不再有持续运动。 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

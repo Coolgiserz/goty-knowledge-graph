@@ -380,4 +380,29 @@ table.tbl { width: max-content; min-width: 100%; border-collapse: collapse; font
     right: 16px;
     width: auto;
   }
+
+  /* 社团成员面板：窄屏从「右侧 360px 停靠栏」改为**底部抽屉**。
+     原实现在 375px 屏上展开后画布只剩约 15px，实际不可用；且它不参与 flex
+     分配后不再有 flex-basis 撑开宽度，故显隐必须由 display 显式控制
+     （桌面端靠 flex-basis:0 + overflow:hidden 收敛，两者机制不同）。 */
+  .comm-panel {
+    display: none;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    top: auto;
+    width: auto;
+    height: 55vh;
+    /* 高于工具栏(5)、低于加载遮罩(10)：抽屉打开时加载遮罩仍要盖在最上层 */
+    z-index: 6;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .comm-panel.show {
+    display: flex;
+    flex-basis: auto; /* 抵消桌面端的 360px */
+  }
+  /* 面板改为底部覆盖后，右上角工具栏无需再避让：桌面端的 right:372px 是
+     耦合 360px 面板宽度的魔法数，在窄屏会把工具栏推出屏幕。 */
+  .canvas-wrap.panel-open .canvas-toolbar { right: 12px; }
 }
