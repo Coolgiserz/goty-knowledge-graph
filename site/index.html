@@ -16,35 +16,57 @@
 
 <div class="toolbar">
   <input type="text" id="q" placeholder="搜索游戏 / 工作室（中英文）"/>
-  <label>年份 <select id="yMin"></select> – <select id="yMax"></select></label>
+  <!-- 低频筛选控件单独成组：桌面端内联在工具栏，窄屏降级为底部抽屉（见样式断点）。
+       组内控件 id 全部保留，JS 仍按 id 取，不受分组影响。 -->
+  <div class="filter-group" id="filterSheet">
+    <div class="sheet-head">筛选与显示<button type="button" class="sheet-close" id="filterSheetClose" aria-label="关闭筛选">×</button></div>
+    <label>年份 <select id="yMin"></select> – <select id="yMax"></select></label>
   <label>工作室 <select id="studio"><option value="ALL">全部</option><option value="studio_asobi">Asobi团队</option><option value="studio_bioware">BioWare</option><option value="studio_cdpr">CD Projekt Red</option><option value="studio_fromsoftware">FromSoftware（フロムソフトウェア）</option><option value="studio_hazelight">Hazelight工作室</option><option value="studio_rockstar">Rockstar 游戏</option><option value="studio_telltale">Telltale游戏</option><option value="studio_nintendoepd">任天堂企划制作本部（Nintendo Entertainment Planning & Development）</option><option value="studio_santamonica">圣莫尼卡工作室</option><option value="studio_larian">拉瑞安工作室</option><option value="studio_blizzard">暴雪娱乐</option><option value="studio_sandfall">沙落互动</option><option value="studio_bethesda">贝塞斯达游戏工作室</option><option value="studio_irrational">非理性游戏</option><option value="studio_naughtydog">顽皮狗</option></select></label>
   <label>类型 <select id="genre"><option value="ALL">全部</option><option value="冒险">冒险</option><option value="动作">动作</option><option value="动作冒险">动作冒险</option><option value="卡牌">卡牌</option><option value="在线">在线</option><option value="多人合作">多人合作</option><option value="射击">射击</option><option value="平台跳跃">平台跳跃</option><option value="开放世界">开放世界</option><option value="模拟">模拟</option><option value="竞速">竞速</option><option value="策略">策略</option><option value="虚拟现实">虚拟现实</option><option value="角色扮演">角色扮演</option><option value="解谜">解谜</option></select></label>
   <label><input type="checkbox" id="onlyGoty"/> 仅年度最佳</label>
   <label><input type="checkbox" id="showStudio" checked/> 工作室</label>
   <label><input type="checkbox" id="showGenre"/> 类型</label>
   <label><input type="checkbox" id="showAward" checked/> 奖项</label>
-  <button class="btn" id="fit" title="适配视图">⤢ 适配</button>
   <button class="btn" id="collapseAll" title="折叠所有开发商与类型分支">⊟ 折叠全部</button>
   <button class="btn" id="expandAll" title="展开所有分支">⊞ 展开全部</button>
   <button class="btn" id="reset">重置</button>
+  </div>
+  <!-- 高频操作留在工具栏常驻；「筛选」按钮只在窄屏出现（样式里 display 切换） -->
+  <button class="btn" id="fit" title="适配视图">⤢ 适配</button>
   <button class="btn primary" id="toggleView">表格视图</button>
+  <button class="btn filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="filterSheet">筛选</button>
   <a class="btn primary" id="exploreEntry" href="/explore" style="display:none;text-decoration:none">开始数据探索 →</a>
 </div>
 
 <div class="main">
-  <div id="graph">
+  <!-- 包裹层很重要：new vis.Network(#graph) 会清空容器的子节点，
+       所以 loading 遮罩、指引条、缩放控件都必须放在它**外面**。
+       此前它们直接写在 #graph 里，初始化瞬间就被删掉了 —— 加载提示一直是死代码
+       （hideLoading 里的 if(l) 把 null 静默吞掉），缩放按钮则报 null 中断整个脚本。 -->
+  <div class="graph-wrap">
+    <div id="graph"></div>
     <div id="loading"><div class="spinner"></div><div>正在构建知识图谱…</div></div>
+    <!-- 窄屏指引：详情面板改成底部抽屉后默认不可见，原本写在面板里的操作说明
+         在移动端没人看得到，故在画布顶部给一行轻量提示，选中节点后自动隐藏。 -->
+    <div class="tap-hint" id="tapHint">点按节点查看详情 · 双指捏合或点右下角按钮缩放图谱</div>
+    <!-- 缩放控件：画布已把触摸手势交给 vis-network，触摸设备没有鼠标滚轮，
+         必须有可见控件兜底（也方便只想单手操作的用户）。 -->
+    <div class="zoom-ctl">
+      <button type="button" id="zoomIn" aria-label="放大">＋</button>
+      <button type="button" id="zoomOut" aria-label="缩小">－</button>
+      <button type="button" id="zoomFit" aria-label="适配视图">⤢</button>
+    </div>
   </div>
   <div id="detail">
     <span class="closeBtn" id="detailClose">×</span>
-    <p class="hint">👈 在左侧力导向图中点击任意节点查看详情。<br><br>
+    <p class="hint">在图谱中点按任意节点查看详情。<br><br>
     · <b style="color:var(--gold)">金色星形</b> = 年度最佳游戏（GOTY）<br>
     · <b style="color:var(--blue)">蓝色圆点</b> = 该工作室的其他作品<br>
     · <b style="color:var(--purple)">紫色菱形</b> = 游戏开发商<br>
     · <b style="color:var(--green)">绿色六边形</b> = 游戏类型（大=顶层原子类别，小=子类型）<br>
     · <b style="color:var(--red)">红色三角</b> = 年度大奖<br><br>
     边含义：开发商→游戏「开发了」；金色虚线「获得」；绿色虚线「属于类型」；绿色点线「类型层级」（子类型→父类型）。点击节点会自动高亮其相邻节点。<br><br>
-    🖱️ <b>双击任意节点</b>可<b>折叠 / 展开</b>其分支（带金色边框 = 已折叠）；工具栏「折叠全部 / 展开全部」可一键切换；也可点详情面板里的「折叠分支」按钮。<br><br>
+    <b>双击（手机上连按两下）任意节点</b>可<b>折叠 / 展开</b>其分支（带金色边框 = 已折叠）；工具栏「折叠全部 / 展开全部」可一键切换；也可点详情面板里的「折叠分支」按钮。<br><br>
     <b>类型下拉</b>按顶层类别筛选；其中「开放世界 / 多人合作 / 在线」是<b>设计维度</b>（跨玩法的特征标签，可与玩法类别叠加），例如筛选「开放世界」即可看到艾尔登法环、旷野之息、天际、GTA、巫师3 等全部开放世界游戏。</p>
   </div>
 </div>
@@ -127,17 +149,105 @@ GRAPH.edges.forEach((e,i)=>{
 });
 const nodesDS = new vis.DataSet(GRAPH.nodes);
 const edgesDS = new vis.DataSet(GRAPH.edges);
-const net = new vis.Network(document.getElementById('graph'), {nodes:nodesDS,edges:edgesDS},{
-  nodes:{font:{color:'#e8eaed',size:13,face:'-apple-system,sans-serif'},
-    borderWidth:2,shadow:{enabled:true,size:6,color:'rgba(0,0,0,.4)'}},
-  edges:{smooth:{type:'continuous'},font:{color:'#9aa3b2',size:10},selectionWidth:2},
-  physics:{barnesHut:{gravitationalConstant:-9000,springLength:130,springConstant:0.03,
-    damping:0.35,avoidOverlap:0.6},stabilization:{iterations:220}},
-  interaction:{hover:true,tooltipDelay:120,navigationButtons:false,zoomView:true}
-});
+
+// ---------- 视口自适应 ----------
+const isNarrow = () => window.innerWidth <= 768;
+const CAN_HOVER = window.matchMedia('(hover:hover)').matches;
+/* 窄屏与桌面共用一套力导向参数会把图撑散：375px 宽、62vh 高的容器里同样塞 107 个节点，
+   springLength 130 + 排斥 -9000 让图铺得很开，fit() 后缩放比极小、13px 节点名糊成一团。
+   窄屏改用更紧凑的一套：弹簧更短、排斥更小、字号更大、缩放更慢（好控制）。
+   另外移动端没有 hover，hover:true 会让手指轻扫就弹出 tooltip，故按设备能力关闭。 */
+function graphOptions(){
+  const narrow = isNarrow();
+  return {
+    nodes:{font:{color:'#e8eaed',size:narrow?15:13,face:'-apple-system,sans-serif'},
+      borderWidth:2,shadow:{enabled:true,size:6,color:'rgba(0,0,0,.4)'}},
+    edges:{smooth:{type:'continuous'},font:{color:'#9aa3b2',size:narrow?11:10},selectionWidth:2},
+    physics:{barnesHut:{gravitationalConstant:narrow?-6000:-9000,
+      springLength:narrow?95:130,springConstant:0.03,
+      damping:0.35,avoidOverlap:0.6},stabilization:{iterations:narrow?150:220}},
+    interaction:{hover:CAN_HOVER,tooltipDelay:narrow?600:120,
+      navigationButtons:false,zoomView:true,zoomSpeed:narrow?0.4:1}
+  };
+}
+const net = new vis.Network(document.getElementById('graph'), {nodes:nodesDS,edges:edgesDS}, graphOptions());
+const GC_DEFAULT = isNarrow() ? -6000 : -9000;
 function hideLoading(){const l=document.getElementById('loading');if(l)l.style.display='none';}
-net.once('stabilizationIterationsDone',()=>{net.setOptions({physics:{barnesHut:{gravitationalConstant:-9000}}});net.fit({animation:false});hideLoading();});
+net.once('stabilizationIterationsDone',()=>{net.setOptions({physics:{barnesHut:{gravitationalConstant:GC_DEFAULT}}});net.fit({animation:false});hideLoading();syncViewportMetrics();});
 setTimeout(hideLoading, 4000);
+
+/* 头部（header + toolbar）与底部（legend + foot）在窄屏都会换行，实测远高于此前写死的
+   188px，于是画布与表格的底部被视口切掉、看不到底。改为实测后写入 CSS 变量，
+   并随窗口尺寸与横竖屏变化更新（工具栏换行行数会变）。 */
+function syncViewportMetrics(){
+  const h=(s)=>{const e=document.querySelector(s);return e?e.offsetHeight:0;};
+  const hh=h('header')+h('.toolbar'), fh=h('.legend')+h('.foot');
+  const st=document.documentElement.style;
+  if(hh>0) st.setProperty('--head-h', hh+'px');
+  if(fh>0) st.setProperty('--foot-h', fh+'px');
+  if(!isNarrow()) setFilterSheet(false);   // 放宽到桌面后抽屉要收起，否则会残留
+}
+syncViewportMetrics();
+window.addEventListener('resize', syncViewportMetrics);
+window.addEventListener('orientationchange', ()=>setTimeout(syncViewportMetrics,150));
+
+// ---------- 窄屏抽屉：详情 / 筛选 ----------
+const detailEl = document.getElementById('detail');
+function setDetailOpen(open){
+  // open 类只在窄屏断点的样式里有定义，桌面加了也无视觉效果
+  detailEl.classList.toggle('open', !!open);
+}
+function setFilterSheet(open){
+  const sh=document.getElementById('filterSheet'), tg=document.getElementById('filterToggle');
+  sh.classList.toggle('open', !!open);
+  tg.setAttribute('aria-expanded', open?'true':'false');
+  if(open) setDetailOpen(false);   // 两层抽屉不叠加，否则屏幕被完全占满
+}
+document.getElementById('filterToggle').onclick=()=>
+  setFilterSheet(!document.getElementById('filterSheet').classList.contains('open'));
+document.getElementById('filterSheetClose').onclick=()=>setFilterSheet(false);
+
+/* 详情与首屏指引：窄屏下详情是底部抽屉，选中节点才弹出；顶部那行操作指引同步隐藏，
+   避免与抽屉抢同一块屏幕。 */
+function showDetailFor(id){
+  renderDetail(id);
+  const has = !!(id && byId[id]);
+  setDetailOpen(has);
+  const hint=document.getElementById('tapHint');
+  if(hint) hint.classList.toggle('hide', has);
+}
+
+/* 画布声明 touch-action:none 后双指捏合已经能用，但触摸设备没有滚轮，
+   单手操作或手势不灵时必须有可见控件兜底。
+   注意：vis-network 并没有公开的 zoomIn/zoomOut 方法（那两个只是导航按钮内部的
+   _zoomIn/_zoomOut），缩放必须自己按当前 scale 倍乘后调 moveTo。 */
+function zoomBy(factor){
+  net.moveTo({scale:net.getScale()*factor, animation:{duration:180}});
+}
+document.getElementById('zoomIn').onclick =()=>zoomBy(1.3);
+document.getElementById('zoomOut').onclick=()=>zoomBy(1/1.3);
+document.getElementById('zoomFit').onclick=()=>net.fit({animation:true});
+
+/* 窄屏详情抽屉会盖住视口下半部分，把选中节点居中就会被抽屉挡住。
+   moveTo 的 position 是「视图中心对应的画布坐标」：要让节点显示在中心上方，
+   就得把视图中心挪到节点下方，故 y = node.y + 位移（画布单位 = 像素 / scale）。 */
+function focusAboveCenter(id){
+  let p=null;
+  try { p = (typeof net.getPosition==='function') ? net.getPosition(id)
+            : (net.body && net.body.nodes[id]) || null; } catch(e){ p=null; }
+  if(!p) { net.focus(id,{scale:1,animation:true}); return; }
+  const scale = net.getScale();
+  net.moveTo({position:{x:p.x, y:p.y + (0.22*window.innerHeight)/scale},
+    scale:scale, animation:{duration:400}});
+}
+
+/* 筛选 / 折叠会改变可见节点集合，新出现的节点可能落在可视区外，需要重新适配。
+   搜索框与滑块触发频率很高，故做 120ms 防抖，避免边拖边 fit 抖成一团。 */
+let _fitTimer=null;
+function fitView(){
+  clearTimeout(_fitTimer);
+  _fitTimer=setTimeout(()=>{ if(currentView!=='table') net.fit({animation:true}); },120);
+}
 
 function esc(x){return (x==null?'':String(x)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
@@ -223,21 +333,24 @@ function renderDetail(id){
 }
 function selectNode(id, opts){
   if(!byId[id]) return;
-  renderDetail(id);
   if(currentView==='table') toggleView();
   if(highlightActive) clearHighlight();
   if(opts && opts.expand && collapsedSet.has(id)){ collapsedSet.delete(id); applyCollapsedVisual(id); applyVisibility(); }
-  net.selectNodes([id]); net.focus(id,{scale:1.1,animation:true});
+  net.selectNodes([id]);
+  /* 窄屏详情抽屉会盖住视口下半部分，节点居中就会被抽屉挡住，故上移到中心上方；
+     窄屏也不额外放大（桌面 1.1 的放大在窄屏会丢失上下文）。 */
+  if(isNarrow()) focusAboveCenter(id); else net.focus(id,{scale:1.1,animation:true});
   highlightNeighbors(id);
   selectedId=id;
+  showDetailFor(id);   // 渲染详情 + 窄屏弹抽屉 + 隐藏首屏指引
 }
 net.on('click',p=>{
   if(p.nodes.length){selectNode(p.nodes[0]);}
-  else {clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;}
+  else {clearHighlight();net.unselectAll();showDetailFor(null);selectedId=null;}
 });
 net.on('doubleClick',p=>{ if(p.nodes.length) toggleCollapse(p.nodes[0]); });
-document.getElementById('detailClose').onclick=()=>{clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;}});
+document.getElementById('detailClose').onclick=()=>{clearHighlight();net.unselectAll();showDetailFor(null);selectedId=null;};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){clearHighlight();net.unselectAll();showDetailFor(null);selectedId=null;}});
 
 // ---------- expand / collapse ----------
 let collapsedSet = new Set();
@@ -283,6 +396,7 @@ function toggleCollapse(id){
   applyCollapsedVisual(id);
   applyVisibility();
   if(selectedId) highlightNeighbors(selectedId); else clearHighlight();
+  fitView();   // 折叠/展开会增删节点，重新适配避免新节点落在可视区外
 }
 function expandAll(){
   collapsedSet.forEach(id=>applyCollapsedVisual(id));
@@ -347,7 +461,7 @@ function applyFilters(){
   filterVisibleSet = visNodes;
   applyVisibility();
   // 表格视图与图谱共用同一筛选集合，筛选变化时同步刷新表格
-  if(currentView==='table') buildTable();
+  if(currentView==='table') buildTable(); else fitView();
 }
 ['q','yMin','yMax','studio','genre','onlyGoty','showStudio','showGenre','showAward']
   .forEach(id=>{const el=document.getElementById(id);
@@ -359,11 +473,12 @@ document.getElementById('reset').onclick=()=>{
   document.getElementById('genre').value='ALL';document.getElementById('onlyGoty').checked=false;
   document.getElementById('showStudio').checked=true;document.getElementById('showGenre').checked=false;
   document.getElementById('showAward').checked=true;
-  clearHighlight();net.unselectAll();renderDetail(null);selectedId=null;
-  applyFilters();expandAll();
+  clearHighlight();net.unselectAll();showDetailFor(null);selectedId=null;
+  applyFilters();expandAll();setFilterSheet(false);
 };
-document.getElementById('collapseAll').onclick=collapseAll;
-document.getElementById('expandAll').onclick=expandAll;
+/* 窄屏下这三个按钮收在筛选抽屉里，点完要收起抽屉，把屏幕高度还给图谱 */
+document.getElementById('collapseAll').onclick=()=>{collapseAll();setFilterSheet(false);};
+document.getElementById('expandAll').onclick=()=>{expandAll();setFilterSheet(false);};
 
 // ---------- table view ----------
 let currentView='graph';
@@ -411,7 +526,7 @@ function buildTable(){
   }).join('');
   let h=`<table><thead><tr>${head}</tr></thead><tbody>`;
   if(rows.length===0){
-    h+=`<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;color:#888;padding:24px">无匹配结果，请调整左侧筛选条件</td></tr>`;
+    h+=`<tr><td colspan="${TABLE_COLS.length}" style="text-align:center;color:#888;padding:24px">无匹配结果，请调整筛选条件</td></tr>`;
   } else {
     rows.forEach(n=>{const r=n.raw;
       h+=`<tr onclick="selectNode('${n.id}')"><td>${r.year}</td><td>${esc(r.title_zh)}</td><td>${esc(r.title)}</td><td>${esc((r.genres&&r.genres.length)?r.genres.join('、'):r.genre)}</td><td>${esc(r.developer)}</td><td>${r.player_rating!==''&&r.player_rating!=null?r.player_rating:'—'}</td><td>${r.is_goty?'<span class="star">★</span>':''}</td></tr>`;});

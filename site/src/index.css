@@ -12,6 +12,11 @@
     --bg:#0f1115; --panel:#171a21; --panel2:#1f232c; --line:#2a2f3a;
     --txt:#e8eaed; --muted:#9aa3b2; --gold:#f5b301; --blue:#3b6ea5;
     --purple:#8e44ad; --green:#27ae60; --red:#e74c3c; --accent:#f5b301;
+    /* 头部与底部的实测高度，由 syncViewportMetrics() 在首帧、resize、横竖屏切换时写入。
+       此前两处高度被写死成 188px：移动端工具栏会换行到 3–4 行、页脚也会换行，
+       188px 严重低估真实头部高度 → 画布与表格的底部被视口切掉、看不到底。
+       这里的数值只是首帧兜底（桌面典型值），JS 会立刻用实测值覆盖。 */
+    --head-h:188px; --foot-h:64px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
@@ -41,8 +46,17 @@
   /* 与项目其它 :hover 一致：仅真支持悬停的设备生效，否则移动端点击后样式粘滞 */
   @media (hover:hover){.btn:hover{border-color:var(--gold)}}
   .btn.primary{background:var(--gold);color:#1a1d24;border-color:var(--gold);font-weight:600}
-  .main{display:flex;height:calc(100vh - 188px);min-height:420px;position:relative}
-  #graph{flex:1;height:100%;background:radial-gradient(circle at 30% 20%,#14171d,#0c0e12);position:relative}
+  .main{display:flex;height:calc(100vh - var(--head-h) - var(--foot-h));min-height:420px;position:relative}
+  /* vis.Network 会清空 #graph 的子节点，因此覆盖在画布上的东西（ loading 遮罩、
+     窄屏指引、缩放控件）都挂在外面这一层，见 index.html 里的注释。 */
+  .graph-wrap{flex:1;min-width:0;position:relative}
+  #graph{width:100%;height:100%;background:radial-gradient(circle at 30% 20%,#14171d,#0c0e12)}
+  /* 画布必须把触摸手势交给 vis-network：不声明 touch-action 时，浏览器会优先把
+     双指解释为「页面缩放」、单指滑动解释为「页面滚动」，vis 的 zoomView/dragView
+     根本收不到事件 → 移动端完全无法缩放、平移图谱。声明 none 后由 vis 全权处理。
+     代价是画布区域内不能用手指滚动页面，故移动端另配了悬浮缩放控件与页内滚动空间。
+     探索页 #canvas 已有此声明，首页此前漏了。 */
+  #graph, #graph canvas{touch-action:none}
   #loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:rgba(12,14,18,.82);z-index:5;color:var(--muted);font-size:13px;gap:14px}
   .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--gold);
@@ -72,7 +86,13 @@
   .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
   .nglyph{font-style:normal;font-size:14px;line-height:1;display:inline-block;width:15px;text-align:center}
   .line{width:18px;height:0;border-top:2px solid;display:inline-block}
-  #tableView{display:none;padding:18px 20px;overflow:auto;height:calc(100vh - 188px)}
+  #tableView{display:none;padding:18px 20px;overflow:auto;
+    height:calc(100vh - var(--head-h) - var(--foot-h))}
+  /* 移动端浏览器地址栏会吃掉 100vh（base.css 已为 html/body 处理，这里对齐），
+     dvh 不支持时上面那条 vh 声明仍生效，故用 @supports 渐进增强而非直接替换。 */
+  @supports (height:100dvh){
+    .main,#tableView{height:calc(100dvh - var(--head-h) - var(--foot-h))}
+  }
   table{border-collapse:collapse;width:100%;font-size:13px}
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none}
@@ -102,12 +122,85 @@
   @media (hover:hover){.repo-link:hover{background:var(--panel);border-color:var(--gold)}}
   /* 触摸设备放大到 44px，避免手指点不中（base.css 的通用规则未覆盖 a 标签） */
   @media (pointer:coarse){.repo-link{min-height:44px;padding:8px 18px;font-size:13px}}
+
+  /* ---- 筛选组：桌面端是工具栏内的普通分组，移动端降级为底部抽屉（见下方断点）----
+     窄屏下 4 个下拉 + 4 个复选 + 3 个按钮会堆成 4 行、吃掉近 260px 屏高，
+     把它们收进抽屉后只留搜索框与三个高频按钮。 */
+  /* 桌面用 display:contents：筛选组不生成盒子，子元素直接参与工具栏的 flex 布局，
+     换行行为与改造前逐像素一致。若改成 flex 包裹，整组会被当成不可拆的一整块换行，
+     1280px 下桌面工具栏会从一行变两行（实测过）。窄屏断点里再切成固定定位的抽屉。 */
+  .filter-group{display:contents}
+  /* 工具栏视觉顺序：DOM 顺序按窄屏编排（筛选按钮紧跟搜索框），桌面靠 order 还原。
+     display:contents 的元素自身不是 flex item，order 要下发给它的子元素才生效。 */
+  #q{order:1} .filter-group>*{order:2} #filterToggle{order:2}
+  /* 三个分支按钮收在筛选组里（窄屏要进抽屉），但桌面仍需排在「适配」之后，
+     故单独给更大的 order —— 否则它们会贴着筛选控件、把「适配」挤到第二行。 */
+  #fit{order:3} #collapseAll{order:4} #expandAll{order:5} #reset{order:6}
+  #toggleView{order:7} #exploreEntry{order:8}
+  .sheet-head{display:none;font-size:13px;font-weight:600;color:var(--txt);
+    align-items:center;justify-content:space-between;gap:8px}
+  .sheet-close{display:none;background:none;border:0;color:var(--muted);
+    font-size:26px;line-height:1;cursor:pointer;padding:0 4px}
+  .filter-toggle,.zoom-ctl,.tap-hint{display:none}
+  /* 画布悬浮缩放控件：画布已声明 touch-action:none 把手势交给 vis-network，
+     于是没有鼠标滚轮的触摸设备必须有可见控件才能缩放 —— 否则只能依赖双指捏合。
+     44px 满足触摸目标最小尺寸；半透明底避免完全遮住节点。 */
+  .zoom-ctl{position:absolute;right:12px;bottom:12px;z-index:4;
+    flex-direction:column;gap:8px}
+  .zoom-ctl button{width:44px;height:44px;border-radius:50%;padding:0;
+    background:rgba(31,35,44,.94);border:1px solid var(--line);color:var(--txt);
+    font-size:18px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-tap-highlight-color:transparent}
+  @media (hover:hover){.zoom-ctl button:hover{border-color:var(--gold)}}
+  .zoom-ctl button:active{background:var(--panel);border-color:var(--gold)}
+
   /* 断点统一 768px：Tailwind max-md 与探索页 styles.css 都是 768px，
      此前用 760px 会在 760-768px 出现「布局已换行但样式未跟上」的 8px 错版窗口 */
   @media (max-width:768px){
+    /* 移动端不再是「图 + 右侧详情」：竖向堆叠后详情被推到 60vh 画布之下，
+       点节点几乎看不到反馈（用户体感＝点了没反应）。改为画布铺满 + 详情底部抽屉。 */
     .main{flex-direction:column;height:auto;min-height:0}
-    #graph{height:60vh;min-height:340px}
-    #detail{width:100%;min-width:0;max-width:none;border-left:none;border-top:1px solid var(--line)}
-    #detail .closeBtn{display:block}
+    .graph-wrap{flex:none;height:62vh;min-height:320px}
+    #graph{height:100%;min-height:0}
+    #detail{position:fixed;left:0;right:0;bottom:0;z-index:30;
+      width:100%;min-width:0;max-width:none;height:auto;max-height:56vh;
+      border-left:none;border-top:1px solid var(--line);
+      border-radius:14px 14px 0 0;padding:28px 16px 18px;
+      box-shadow:0 -10px 28px rgba(0,0,0,.55);
+      transform:translateY(101%);transition:transform .24s ease;visibility:hidden}
+    #detail.open{transform:translateY(0);visibility:visible}
+    #detail .closeBtn{display:flex;align-items:center;justify-content:center;
+      top:4px;right:8px;width:40px;height:40px;font-size:26px}
     .toolbar input[type=text]{min-width:120px;flex:1 1 140px}
+
+    /* 低频筛选控件收进底部抽屉，把屏幕高度还给图谱 */
+    .filter-toggle{display:inline-flex}
+    .filter-group{position:fixed;left:0;right:0;bottom:0;z-index:40;
+      display:flex;flex-direction:column;align-items:stretch;gap:12px;
+      background:var(--panel);border-top:1px solid var(--line);
+      border-radius:14px 14px 0 0;padding:14px 16px 20px;
+      max-height:72vh;overflow-y:auto;box-shadow:0 -10px 28px rgba(0,0,0,.55);
+      transform:translateY(101%);transition:transform .24s ease;visibility:hidden}
+    .filter-group.open{transform:translateY(0);visibility:visible}
+    .sheet-head{display:flex}
+    .sheet-close{display:block;min-height:40px}
+    .filter-group label{font-size:13px;min-height:36px}
+    .filter-group select{width:100%;max-width:none;min-height:44px}
+    .filter-group .btn{width:100%;min-height:44px}
+
+    .zoom-ctl{display:flex}
+    /* 首屏操作指引：详情面板改成抽屉后默认不可见，原本写在面板里的「点节点看详情」
+       提示在移动端就没人看得到了，故在画布顶部给一行轻量提示，选中节点后自动隐藏。 */
+    .tap-hint{display:block;position:absolute;left:12px;right:70px;top:10px;z-index:3;
+      background:rgba(15,17,21,.88);border:1px solid var(--line);border-radius:10px;
+      padding:8px 11px;font-size:12px;color:var(--muted);line-height:1.55;
+      pointer-events:none}
+    .tap-hint.hide{display:none}
+
+    /* 表格沿用桌面 calc 高度会在窄屏被切掉底部，改为随内容增长；
+       7 列在 375px 下必然溢出，容器横向滚动 + 表格 min-width 100%（项目既有约定）。 */
+    #tableView{height:auto;min-height:60vh;padding:14px 12px;overflow-x:auto}
+    #tableView table{width:max-content;min-width:100%}
+    .legend{gap:10px;padding:8px 12px;font-size:11px}
   }
