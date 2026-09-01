@@ -14,17 +14,17 @@ from __future__ import annotations
 from fastapi.responses import HTMLResponse
 
 # ---------------------------------------------------------------------------
-# 登录 / 注册页（认证开启时使用）
+# 三个后端页面（登录 / 登录已关闭 / 邮箱验证）共用的样式骨架
+#
+# 此前这三段 HTML 各自复制了一份 body 居中布局 + 卡片样式，改一处要同步三处。
+# 这里只抽取**三处逐字相同**的部分：各页仍保留自己的差异（卡片宽度、是否居中、
+# h1 下边距、.msg 排版），避免为了复用而把不同外观强行统一。
+#
+# 用普通字符串拼接而非 f-string：这些模板里满是 CSS 与 JS 的花括号，
+# 交给 f-string 会需要整篇转义，可读性远不如直接相加。
 # ---------------------------------------------------------------------------
 
-LOGIN_PAGE_HTML = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>登录 · GOTY 知识图谱</title>
-<style>
-  :root { color-scheme: light dark; }
+_AUTH_BASE_CSS = """  :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -32,18 +32,55 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     background: #0f172a; color: #e2e8f0;
   }
   .card {
-    width: 380px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
+    padding: 28px 26px; border-radius: 14px;
     background: #1e293b; box-shadow: 0 10px 40px rgba(0,0,0,.35);
   }
+  .msg.err { color: #f87171; }
+  .msg.ok { color: #4ade80; }
+  a { color: #60a5fa; text-decoration: none; }
+  @media (hover: hover) { a:hover { text-decoration: underline; } }
+  /* 返回首页出口：这三个页面都是流程中的孤立一页，此前只有「登录已关闭」页有
+     返回链接，另两页进来后没有退路（只能靠浏览器后退）。 */
+  .back-home { margin: 16px 0 0; font-size: 13px; text-align: center; }
+  /* 触摸设备：纯文字链接只有约 18px 高，远低于 44px 的触摸目标下限 */
+  @media (pointer: coarse) {
+    .back-home a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; }
+  }
+"""
+
+# ---------------------------------------------------------------------------
+# 登录 / 注册页（认证开启时使用）
+# ---------------------------------------------------------------------------
+
+LOGIN_PAGE_HTML = (
+    """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>登录 · GOTY 知识图谱</title>
+<style>"""
+    + _AUTH_BASE_CSS
+    + """  .card { width: 380px; max-width: 92vw; }
   h1 { font-size: 19px; margin: 0 0 4px; }
   .sub { font-size: 13px; color: #94a3b8; margin: 0 0 20px; }
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  /* Tab 用 <button> 而非 <div>：原生支持 Tab 聚焦与 Enter/Space 触发（键盘可达）。
+  /* Tab 用 button 元素而非 div：原生支持 Tab 聚焦与 Enter/Space 触发（键盘可达）。
      按钮默认样式需重置；聚焦环给键盘用户一个可见反馈。 */
+  /* font: inherit 必须排在 font-size 之前：font 简写会连带重置字号，
+     写在其后会把 14px 吞掉、退化成继承 body 的 16px（此前正是这个顺序）。 */
   .tab { flex: 1; padding: 8px; text-align: center; border-radius: 8px; cursor: pointer;
-    background: #334155; color: #cbd5e1; font-size: 14px; user-select: none;
-    border: 0; font: inherit; }
+    background: #334155; color: #cbd5e1; user-select: none; position: relative;
+    border: 0; font: inherit; font-size: 14px; }
+  /* 选中态此前只靠背景色（#334155 → #2563eb）区分：色觉障碍用户、低色域屏幕、
+     强光下的手机上都难以分辨。补一条白色指示条作为非颜色线索
+     （WCAG 1.4.1：颜色不得作为传达信息的唯一手段）。 */
   .tab.active { background: #2563eb; color: #fff; }
+  .tab.active::after {
+    content: ""; position: absolute; left: 50%; bottom: 4px;
+    transform: translateX(-50%); width: 22px; height: 3px;
+    border-radius: 2px; background: #fff;
+  }
   .tab:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
   /* 提交期间按钮被禁用时的可见状态（配合 JS 防重复提交） */
   button.submit:disabled { opacity: .6; cursor: default; }
@@ -83,28 +120,38 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     </div>
 
       <div class="panel active" id="panel-login" role="tabpanel">
+      <!-- 用 form 元素而非 div + onclick：原生支持在输入框里按回车提交（此前回车毫无
+           反应，只能去点按钮），同时让浏览器与密码管理器能识别这一组凭据。
+           novalidate 关掉浏览器原生气泡，校验仍由本页 JS 预校验 + 后端最终裁定。 -->
+      <form id="form-login" novalidate onsubmit="doLogin(this);return false">
       <label for="l-user">用户名</label>
       <input id="l-user" autocomplete="username" placeholder="用户名" />
       <div class="field-err" id="err-l-user" aria-live="polite"></div>
       <label for="l-pass">密码</label>
       <input id="l-pass" type="password" autocomplete="current-password" placeholder="密码" />
       <div class="field-err" id="err-l-pass" aria-live="polite"></div>
-      <button class="submit" onclick="doLogin(this)">登录</button>
+      <button type="submit" class="submit">登录</button>
+      </form>
+      <!-- 重发验证邮件的输入框刻意放在登录 form 之外：它同样是「输入 + 提交」，
+           若与登录同处一个 form，在邮箱框按回车会误触发登录。 -->
       <div class="hint" id="resend-area" style="margin-top:14px;display:none">
         没有收到验证邮件？
         <a href="#" onclick="toggleResend();return false;">重发验证邮件</a>
         <div id="resend-box" style="display:none;margin-top:8px">
+          <form id="form-resend" novalidate onsubmit="doResend(this);return false">
           <!-- type=email + aria-label：与登录表单不同，这里没有可见 label，
                仅靠 placeholder 提供无障碍名称（placeholder 不应作为唯一名称来源） -->
           <input id="resend-email" type="email" autocomplete="email"
             aria-label="注册时填写的邮箱" placeholder="注册时填写的邮箱" />
-          <button class="submit" style="margin-top:8px" onclick="doResend(this)">发送</button>
+          <button type="submit" class="submit" style="margin-top:8px">发送</button>
+          </form>
           <div class="msg" id="resend-msg" aria-live="polite" style="min-height:16px"></div>
         </div>
       </div>
     </div>
 
     <div class="panel" id="panel-register" role="tabpanel">
+      <form id="form-register" novalidate onsubmit="doRegister(this);return false">
       <label for="r-user">用户名</label>
       <input id="r-user" autocomplete="username" placeholder="用户名" />
       <div class="field-err" id="err-r-user" aria-live="polite"></div>
@@ -116,10 +163,12 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       <input id="r-pass" type="password" autocomplete="new-password" placeholder="密码" />
       <div class="field-err" id="err-r-pass" aria-live="polite"></div>
       <div class="hint">密码至少 8 位，且需同时包含字母和数字。</div>
-      <button class="submit" onclick="doRegister(this)">注册</button>
+      <button type="submit" class="submit">注册</button>
+      </form>
     </div>
 
     <div class="msg" id="msg" aria-live="polite"></div>
+    <p class="back-home"><a href="/">← 返回图谱首页</a></p>
   </div>
 
 <script>
@@ -179,7 +228,10 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     var p = new URLSearchParams(location.search).get("next");
     return (p && p.startsWith("/")) ? p : "/explore/";
   }
-  function doLogin(btn) {
+  // 三个提交函数都接收 form 元素（onsubmit 传入 this），按钮从 form 内取，
+  // 这样「点按钮」和「在输入框按回车」走的是同一条路径、同一套防重复提交。
+  function doLogin(form) {
+    var btn = form.querySelector("button.submit");
     clearAllErrors();
     var username = document.getElementById("l-user").value.trim();
     var password = document.getElementById("l-pass").value;
@@ -206,7 +258,8 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     }).catch(function () { setMsg("网络错误，请稍后再试", "err"); })
       .finally(function () { setBusy(btn, false, "登录"); });
   }
-  function doRegister(btn) {
+  function doRegister(form) {
+    var btn = form.querySelector("button.submit");
     clearAllErrors();
     var username = document.getElementById("r-user").value.trim();
     var email = document.getElementById("r-email").value.trim();
@@ -259,7 +312,8 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     var box = document.getElementById("resend-box");
     if (box) box.style.display = (box.style.display === "none") ? "block" : "none";
   }
-  function doResend(btn) {
+  function doResend(form) {
+    var btn = form.querySelector("button.submit");
     var email = document.getElementById("resend-email").value.trim();
     var msg = document.getElementById("resend-msg");
     if (!email) { msg.className = "msg err"; msg.textContent = "请输入邮箱"; return; }
@@ -311,7 +365,9 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
           '<div class="profile-row"><span>用户名</span><b>' + escapeHtml(u.username) + '</b></div>' +
           '<div class="profile-row"><span>邮箱</span><b>' + escapeHtml(u.email || "（未填写）") + '</b></div>' +
           '<div class="profile-row"><span>会话状态</span><b class="ok">已登录</b></div>' +
-          '<button class="submit" id="logout-now">退出登录</button>';
+          '<button type="button" class="submit" id="logout-now">退出登录</button>' +
+          // 已登录视图替换了整张卡片，返回入口必须自己带上
+          '<p class="back-home"><a href="/">← 返回图谱首页</a></p>';
         var lb = document.getElementById("logout-now");
         if (lb) lb.addEventListener("click", function () {
           fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
@@ -327,40 +383,39 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
 </body>
 </html>
 """
+)
 
 
 # ---------------------------------------------------------------------------
 # 「登录已关闭」提示页（认证关闭 / 全部免登录调试模式时使用）
 # ---------------------------------------------------------------------------
 
-LOGIN_DISABLED_HTML = """<!DOCTYPE html>
+LOGIN_DISABLED_HTML = (
+    """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>登录已关闭 · GOTY 知识图谱</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #0f172a; color: #e2e8f0; }
-  .card { max-width: 420px; padding: 28px 26px; border-radius: 14px; background: #1e293b;
-    box-shadow: 0 10px 40px rgba(0,0,0,.35); text-align: center; }
+<style>"""
+    + _AUTH_BASE_CSS
+    + """  .card { max-width: 420px; text-align: center; }
   h1 { font-size: 19px; margin: 0 0 10px; }
   p { font-size: 14px; color: #94a3b8; line-height: 1.6; }
-  a { color: #60a5fa; text-decoration: none; }
-  a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>登录已关闭（本地调试模式）</h1>
-    <p>当前站点已关闭账号体系，无需登录即可使用数据探索。<br />
-       <a href="/">返回首页</a></p>
+    <!-- 标题不再挂部署态后缀：那是运维视角的描述，对访客没有意义。这是公开站点上
+         会真实出现的页面（免登录部署时 /login 就渲染它），只说访客能感知的事实。 -->
+    <h1>登录已关闭</h1>
+    <p>当前站点已关闭账号体系，无需登录即可使用数据探索。</p>
+    <p class="back-home"><a href="/">← 返回图谱首页</a></p>
   </div>
 </body>
 </html>
 """
+)
 
 
 def login_page() -> HTMLResponse:
@@ -377,39 +432,32 @@ def login_page_disabled() -> HTMLResponse:
 # 邮箱验证确认页（邮件链接落地页：GET /verify-email?token=...）
 # ---------------------------------------------------------------------------
 
-VERIFY_EMAIL_PAGE_HTML = """<!DOCTYPE html>
+VERIFY_EMAIL_PAGE_HTML = (
+    """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>验证邮箱 · GOTY 知识图谱</title>
-<style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #0f172a; color: #e2e8f0;
-  }
-  .card { width: 400px; max-width: 92vw; padding: 28px 26px; border-radius: 14px;
-    background: #1e293b; box-shadow: 0 10px 40px rgba(0,0,0,.35); text-align: center; }
+<style>"""
+    + _AUTH_BASE_CSS
+    + """  .card { width: 400px; max-width: 92vw; text-align: center; }
   h1 { font-size: 19px; margin: 0 0 12px; }
   .msg { font-size: 14px; line-height: 1.6; margin: 6px 0 18px; }
-  .msg.err { color: #f87171; }
-  .msg.ok { color: #4ade80; }
   .spin { font-size: 13px; color: #94a3b8; }
   button { padding: 11px 18px; border: 0; border-radius: 8px; background: #2563eb; color: #fff;
     font-size: 15px; cursor: pointer; }
-  button:hover { background: #1d4ed8; }
-  a { color: #60a5fa; text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  /* 与项目其它 :hover 一致：仅真支持悬停的设备生效，否则触摸设备上点击后
+     按钮会一直保持 hover 底色（粘滞） */
+  @media (hover: hover) { button:hover { background: #1d4ed8; } }
 </style>
 </head>
 <body>
   <div class="card">
     <h1>邮箱验证</h1>
     <div class="msg spin" id="status">正在验证，请稍候…</div>
-    <button id="to-login" style="display:none" onclick="location.href='/login'">去登录</button>
+    <button type="button" id="to-login" style="display:none" onclick="location.href='/login'">去登录</button>
+    <p class="back-home"><a href="/">← 返回图谱首页</a></p>
   </div>
 <script>
   function getToken() {
@@ -447,6 +495,7 @@ VERIFY_EMAIL_PAGE_HTML = """<!DOCTYPE html>
 </body>
 </html>
 """
+)
 
 
 def verify_email_page() -> HTMLResponse:

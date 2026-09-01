@@ -177,7 +177,7 @@ HTML = r"""<!DOCTYPE html>
   <span class="sep"></span>
   <span class="grp"><i class="dot" style="background:#171a21;border:2px solid var(--gold)"></i>已折叠（双击展开）</span>
 </div>
-<div class="foot">数据来源：The Game Awards / Spike VGA 公开资料与 Metacritic 评分（综合整理，评分以 Metacritic 媒体均分为参考）。可导入 Neo4j：见 data/neo4j/ 与 docs/neo4j_tutorial.md。</div>
+<div class="foot">数据来源：The Game Awards / Spike VGA 公开资料与 Metacritic 评分（综合整理，评分以 Metacritic 媒体均分为参考）。</div>
 
 <script src="assets/vis-network.min.js"></script>
 <script>
