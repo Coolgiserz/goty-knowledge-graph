@@ -368,6 +368,11 @@ table.tbl { width: max-content; min-width: 100%; border-collapse: collapse; font
   .ghost.sm { min-height: 36px; padding: 6px 12px; font-size: 12px; }
   /* 表格 12px 在手机上偏小 */
   table.tbl { font-size: 13px; }
+  /* 补齐此前漏网的可点击目标（表格行、搜索下拉项、列表项、路径节点）：
+     它们不是按钮但同样承担交互，点不中的问题与按钮一样 */
+  .tbl tbody td { padding-top: 10px; padding-bottom: 10px; }
+  .result-item, .comm-item, .inf-item { min-height: 44px; }
+  .pr-node { min-height: 36px; padding: 6px 10px; }
 }
 
 /* 浮层（个人信息面板）：窄屏改为贴底横条。

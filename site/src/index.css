@@ -62,7 +62,8 @@
   .hint{color:var(--muted);font-size:13px;line-height:1.6}
   .gamelink{display:block;padding:6px 8px;border-radius:6px;background:var(--panel2);
     margin:4px 0;font-size:13px;cursor:pointer;border:1px solid transparent}
-  .gamelink:hover{border-color:var(--gold)}
+  /* hover 统一包进 hover:hover（移动端点击后样式会粘滞），见下方表格 hover 同理 */
+  @media (hover:hover){.gamelink:hover{border-color:var(--gold)}}
   .gamelink .yr{color:var(--muted);font-size:11px;margin-right:6px}
   .legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 20px;border-top:1px solid var(--line);
     background:var(--panel);font-size:12px;color:var(--muted);align-items:center}
@@ -75,9 +76,13 @@
   table{border-collapse:collapse;width:100%;font-size:13px}
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none}
-  th:hover{background:var(--panel2)}
   th.sorted{background:var(--panel2);color:var(--gold)}
-  tr:hover td{background:var(--panel2);cursor:pointer}
+  tbody td{cursor:pointer}
+  /* 表格 hover 仅真支持悬停的设备生效，避免触摸设备点击后整行高亮粘滞 */
+  @media (hover:hover){
+    th:hover{background:var(--panel2)}
+    tr:hover td{background:var(--panel2)}
+  }
   .star{color:var(--gold)}
   .foot{font-size:11px;color:var(--muted);padding:6px 20px}
   a{color:var(--gold)}
@@ -97,7 +102,9 @@
   @media (hover:hover){.repo-link:hover{background:var(--panel);border-color:var(--gold)}}
   /* 触摸设备放大到 44px，避免手指点不中（base.css 的通用规则未覆盖 a 标签） */
   @media (pointer:coarse){.repo-link{min-height:44px;padding:8px 18px;font-size:13px}}
-  @media (max-width:760px){
+  /* 断点统一 768px：Tailwind max-md 与探索页 styles.css 都是 768px，
+     此前用 760px 会在 760-768px 出现「布局已换行但样式未跟上」的 8px 错版窗口 */
+  @media (max-width:768px){
     .main{flex-direction:column;height:auto;min-height:0}
     #graph{height:60vh;min-height:340px}
     #detail{width:100%;min-width:0;max-width:none;border-left:none;border-top:1px solid var(--line)}

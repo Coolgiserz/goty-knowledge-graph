@@ -17,7 +17,8 @@
     </div>
     <!-- max-md：占满整行并排到最后，避免与品牌区争抢宽度 -->
     <div class="search-wrap max-md:order-last max-md:max-w-none max-md:w-full">
-      <input id="search-input" type="text" placeholder="搜索游戏 / 工作室 / 类型 / 奖项…" autocomplete="off" />
+      <input id="search-input" type="text" aria-label="搜索游戏、工作室、类型或奖项"
+        placeholder="搜索游戏 / 工作室 / 类型 / 奖项…" autocomplete="off" />
       <button id="search-btn" type="button">搜索</button>
       <!-- 搜索结果直接在此下拉展示，避免被埋在侧栏底部 -->
       <div id="search-results" class="search-dropdown"></div>
@@ -62,7 +63,8 @@
           </select>
         </label>
         <div class="tbl-search">
-          <input id="tbl-q" type="text" placeholder="关键词筛选…" autocomplete="off" />
+          <input id="tbl-q" type="text" aria-label="表格关键词筛选"
+            placeholder="关键词筛选…" autocomplete="off" />
           <button id="tbl-btn" type="button">查询</button>
         </div>
         <div id="tbl-meta" class="tbl-meta"></div>
@@ -88,9 +90,13 @@
             <option value="award">奖项</option>
           </select>
         </label>
-        <label class="row">标签（类型，可多选 · 仅对游戏生效）
+        <!-- label 只能包**一个**表单控件：此前把「清空标签」按钮包进 label，
+             点击标签文字会误触发按钮，而真正需要名称的 seed-tags 反而没有名称。
+             改为 label[for] 显式关联 + 按钮移出。 -->
+        <div class="row">
+          <label for="seed-tags">标签（类型，可多选 · 仅对游戏生效）</label>
           <button id="seed-tags-clear" type="button" class="ghost sm">清空标签</button>
-        </label>
+        </div>
         <select id="seed-tags" class="seed-tags" multiple size="7"></select>
         <label class="row">展开跳数
           <input id="seed-hops" type="range" min="0" max="2" step="1" value="1" />
@@ -197,7 +203,7 @@
         <h2>最短路径</h2>
         <p class="hint">选择或搜索两个节点，查看它们之间的最短连接。也可在画布 / 表格中点选节点后用下方按钮设为起点 / 终点。</p>
         <div class="picker">
-          <label class="picker-label">起点</label>
+          <label class="picker-label" for="path-a-input">起点</label>
           <div class="picker-wrap">
             <input id="path-a-input" type="text" placeholder="搜索并选择起点…" autocomplete="off" />
             <div id="path-a-results" class="picker-dropdown"></div>
@@ -205,7 +211,7 @@
           <div class="path-sel">已选：<span id="path-a" class="pid">未选</span></div>
         </div>
         <div class="picker">
-          <label class="picker-label">终点</label>
+          <label class="picker-label" for="path-b-input">终点</label>
           <div class="picker-wrap">
             <input id="path-b-input" type="text" placeholder="搜索并选择终点…" autocomplete="off" />
             <div id="path-b-results" class="picker-dropdown"></div>
