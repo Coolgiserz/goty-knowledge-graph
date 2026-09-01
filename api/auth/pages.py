@@ -45,7 +45,9 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #475569;
     background: #0f172a; color: #e2e8f0; font-size: 14px; }
   input:focus { outline: none; border-color: #2563eb; }
-  .hint { font-size: 12px; color: #64748b; margin-top: 5px; line-height: 1.4; }
+  /* #64748b 对卡片底色 #1e293b 仅 3.07:1，不达 WCAG AA（正文需 4.5:1）；
+     #94a3b8 为 5.71:1，12px 小字在深底上才可读。 */
+  .hint { font-size: 12px; color: #94a3b8; margin-top: 5px; line-height: 1.4; }
   .field-err { font-size: 12px; color: #f87171; margin-top: 5px; min-height: 16px; }
   button.submit { margin-top: 18px; width: 100%; padding: 11px; border: 0; border-radius: 8px;
     background: #2563eb; color: #fff; font-size: 15px; cursor: pointer; }
@@ -395,7 +397,8 @@ VERIFY_EMAIL_PAGE_HTML = """<!DOCTYPE html>
   }
   function verify() {
     var token = getToken();
-    if (!token) { show("err", "验证链接不完整（缺少 token）。"); return; }
+    // 不向终端用户暴露 token 这类后端术语（项目硬性约定），只描述可执行的下一步。
+    if (!token) { show("err", "验证链接不完整，请重新打开邮件中的完整链接。"); return; }
     fetch("/api/auth/verify-email", {
       method: "POST", headers: {"Content-Type": "application/json"},
       credentials: "same-origin",

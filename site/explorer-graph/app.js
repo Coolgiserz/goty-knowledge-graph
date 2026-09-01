@@ -425,8 +425,10 @@ function makePicker(inputId, resultsId, side) {
         box.appendChild(item);
       }
       box.style.display = "block";
-    } catch (_) {
+    } catch (e) {
+      // 不能只隐藏下拉：后端报错或断网时，用户只看到「搜不出东西」而无法判断原因。
       box.style.display = "none";
+      setStatus("节点搜索失败：" + e.message);
     }
   });
   input.addEventListener("blur", () => setTimeout(() => { box.style.display = "none"; }, 150));
@@ -1011,7 +1013,11 @@ function focusCommunityMember(id) {
   if (!nodes.get(id)) return;
   current = id;
   if (network) network.focus(id, { animation: true, scale: 1.15 });
-  fetchJSON(`${API}/graph/node/${encodeURIComponent(id)}`).then(renderDetail).catch(() => {});
+  // 不能空 catch：请求失败时详情面板会停留在上一个节点的内容，用户以为看到的是
+  // 当前节点（脏数据）且无任何提示。
+  fetchJSON(`${API}/graph/node/${encodeURIComponent(id)}`)
+    .then(renderDetail)
+    .catch((e) => setStatus("节点详情加载失败：" + e.message));
   setStatus(`已聚焦：${displayLabel(nodes.get(id))}`);
 }
 
@@ -1283,7 +1289,12 @@ async function loadUser() {
     const greet = document.getElementById("user-greeting");
     if (greet) greet.textContent = "你好，" + (u.username || "");
     fillProfile(u);
-  } catch (e) { /* 后端不可达时交由 probeBackend 提示，这里静默 */ }
+  } catch (e) {
+    // 原注释假设 probeBackend 会兜底，但两者是两次独立请求：它能成功不代表
+    // /auth/me 可达。此处静默会让用户区无声消失且无任何提示。
+    if (ua) ua.hidden = true;
+    setStatus("登录状态获取失败：" + e.message);
+  }
 }
 
 function fillProfile(u) {
@@ -1296,9 +1307,19 @@ function fillProfile(u) {
 function bindUser() {
   const logout = document.getElementById("logout-btn");
   if (logout) logout.addEventListener("click", async () => {
+    let ok = false;
     try {
-      await fetch(`${API}/auth/logout`, { method: "POST", credentials: "same-origin" });
-    } catch (e) { /* 忽略网络错误，仍跳转 */ }
+      const r = await fetch(`${API}/auth/logout`, { method: "POST", credentials: "same-origin" });
+      ok = r.ok;
+    } catch (e) {
+      ok = false;
+    }
+    if (!ok) {
+      // 不能照样跳转：服务端会话未销毁时守卫会把用户立刻弹回 /explore，
+      // 表现为「点了退出没反应」。
+      setStatus("退出登录失败，请重试");
+      return;
+    }
     // 退出后回登录页（守卫会把未登录的 /explore 跳回 /login?next=/explore/）
     location.href = "/login?next=/explore/";
   });
