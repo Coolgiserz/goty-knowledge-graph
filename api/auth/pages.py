@@ -38,9 +38,15 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   h1 { font-size: 19px; margin: 0 0 4px; }
   .sub { font-size: 13px; color: #94a3b8; margin: 0 0 20px; }
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  /* Tab 用 <button> 而非 <div>：原生支持 Tab 聚焦与 Enter/Space 触发（键盘可达）。
+     按钮默认样式需重置；聚焦环给键盘用户一个可见反馈。 */
   .tab { flex: 1; padding: 8px; text-align: center; border-radius: 8px; cursor: pointer;
-    background: #334155; color: #cbd5e1; font-size: 14px; user-select: none; }
+    background: #334155; color: #cbd5e1; font-size: 14px; user-select: none;
+    border: 0; font: inherit; }
   .tab.active { background: #2563eb; color: #fff; }
+  .tab:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+  /* 提交期间按钮被禁用时的可见状态（配合 JS 防重复提交） */
+  button.submit:disabled { opacity: .6; cursor: default; }
   label { display: block; font-size: 13px; margin: 12px 0 6px; color: #cbd5e1; }
   input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #475569;
     background: #0f172a; color: #e2e8f0; font-size: 14px; }
@@ -69,46 +75,51 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   <div class="card">
     <h1>GOTY 知识图谱</h1>
     <p class="sub">数据探索需要登录</p>
-    <div class="tabs">
-      <div class="tab active" id="tab-login" onclick="switchTab('login')">登录</div>
-      <div class="tab" id="tab-register" onclick="switchTab('register')">注册</div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" class="tab active" id="tab-login"
+        onclick="switchTab('login')">登录</button>
+      <button type="button" role="tab" aria-selected="false" class="tab" id="tab-register"
+        onclick="switchTab('register')">注册</button>
     </div>
 
-      <div class="panel active" id="panel-login">
+      <div class="panel active" id="panel-login" role="tabpanel">
       <label for="l-user">用户名</label>
       <input id="l-user" autocomplete="username" placeholder="用户名" />
-      <div class="field-err" id="err-l-user"></div>
+      <div class="field-err" id="err-l-user" aria-live="polite"></div>
       <label for="l-pass">密码</label>
       <input id="l-pass" type="password" autocomplete="current-password" placeholder="密码" />
-      <div class="field-err" id="err-l-pass"></div>
-      <button class="submit" onclick="doLogin()">登录</button>
+      <div class="field-err" id="err-l-pass" aria-live="polite"></div>
+      <button class="submit" onclick="doLogin(this)">登录</button>
       <div class="hint" id="resend-area" style="margin-top:14px;display:none">
         没有收到验证邮件？
         <a href="#" onclick="toggleResend();return false;">重发验证邮件</a>
         <div id="resend-box" style="display:none;margin-top:8px">
-          <input id="resend-email" autocomplete="email" placeholder="注册时填写的邮箱" />
-          <button class="submit" style="margin-top:8px" onclick="doResend()">发送</button>
-          <div class="msg" id="resend-msg" style="min-height:16px"></div>
+          <!-- type=email + aria-label：与登录表单不同，这里没有可见 label，
+               仅靠 placeholder 提供无障碍名称（placeholder 不应作为唯一名称来源） -->
+          <input id="resend-email" type="email" autocomplete="email"
+            aria-label="注册时填写的邮箱" placeholder="注册时填写的邮箱" />
+          <button class="submit" style="margin-top:8px" onclick="doResend(this)">发送</button>
+          <div class="msg" id="resend-msg" aria-live="polite" style="min-height:16px"></div>
         </div>
       </div>
     </div>
 
-    <div class="panel" id="panel-register">
+    <div class="panel" id="panel-register" role="tabpanel">
       <label for="r-user">用户名</label>
       <input id="r-user" autocomplete="username" placeholder="用户名" />
-      <div class="field-err" id="err-r-user"></div>
+      <div class="field-err" id="err-r-user" aria-live="polite"></div>
       <label for="r-email" id="lbl-r-email">邮箱</label>
       <input id="r-email" autocomplete="email" placeholder="you@example.com" />
-      <div class="field-err" id="err-r-email"></div>
+      <div class="field-err" id="err-r-email" aria-live="polite"></div>
       <div class="hint" id="hint-r-email">用于接收验证邮件；注册后需验证邮箱才能登录。</div>
       <label for="r-pass">密码</label>
       <input id="r-pass" type="password" autocomplete="new-password" placeholder="密码" />
-      <div class="field-err" id="err-r-pass"></div>
+      <div class="field-err" id="err-r-pass" aria-live="polite"></div>
       <div class="hint">密码至少 8 位，且需同时包含字母和数字。</div>
-      <button class="submit" onclick="doRegister()">注册</button>
+      <button class="submit" onclick="doRegister(this)">注册</button>
     </div>
 
-    <div class="msg" id="msg"></div>
+    <div class="msg" id="msg" aria-live="polite"></div>
   </div>
 
 <script>
@@ -118,11 +129,20 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
   var PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\\d).+$/;
 
   function switchTab(name) {
-    document.getElementById("tab-login").classList.toggle("active", name === "login");
-    document.getElementById("tab-register").classList.toggle("active", name === "register");
-    document.getElementById("panel-login").classList.toggle("active", name === "login");
-    document.getElementById("panel-register").classList.toggle("active", name === "register");
+    // aria-selected 与视觉 active 同步，读屏软件才能感知当前页签
+    ["login", "register"].forEach(function (n) {
+      var on = (n === name);
+      document.getElementById("tab-" + n).classList.toggle("active", on);
+      document.getElementById("tab-" + n).setAttribute("aria-selected", on ? "true" : "false");
+      document.getElementById("panel-" + n).classList.toggle("active", on);
+    });
     clearAllErrors();
+  }
+  // 提交期间禁用按钮，防止网络慢时重复提交（多点几下 = 多个重复请求/注册）
+  function setBusy(btn, busy, text) {
+    if (!btn) return;
+    btn.disabled = busy;
+    if (text) btn.textContent = text;
   }
   function setMsg(text, kind) {
     var el = document.getElementById("msg");
@@ -159,12 +179,13 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
     var p = new URLSearchParams(location.search).get("next");
     return (p && p.startsWith("/")) ? p : "/explore/";
   }
-  function doLogin() {
+  function doLogin(btn) {
     clearAllErrors();
     var username = document.getElementById("l-user").value.trim();
     var password = document.getElementById("l-pass").value;
     if (!username) { setFieldErr("err-l-user", "请输入用户名"); return; }
     if (!password) { setFieldErr("err-l-pass", "请输入密码"); return; }
+    setBusy(btn, true, "登录中…");
     fetch("/api/auth/login", {
       method: "POST", headers: {"Content-Type": "application/json"},
       credentials: "same-origin",
@@ -182,9 +203,10 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
         }
         setMsg(zhError(d), "err");
       });
-    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
+    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); })
+      .finally(function () { setBusy(btn, false, "登录"); });
   }
-  function doRegister() {
+  function doRegister(btn) {
     clearAllErrors();
     var username = document.getElementById("r-user").value.trim();
     var email = document.getElementById("r-email").value.trim();
@@ -202,6 +224,7 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       setFieldErr("err-r-pass", "密码至少 8 位，且需同时包含字母和数字");
       return;
     }
+    setBusy(btn, true, "注册中…");
     fetch("/api/auth/register", {
       method: "POST", headers: {"Content-Type": "application/json"},
       credentials: "same-origin",
@@ -228,17 +251,19 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
         else if (d === "weak_password") setFieldErr("err-r-pass", zhError(d));
         else setMsg(zhError(d), "err");
       });
-    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); });
+    }).catch(function () { setMsg("网络错误，请稍后再试", "err"); })
+      .finally(function () { setBusy(btn, false, "注册"); });
   }
 
   function toggleResend() {
     var box = document.getElementById("resend-box");
     if (box) box.style.display = (box.style.display === "none") ? "block" : "none";
   }
-  function doResend() {
+  function doResend(btn) {
     var email = document.getElementById("resend-email").value.trim();
     var msg = document.getElementById("resend-msg");
     if (!email) { msg.className = "msg err"; msg.textContent = "请输入邮箱"; return; }
+    setBusy(btn, true, "发送中…");
     fetch("/api/auth/request-verification", {
       method: "POST", headers: {"Content-Type": "application/json"},
       credentials: "same-origin",
@@ -247,7 +272,8 @@ LOGIN_PAGE_HTML = """<!DOCTYPE html>
       // 恒返回 200（防枚举），统一提示「若邮箱存在且未验证则已发送」。
       msg.className = "msg ok";
       msg.textContent = "若该邮箱已注册且未验证，验证邮件已（重新）发送，请查收。";
-    }).catch(function () { msg.className = "msg err"; msg.textContent = "网络错误，请稍后再试"; });
+    }).catch(function () { msg.className = "msg err"; msg.textContent = "网络错误，请稍后再试"; })
+      .finally(function () { setBusy(btn, false, "发送"); });
   }
 
   function loadMeta() {
