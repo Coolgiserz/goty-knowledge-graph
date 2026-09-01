@@ -84,7 +84,13 @@ async function fetchJSON(url) {
   return r.json();
 }
 function displayLabel(n) { return n.label || n.id; }
-function setStatus(t) { $("#status").textContent = t || ""; }
+function setStatus(t, kind) {
+  const el = $("#status");
+  el.textContent = t || "";
+  // kind="err" 时红色高亮：错误与「已展开 3 个邻居」这类普通进度提示必须有视觉区分，
+  // 否则失败信息淹没在 12px 灰字里，用户容易错过。
+  el.className = "status" + (kind ? " " + kind : "");
+}
 
 /* ---------------- 后端连通性诊断 ----------------
  * 启动时主动探测同源 /api/meta，不可达就给出醒目横幅 + 修复指引，
@@ -175,6 +181,29 @@ function showOverlay(text) {
 function hideOverlay() {
   const o = $("#overlay");
   if (o) o.classList.remove("show");
+}
+
+/* 交互请求的统一反馈（防重复点击 + 可选画布遮罩）：
+   - busyOn：禁用触发按钮并显示进行中文案；canvas 文案非空时同时盖画布遮罩
+     （仅「清空/重绘画布」类操作才遮罩——遮罩会挡住交互，合并类操作禁按钮即可）
+   - busyOff：恢复按钮与遮罩。失败路径也必须走到（放 finally）。
+   - btn 允许为空（如按 Enter 触发、程序内部触发），此时仅遮罩生效。
+   - ownsOverlay：只有盖了遮罩的调用方才负责撤（首屏表格与默认图谱并发加载时，
+     表格先完成不得撤掉默认图谱仍在使用的遮罩）。 */
+function busyOn(btn, text, canvas) {
+  if (btn && !btn.disabled) {
+    btn.disabled = true;
+    btn.dataset.label = btn.textContent;
+    if (text) btn.textContent = text;
+  }
+  if (canvas) showOverlay(canvas);
+}
+function busyOff(btn, ownsOverlay) {
+  if (btn) {
+    if (btn.dataset.label) { btn.textContent = btn.dataset.label; delete btn.dataset.label; }
+    btn.disabled = false;
+  }
+  if (ownsOverlay) hideOverlay();
 }
 
 // 高亮一批节点（新加入的种子）：加粗描边 + 金色阴影，短暂后复原。
@@ -291,6 +320,8 @@ function hideSearch() {
 async function doSearch() {
   const q = $("#search-input").value.trim();
   if (!q) { hideSearch(); return; }
+  const btn = $("#search-btn");
+  busyOn(btn, "搜索中…");
   setStatus("搜索中…");
   try {
     const data = await fetchJSON(`${API}/graph/search?q=${encodeURIComponent(q)}&limit=20`);
@@ -318,7 +349,9 @@ async function doSearch() {
     box.style.display = "block";
     setStatus(`找到 ${data.results.length} 个匹配`);
   } catch (e) {
-    setStatus("搜索失败：" + e.message);
+    setStatus("搜索失败：" + e.message, "err");
+  } finally {
+    busyOff(btn);
   }
 }
 
@@ -331,7 +364,7 @@ async function selectNode(id) {
     const n = await fetchJSON(`${API}/graph/node/${encodeURIComponent(id)}`);
     renderDetail(n);
   } catch (e) {
-    setStatus("节点详情失败：" + e.message);
+    setStatus("节点详情失败：" + e.message, "err");
   }
   // 选中即展开 1 跳，让画布有内容
   await expandFrom(id, 1, collectTypes(), true);
@@ -356,10 +389,12 @@ function collectTypes() {
   return [...document.querySelectorAll(".rel-type:checked")].map((c) => c.value);
 }
 
-async function expandFrom(id, hops, types, merge) {
+async function expandFrom(id, hops, types, merge, btn) {
   if (!id) { setStatus("请先选择一个节点"); return; }
   if (merge) { mode = "explore"; }
   setPhysics(true);
+  // 合并类操作不遮罩（画布仍可看），只禁触发按钮防重复点击
+  busyOn(btn, "展开中…");
   setStatus("展开邻居…");
   try {
     const params = new URLSearchParams({ start: id, hops: String(hops) });
@@ -372,7 +407,9 @@ async function expandFrom(id, hops, types, merge) {
     upsertGraph(data);
     setStatus(`已展开（${data.nodes ? data.nodes.length : 0} 个邻居）`);
   } catch (e) {
-    setStatus("展开失败：" + e.message);
+    setStatus("展开失败：" + e.message, "err");
+  } finally {
+    busyOff(btn);
   }
 }
 
@@ -428,7 +465,7 @@ function makePicker(inputId, resultsId, side) {
     } catch (e) {
       // 不能只隐藏下拉：后端报错或断网时，用户只看到「搜不出东西」而无法判断原因。
       box.style.display = "none";
-      setStatus("节点搜索失败：" + e.message);
+      setStatus("节点搜索失败：" + e.message, "err");
     }
   });
   input.addEventListener("blur", () => setTimeout(() => { box.style.display = "none"; }, 150));
@@ -449,6 +486,9 @@ async function computePath() {
   if (!pathA || !pathB) { setStatus("请先设置起点与终点"); return; }
   if (pathA === pathB) { setStatus("起点与终点相同"); return; }
   setPhysics(true);
+  const btn = $("#path-btn");
+  // 路径模式会清空重绘画布，遮罩 + 禁按钮双管齐下
+  busyOn(btn, "计算中…", "正在计算最短路径…");
   setStatus("计算最短路径…");
   try {
     const data = await fetchJSON(
@@ -483,8 +523,10 @@ async function computePath() {
     setStatus(`最短路径：共 ${seq.length} 个节点、${data.length ?? data.edges.length} 步`);
     renderPathResult(seq, data.length ?? data.edges.length);
   } catch (e) {
-    setStatus("路径计算失败：" + e.message);
+    setStatus("路径计算失败：" + e.message, "err");
     renderPathResult(null, 0);
+  } finally {
+    busyOff(btn, true);
   }
 }
 
@@ -513,6 +555,8 @@ function renderPathResult(seq, length) {
 // 这样用户点一次按钮就会明显看到节点增多 + 重新取景，避免「点了没反应」。
 async function loadDefaultSeed() {
   setPhysics(true);
+  // 首屏：画布从空白到渲染期间盖遮罩，给出明确的加载反馈（此前只有侧栏 12px 小字）
+  busyOn(null, null, "正在加载默认图谱（GOTY 获奖作品）…");
   setStatus("加载默认图谱（GOTY 获奖作品）…");
   try {
     const data = await fetchJSON(`${API}/graph/seed?group=goty&limit=12&hops=1`);
@@ -522,7 +566,9 @@ async function loadDefaultSeed() {
     flashCanvas();
     setStatus(`已展示 GOTY 获奖作品及其关联（${data.nodes.length} 个节点）`);
   } catch (e) {
-    setStatus("默认图谱加载失败：" + e.message);
+    setStatus("默认图谱加载失败：" + e.message, "err");
+  } finally {
+    busyOff(null, true);
   }
 }
 
@@ -540,6 +586,9 @@ async function renderSeedFilter() {
   const params = new URLSearchParams({ hops: String(hops), limit: "200" });
   if (group) params.set("group", group);
   if (tags.length) params.set("tags", tags.join(","));
+  const btn = $("#seed-btn");
+  // 渲染种子会清空重绘画布，遮罩 + 禁按钮双管齐下
+  busyOn(btn, "渲染中…", "正在渲染种子（按筛选展示）…");
   setStatus("渲染种子（按筛选展示中）…");
   try {
     const data = await fetchJSON(`${API}/graph/filter?${params}`);
@@ -551,7 +600,9 @@ async function renderSeedFilter() {
     const tagTxt = tags.length ? tags.join("、") : "（无标签）";
     setStatus(`已按「类别=${grpTxt} · 标签=${tagTxt}」展示 ${data.nodes.length} 个节点、${data.edges.length} 条关系。点任意节点可继续展开探索。`);
   } catch (e) {
-    setStatus("渲染种子失败：" + e.message);
+    setStatus("渲染种子失败：" + e.message, "err");
+  } finally {
+    busyOff(btn, true);
   }
 }
 
@@ -568,7 +619,7 @@ async function loadTagOptions() {
       sel.appendChild(opt);
     });
   } catch (e) {
-    setStatus("标签列表加载失败：" + e.message);
+    setStatus("标签列表加载失败：" + e.message, "err");
   }
 }
 
@@ -622,7 +673,7 @@ async function loadCommunityAlgorithms() {
     };
     $("#comm-btn").disabled = false;
     renderCommParams();
-    setStatus("社区算法目录加载失败，已回退到内置核心算法：" + e.message);
+    setStatus("社区算法目录加载失败，已回退到内置核心算法：" + e.message, "err");
   }
 }
 
@@ -708,7 +759,7 @@ async function loadCommunities() {
   } catch (e) {
     hideOverlay();
     stopCommunityAnimation();
-    setStatus("社区分析失败：" + e.message);
+    setStatus("社区分析失败：" + e.message, "err");
     if (btn) { btn.disabled = false; btn.textContent = "运行社区分析"; }
   }
 }
@@ -1017,7 +1068,7 @@ function focusCommunityMember(id) {
   // 当前节点（脏数据）且无任何提示。
   fetchJSON(`${API}/graph/node/${encodeURIComponent(id)}`)
     .then(renderDetail)
-    .catch((e) => setStatus("节点详情加载失败：" + e.message));
+    .catch((e) => setStatus("节点详情加载失败：" + e.message, "err"));
   setStatus(`已聚焦：${displayLabel(nodes.get(id))}`);
 }
 
@@ -1048,7 +1099,7 @@ async function loadInfluence() {
     const mlabel = { pagerank: "PageRank", degree: "度数中心性", betweenness: "中介中心性" }[data.metric] || data.metric;
     setStatus(`影响力分析完成（${mlabel}${group ? " · " + groupLabel(group) : ""}，前 ${data.results.length} 名已高亮于画布：节点越大、金色边框越醒目表示影响力越高）`);
   } catch (e) {
-    setStatus("影响力分析失败：" + e.message);
+    setStatus("影响力分析失败：" + e.message, "err");
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "运行影响力分析"; }
   }
@@ -1135,7 +1186,7 @@ async function focusOrLoadNode(id) {
     const n = nodes.get(id);
     setStatus(`已加载并聚焦：${n ? displayLabel(n) : id}`);
   } catch (e) {
-    setStatus("聚焦节点失败：" + e.message);
+    setStatus("聚焦节点失败：" + e.message, "err");
   }
 }
 
@@ -1143,11 +1194,12 @@ async function focusOrLoadNode(id) {
 let tblOffset = 0;
 const TBL_LIMIT = 50;
 
-async function loadTable(reset) {
+async function loadTable(reset, btn) {
   if (reset) { tblOffset = 0; $("#tbl-body").innerHTML = ""; }
   const group = $("#tbl-group").value;
   const q = $("#tbl-q").value.trim();
   const offset = tblOffset;
+  busyOn(btn, reset ? "查询中…" : "加载中…");
   setStatus("加载表格…");
   try {
     const params = new URLSearchParams({ limit: String(TBL_LIMIT), offset: String(offset) });
@@ -1178,7 +1230,9 @@ async function loadTable(reset) {
     $("#tbl-more").style.display = shown < data.total ? "block" : "none";
     setStatus("");
   } catch (e) {
-    setStatus("表格加载失败：" + e.message);
+    setStatus("表格加载失败：" + e.message, "err");
+  } finally {
+    busyOff(btn);
   }
 }
 
@@ -1200,20 +1254,21 @@ function clearCanvas() {
 
 /* ---------------- 事件绑定 ---------------- */
 function bind() {
-  $("#search-btn").addEventListener("click", doSearch);
+  $("#search-btn").addEventListener("click", () => doSearch());
   $("#search-input").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
   $("#hops").addEventListener("input", (e) => { $("#hops-val").textContent = e.target.value; });
-  $("#seed-btn").addEventListener("click", renderSeedFilter);
+  $("#seed-btn").addEventListener("click", () => renderSeedFilter());
   $("#seed-hops").addEventListener("input", (e) => { $("#seed-hops-val").textContent = e.target.value; });
   $("#seed-tags-clear").addEventListener("click", () => {
     const sel = $("#seed-tags");
     for (const o of sel.options) o.selected = false;
     setStatus("已清空标签选择");
   });
-  $("#tbl-btn").addEventListener("click", () => loadTable(true));
-  $("#tbl-group").addEventListener("change", () => loadTable(true));
-  $("#tbl-q").addEventListener("keydown", (e) => { if (e.key === "Enter") loadTable(true); });
-  $("#tbl-more").addEventListener("click", () => loadTable(false));
+  // 表格加载期间禁用触发按钮，防止慢网络下连点导致重复请求
+  $("#tbl-btn").addEventListener("click", () => loadTable(true, $("#tbl-btn")));
+  $("#tbl-group").addEventListener("change", () => loadTable(true, $("#tbl-btn")));
+  $("#tbl-q").addEventListener("keydown", (e) => { if (e.key === "Enter") loadTable(true, $("#tbl-btn")); });
+  $("#tbl-more").addEventListener("click", () => loadTable(false, $("#tbl-more")));
   $("#reset-btn").addEventListener("click", clearCanvas);
   $("#clear-btn").addEventListener("click", clearCanvas);
   $("#fit-btn").addEventListener("click", focusGraph);
@@ -1239,7 +1294,7 @@ function bind() {
     if (wrap && !wrap.contains(e.target)) hideSearch();
   });
   $("#expand-btn").addEventListener("click", () => {
-    expandFrom(current, parseInt($("#hops").value, 10), collectTypes(), true);
+    expandFrom(current, parseInt($("#hops").value, 10), collectTypes(), true, $("#expand-btn"));
   });
   $("#set-a-btn").addEventListener("click", () => {
     if (current) { const n = nodes.get(current) || { id: current }; setPathNode("a", n); setStatus(`已将当前节点设为起点：${displayLabel(n)}`); }
@@ -1293,7 +1348,7 @@ async function loadUser() {
     // 原注释假设 probeBackend 会兜底，但两者是两次独立请求：它能成功不代表
     // /auth/me 可达。此处静默会让用户区无声消失且无任何提示。
     if (ua) ua.hidden = true;
-    setStatus("登录状态获取失败：" + e.message);
+    setStatus("登录状态获取失败：" + e.message, "err");
   }
 }
 
@@ -1317,7 +1372,7 @@ function bindUser() {
     if (!ok) {
       // 不能照样跳转：服务端会话未销毁时守卫会把用户立刻弹回 /explore，
       // 表现为「点了退出没反应」。
-      setStatus("退出登录失败，请重试");
+      setStatus("退出登录失败，请重试", "err");
       return;
     }
     // 退出后回登录页（守卫会把未登录的 /explore 跳回 /login?next=/explore/）
@@ -1341,7 +1396,7 @@ function bindUser() {
 // 全局错误兜底：任何未捕获异常都显式暴露，避免「静默失败 → 误以为功能无效」。
 window.addEventListener("error", (ev) => {
   const msg = (ev && ev.message) || (ev && ev.error && ev.error.message) || "未知脚本错误";
-  setStatus("脚本错误：" + msg);
+  setStatus("脚本错误：" + msg, "err");
   showConnBanner("⚠ 前端脚本出错：「" + esc(msg) + "」。请打开浏览器控制台（F12）查看详情，或硬刷新（Ctrl/Cmd+Shift+R）绕过缓存。");
 });
 window.addEventListener("unhandledrejection", (ev) => {

@@ -156,6 +156,9 @@ table.tbl { width: max-content; min-width: 100%; border-collapse: collapse; font
 .path-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .status { font-size: 12px; color: var(--muted); min-height: 16px; padding: 7px 9px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+/* 错误态：此前错误与「已展开 3 个邻居」等普通提示同为 12px 灰字，
+   视觉权重完全相同，失败信息容易被略过。红色 + 暖色描边做区分。 */
+.status.err { color: #f87171; border-color: rgba(248, 113, 113, 0.45); }
 .results { display: flex; flex-direction: column; gap: 6px; }
 .result-item {
   padding: 8px 10px; border-radius: 8px; background: var(--panel-2);
