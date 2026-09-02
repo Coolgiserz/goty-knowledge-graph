@@ -1,0 +1,5 @@
+# 搜索引擎与 AI 助手均欢迎抓取（未做任何限制）。
+User-agent: *
+Allow: /
+
+Sitemap: https://weirdgiser.site/goty-knowledge-graph/sitemap.xml
