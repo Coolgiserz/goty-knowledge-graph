@@ -79,6 +79,10 @@ jobs:
           cp site/index.html _site/
           cp site/assets/index.css _site/assets/
           cp site/assets/vis-network.min.js _site/assets/
+          # SEO/GEO：爬虫与 AI 助手的发现入口，与首页一起发布（缺一不可）
+          cp site/robots.txt _site/
+          cp site/sitemap.xml _site/
+          cp site/llms.txt _site/
           # 禁用 Jekyll：否则 Pages 会忽略下划线开头的文件/目录，且多一次无谓构建
           touch _site/.nojekyll
           echo "产物清单："

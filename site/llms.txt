@@ -1,0 +1,33 @@
+# 年度最佳游戏知识图谱（GOTY Knowledge Graph）
+
+> 2006–2025 年「年度最佳游戏」（Game of the Year）结构化数据集：20 届 TGA / Spike VGA 得主、107 款游戏、15 家开发商、47 类游戏类型、319 条关系。整理自 The Game Awards 与 Metacritic 公开资料，评分以 Metacritic 媒体均分为参考。
+
+## 历届年度最佳游戏（Game of the Year）
+- 2006《上古卷轴IV：湮没》（The Elder Scrolls IV: Oblivion）— Bethesda Game Studios（Spike VGA / VGX）
+- 2007《生化奇兵》（BioShock）— Irrational Games（当时名 2K Boston）（Spike VGA / VGX）
+- 2008《侠盗猎车手IV》（Grand Theft Auto IV）— Rockstar Games（Rockstar North 开发）（Spike VGA / VGX）
+- 2009《神秘海域2：纵横四海》（Uncharted 2: Among Thieves）— Naughty Dog（Spike VGA / VGX）
+- 2010《荒野大镖客：救赎》（Red Dead Redemption）— Rockstar Games（Rockstar San Diego 开发）（Spike VGA / VGX）
+- 2011《上古卷轴V：天际》（The Elder Scrolls V: Skyrim）— Bethesda Game Studios（Spike VGA / VGX）
+- 2012《行尸走肉（第一季）》（The Walking Dead）— Telltale Games（Spike VGA / VGX）
+- 2013《侠盗猎车手V》（Grand Theft Auto V）— Rockstar Games（Rockstar North 开发）（Spike VGA / VGX）
+- 2014《龙腾世纪：审判》（Dragon Age: Inquisition）— BioWare（The Game Awards）
+- 2015《巫师3：狂猎》（The Witcher 3: Wild Hunt）— CD Projekt Red（The Game Awards）
+- 2016《守望先锋》（Overwatch）— Blizzard Entertainment（The Game Awards）
+- 2017《塞尔达传说：旷野之息》（The Legend of Zelda: Breath of the Wild）— Nintendo EPD（The Game Awards）
+- 2018《战神（2018）》（God of War）— Santa Monica Studio（The Game Awards）
+- 2019《只狼：影逝二度》（Sekiro: Shadows Die Twice）— FromSoftware（The Game Awards）
+- 2020《最后生还者 第二部》（The Last of Us Part II）— Naughty Dog（The Game Awards）
+- 2021《双人成行》（It Takes Two）— Hazelight Studios（The Game Awards）
+- 2022《艾尔登法环》（Elden Ring）— FromSoftware（The Game Awards）
+- 2023《博德之门3》（Baldur&#x27;s Gate 3）— Larian Studios（The Game Awards）
+- 2024《宇宙机器人》（Astro Bot）— Team Asobi（The Game Awards）
+- 2025《光与影：33号远征队》（Clair Obscur: Expedition 33）— Sandfall Interactive（The Game Awards）
+
+## 页面
+- [首页（交互知识图谱 + 完整名单表）](https://weirdgiser.site/goty-knowledge-graph/)：按年份 / 工作室 / 类型筛选，点击节点查看游戏详情。
+
+## 数据说明
+- 2006–2013 年奖项为 Spike VGA / VGX，2014 年起为 The Game Awards（TGA）。
+- 评分以 Metacritic 媒体均分为参考，仅部分游戏有评分数据。
+- 数据与源码：https://github.com/Coolgiserz/goty-knowledge-graph
