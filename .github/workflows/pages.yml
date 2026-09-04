@@ -113,6 +113,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # 把部署产物的 URL 暴露出去，notify job 要把它写进邮件正文
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -120,3 +123,123 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ---------------------------------------------------------------------------
+  # 部署结果邮件通知（成功 / 失败都发；失败邮件通常更有价值）
+  #
+  # 用 dawidd6/action-send-mail（v18）。**pin 到 commit SHA 而不是 tag**：tag 理论上可被
+  # 移动，SHA 不可变；这个 action 会拿到邮箱密码，值得多一层保险。
+  #
+  # **未配置 secrets 时自动跳过**，绝不让 CI 变红——fork 本仓库的人没有 secrets 也能正常跑。
+  #
+  # ⚠️ 安全红线（详见 docs/DEPLOY_EMAIL_NOTIFICATION.md 第 4 节）：
+  #   · 绝不要开 nodemailerdebug / nodemailerlog —— 它把 SMTP 对话（含 AUTH 凭据的
+  #     base64）打进 Actions 日志，而**公开仓库的 Actions 日志人人可见**，等于公开邮箱密码。
+  #   · 密码只走 secrets，绝不写进 workflow 文件。
+  #   · 不要用 connection_url 的 smtp+starttls:// 形式（上游 v18 的 bug：它会强制
+  #     secure=true，在 587 端口必然连不上）。改用 server_address + server_port。
+  # ---------------------------------------------------------------------------
+  notify:
+    name: Email notification
+    needs: [build, deploy]
+    # always()：build/deploy 失败时也要发信；!cancelled()：被并发取消的运行是噪音，不发
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查是否已配置邮件
+        id: cfg
+        env:
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          if [ -n "$MAIL_SERVER" ] && [ -n "$MAIL_TO" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置 MAIL_SERVER / MAIL_TO，跳过邮件通知。部署结果不受影响。"
+          fi
+
+      # 主题与正文都写进文件再让 action 用 file:// 读取：多行文本塞进 YAML 很容易被
+      # 转义/缩进搞坏，走文件是唯一稳的路子。
+      - name: 组装邮件内容
+        if: steps.cfg.outputs.enabled == 'true'
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+          # 提交信息是**用户可控输入**，走 env 传进 shell，绝不内联进脚本
+          # （内联是 GitHub Actions 经典的脚本注入点）。
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          PROD_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ "$DEPLOY_RESULT" = "success" ]; then
+            STATUS="成功"; ICON="✅"
+          else
+            STATUS="失败"; ICON="❌"
+          fi
+
+          # 全部用参数展开，不启子进程，也不碰管道：
+          #   · ${VAR%%$'\n'*} 取第一行——不用 `printf ... | head -1`。head 读完第一行就关
+          #     管道，上游 printf 继续写会收到 SIGPIPE；在 `set -o pipefail` 下该错误被传播，
+          #     set -e 随即终止脚本。
+          #     ⚠️ 实测边界（本机 bash）：提交信息小于 pipe buffer（Linux 64KB）时**不触发**，
+          #     约 439KB 才稳定复现「printf: write error: Broken pipe」。
+          #     属于「平时好好的、哪天有人粘贴了长 PR 描述才突然炸」那类问题，不如一开始就避开。
+          #   · ${VAR:0:80} 截断，同理替代 cut。
+          SHA7=${GITHUB_SHA:0:7}
+          MSG=${COMMIT_MSG%%$'\n'*}
+          MSG=${MSG:0:80}
+          if [ -z "$MSG" ]; then
+            MSG="（手动触发，无提交信息）"
+          fi
+          TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S CST')
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+          printf '%s GOTY 知识图谱 · 部署%s · %s@%s\n' \
+            "$ICON" "$STATUS" "$GITHUB_REF_NAME" "$SHA7" > subject.txt
+
+          {
+            printf 'GitHub Pages 部署%s\n\n' "$STATUS"
+            printf '仓库     %s\n' "$GITHUB_REPOSITORY"
+            printf '分支     %s\n' "$GITHUB_REF_NAME"
+            printf '提交     %s\n' "$SHA7"
+            printf '提交说明 %s\n' "$MSG"
+            printf '触发者   %s\n' "$GITHUB_ACTOR"
+            printf '触发方式 %s\n' "$GITHUB_EVENT_NAME"
+            printf '时间     %s\n' "$TIME"
+            printf '\n'
+            if [ "$DEPLOY_RESULT" = "success" ]; then
+              printf '线上地址 %s\n' "${PROD_URL:-（未配置 vars.PRODUCTION_URL）}"
+              printf 'Pages    %s\n' "$PAGE_URL"
+            else
+              printf '失败环节 build=%s  deploy=%s\n' "$BUILD_RESULT" "$DEPLOY_RESULT"
+            fi
+            printf '运行详情 %s\n' "$RUN_URL"
+            printf '\n—— 本邮件由 GitHub Actions 自动发送\n'
+          } > body.txt
+
+          echo "----- subject -----"; cat subject.txt
+          echo "----- body -----"; cat body.txt
+
+      - name: 发送邮件
+        if: steps.cfg.outputs.enabled == 'true'
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          # 端口决定加密方式，action 内部按 465 自动推断 secure（465→隐式 TLS，
+          # 587→明文连接后 opportunistic STARTTLS），因此**不需要**单独配 secure。
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          # 必须是「纯邮箱」或「显示名 <邮箱>」两种格式之一，否则 action 直接报错
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          # file:// 让 action 从文件读取，避免 YAML 转义问题；中文由 nodemailer 正确编码
+          subject: file://subject.txt
+          body: file://body.txt
+          # 自签证书的企业 SMTP 才需要开；会把 TLS 校验降级，默认不开
+          ignore_cert: ${{ vars.MAIL_IGNORE_CERT || 'false' }}
+          # 部署结果邮件值得高优先级，便于邮箱客户端置顶
+          priority: high
