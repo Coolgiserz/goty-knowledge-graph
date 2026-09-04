@@ -83,6 +83,18 @@ jobs:
           cp site/robots.txt _site/
           cp site/sitemap.xml _site/
           cp site/llms.txt _site/
+          # 搜索引擎所有权验证文件（HTML 文件验证方式）。文件名由控制台生成后放进 site/。
+          # Google 有两种命名，通配符 `google*.html` 同时覆盖：
+          #   · google-site-verification-xxxx.html（旧式）
+          #   · googleaec9b9172776c3ae.html（新式，google + 16 位十六进制，本项目用的这种）
+          # ⚠️ 必须用条件判断包裹：文件不存在时 cp 的通配符不匹配会报错并中断整个部署，
+          #    导致线上站点无法更新。包一层 ls 判断即可「有就带上、没有就跳过」。
+          if ls site/google*.html >/dev/null 2>&1; then
+            cp site/google*.html _site/
+          fi
+          if ls site/BingSiteAuth.xml >/dev/null 2>&1; then
+            cp site/BingSiteAuth.xml _site/
+          fi
           # 禁用 Jekyll：否则 Pages 会忽略下划线开头的文件/目录，且多一次无谓构建
           touch _site/.nojekyll
           echo "产物清单："
