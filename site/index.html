@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>历届年度最佳游戏名单 2006–2025（TGA / Spike VGA）· GOTY 知识图谱</title>
+<title>历届年度最佳游戏名单 2006–2025｜GOTY 知识图谱</title>
 <meta name="description" content="2006–2025 共 20 届年度最佳游戏（Game of the Year）完整名单与关系图谱：历届得主、获奖工作室、游戏类型与 Metacritic 参考评分，覆盖 107 款游戏、15 家开发商、47 类游戏类型。"/>
 <link rel="canonical" href="https://weirdgiser.site/goty-knowledge-graph/"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="年度最佳游戏知识图谱"/>
-<meta property="og:title" content="历届年度最佳游戏名单 2006–2025（TGA / Spike VGA）"/>
+<meta property="og:title" content="历届年度最佳游戏名单 2006–2025｜GOTY 知识图谱"/>
 <meta property="og:description" content="20 届 GOTY 得主、107 款游戏、15 家开发商、47 类游戏类型的完整关系数据，含交互图谱与完整名单表。"/>
 <meta property="og:url" content="https://weirdgiser.site/goty-knowledge-graph/"/>
 <meta property="og:locale" content="zh_CN"/>
@@ -20,10 +20,19 @@
 <!--__SEO_JSONLD_END__-->
   <!-- Tailwind 构建产物（源：site/src/index.css，改样式后执行 npm run build:css） -->
   <link rel="stylesheet" href="assets/index.css" />
+  <style>
+    .faq{border-top:1px solid var(--line);background:var(--bg);padding:18px 20px}
+    .faq h2{font-size:15px;margin:0 0 14px;letter-spacing:.5px}
+    .faq-item{margin-bottom:16px}
+    .faq-item h3{font-size:13px;color:var(--gold);margin:0 0 5px;font-weight:600}
+    .faq-item p{margin:0;font-size:13px;line-height:1.75;color:var(--muted)}
+    .faq-item p b{color:var(--txt);font-weight:600}
+    @media (max-width:768px){.faq{padding:14px 12px}.faq h2{font-size:14px}.faq-item p{font-size:12.5px}}
+  </style>
 </head>
 <body>
 <header>
-  <h1>🎮 近20年<span class="c">年度最佳游戏</span>知识图谱 <span style="font-size:12px;color:var(--muted)">2006–2025</span></h1>
+  <h1>历届<span class="c">年度最佳游戏</span>名单 <span style="font-size:12px;color:var(--muted)">2006–2025</span></h1>
   <div class="sub">Spike VGA / VGX（2006–2013）→ The Game Awards（2014–2025）· 点击节点查看详情，按年份 / 工作室 / 类型筛选</div>
   <div class="chips" id="chips"></div>
 </header>
@@ -105,6 +114,40 @@
   <span class="sep"></span>
   <span class="grp"><i class="dot" style="background:#171a21;border:2px solid var(--gold)"></i>已折叠（双击展开）</span>
 </div>
+
+<section id="faq" class="faq">
+  <h2>关于年度最佳游戏的常见问题</h2>
+  <div class="faq-item">
+    <h3>历届年度最佳游戏有哪些？</h3>
+    <p>2006–2025 年共 20 届。首届得主是 2006 年的《上古卷轴IV：湮没》，最新一届是 2025 年的《光与影：33号远征队》。完整名单见上方表格，可按年份、工作室、类型筛选。</p>
+  </div>
+  <div class="faq-item">
+    <h3>年度最佳游戏（GOTY）由哪个机构评选？</h3>
+    <p>2006–2013 年由 <b>Spike VGA / VGX</b> 颁发（8 届），2014 年起由 <b>The Game Awards（TGA）</b> 接手（12 届）。两者是同一奖项体系的前后两段——TGA 创办人 Geoff Keighley 此前正是 Spike VGA 的制作人。</p>
+  </div>
+  <div class="faq-item">
+    <h3>哪家工作室获得的年度最佳最多？</h3>
+    <p><b>Rockstar Games</b> 以 3 次居首：《侠盗猎车手IV》（2008）、《荒野大镖客：救赎》（2010）、《侠盗猎车手V》（2013）。贝塞斯达、顽皮狗、FromSoftware 各 2 次。</p>
+  </div>
+  <div class="faq-item">
+    <h3>什么类型的游戏最容易获得年度最佳？</h3>
+    <p>按获奖作的类型标签统计：动作冒险 12/20 届（60%）、开放世界 9/20（45%）、动作角色扮演 4/20（20%）、多人合作 3/20（15%）。一款游戏可同时属于多个类型，故各项比例之和超过 100%。</p>
+  </div>
+  <div class="faq-item">
+    <h3>开放世界游戏还能拿到年度最佳吗？</h3>
+    <p>能，但明显变少了。20 届中共有 9 款开放世界作品获奖，但 <b>2018 年以来的 8 届里只有 2022 年的《艾尔登法环》一款</b>。</p>
+  </div>
+</section>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"历届年度最佳游戏有哪些？","acceptedAnswer":{"@type":"Answer","text":"2006–2025 年共 20 届。首届得主是 2006 年的《上古卷轴IV：湮没》，最新一届是 2025 年的《光与影：33号远征队》。完整名单见上方表格，可按年份、工作室、类型筛选。"}},
+{"@type":"Question","name":"年度最佳游戏（GOTY）由哪个机构评选？","acceptedAnswer":{"@type":"Answer","text":"2006–2013 年由 Spike VGA / VGX 颁发（8 届），2014 年起由 The Game Awards（TGA） 接手（12 届）。两者是同一奖项体系的前后两段——TGA 创办人 Geoff Keighley 此前正是 Spike VGA 的制作人。"}},
+{"@type":"Question","name":"哪家工作室获得的年度最佳最多？","acceptedAnswer":{"@type":"Answer","text":"Rockstar Games 以 3 次居首：《侠盗猎车手IV》（2008）、《荒野大镖客：救赎》（2010）、《侠盗猎车手V》（2013）。贝塞斯达、顽皮狗、FromSoftware 各 2 次。"}},
+{"@type":"Question","name":"什么类型的游戏最容易获得年度最佳？","acceptedAnswer":{"@type":"Answer","text":"按获奖作的类型标签统计：动作冒险 12/20 届（60%）、开放世界 9/20（45%）、动作角色扮演 4/20（20%）、多人合作 3/20（15%）。一款游戏可同时属于多个类型，故各项比例之和超过 100%。"}},
+{"@type":"Question","name":"开放世界游戏还能拿到年度最佳吗？","acceptedAnswer":{"@type":"Answer","text":"能，但明显变少了。20 届中共有 9 款开放世界作品获奖，但 2018 年以来的 8 届里只有 2022 年的《艾尔登法环》一款。"}}
+]}
+</script>
+
 <div class="foot">
   <div class="foot-note">数据来源：The Game Awards / Spike VGA 公开资料与 Metacritic 评分（综合整理，评分以 Metacritic 媒体均分为参考）。</div>
   <div class="foot-links">
