@@ -186,12 +186,20 @@ for(let y=yMinAll;y<=yMaxAll;y++){yMinSel.add(new Option(y,y));yMaxSel.add(new O
 yMinSel.value=yMinAll; yMaxSel.value=yMaxAll;
 
 // vis-network
+// 节点主色统一从 CSS 变量读取，与右栏图注（用 var(--gold) 等）共用同一份定义。
+// 以前这里硬编码 '#f5b301'、图注用 var(--gold)，是两份独立定义，任改其一都会让
+// 图注和图谱对不上——这就是双数据源必然的漂移风险。
+// fallback 保留原色值：万一 CSS 没加载（Pages 资源 404），也不至于退回
+// vis-network 的默认蓝，导致「所有节点一个色」这种更难排查的现象。
+// 注：border 色与顶层类型的 '#2f9e54' 仍为硬编码——图注不描述边框，CSS 里也
+// 没有对应变量，为它们新增变量反而增加维护面。
+const cssVar=(n,fb)=>(getComputedStyle(document.documentElement).getPropertyValue(n)||'').trim()||fb;
 const groupColors = {
-  goty:{background:'#f5b301',border:'#ffd54a'},
-  game:{background:'#3b6ea5',border:'#5b8fd0'},
-  studio:{background:'#8e44ad',border:'#b06fd0'},
-  genre:{background:'#27ae60',border:'#52d68a'},
-  award:{background:'#e74c3c',border:'#ff7a6a'}
+  goty:{background:cssVar('--gold','#f5b301'),border:'#ffd54a'},
+  game:{background:cssVar('--blue','#3b6ea5'),border:'#5b8fd0'},
+  studio:{background:cssVar('--purple','#8e44ad'),border:'#b06fd0'},
+  genre:{background:cssVar('--green','#27ae60'),border:'#52d68a'},
+  award:{background:cssVar('--red','#e74c3c'),border:'#ff7a6a'}
 };
 GRAPH.nodes.forEach(n=>{
   let ob, obw, col;
