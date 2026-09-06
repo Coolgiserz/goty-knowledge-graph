@@ -191,6 +191,23 @@ function graphOptions(){
   return {
     nodes:{font:{color:'#e8eaed',size:narrow?15:13,face:'-apple-system,sans-serif'},
       borderWidth:2,shadow:{enabled:true,size:6,color:'rgba(0,0,0,.4)'}},
+    // ⚠️ 必须显式定义 groups，否则节点颜色会完全失控。
+    // vis-network 的 GroupsHandler 对**未在 options.groups 中定义**的 group，
+    // 会从内置 _defaultGroups 里按顺序发牌（第 1 个蓝 #97C2FC、第 2 个黄 #FFFF00、
+    // 第 3 个红 #FB7E81…），发牌次序取决于节点数据中 group 首次出现的先后；
+    // 且 group 颜色的优先级**高于**节点自身的 color 属性——于是上面给每个节点
+    // 设的 n.color 被整个盖掉，呈现出「GOTY 蓝色星形 / 其他作品金色圆点」这种
+    // 与图注完全相反、且随数据顺序漂移的结果。
+    // 只有在这里声明，颜色才真正可预期。
+    // 注：groups 只定义 color，不动 shape——形状由节点数据自带（star/dot/…），
+    // 在 group 里写 shape 会反过来覆盖节点数据。
+    groups:{
+      goty:{color:groupColors.goty},
+      game:{color:groupColors.game},
+      studio:{color:groupColors.studio},
+      genre:{color:groupColors.genre},
+      award:{color:groupColors.award}
+    },
     edges:{smooth:{type:'continuous'},font:{color:'#9aa3b2',size:narrow?11:10},selectionWidth:2},
     physics:{barnesHut:{gravitationalConstant:narrow?-6000:-9000,
       springLength:narrow?95:130,springConstant:0.03,
